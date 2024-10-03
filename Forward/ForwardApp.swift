@@ -9,9 +9,9 @@ import SwiftUI
 
 @main
 struct ForwardApp: App {
-    var body: some Scene {
-        WindowGroup {
-            ContentView()
-        }
-    }
+  @NSApplicationDelegateAdaptor private var delegate: AppDelegate
+
+  var body: some Scene {
+    AppScene()
+  }
 }

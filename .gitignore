@@ -1,0 +1,12 @@
+# FFmpeg
+deps/
+ffbuild/
+ForwardFFmpeg/Sources/CFFmpeg/*/bin
+ForwardFFmpeg/Sources/CFFmpeg/*/include/*
+!ForwardFFmpeg/Sources/CFFmpeg/*/include/libav.h
+!ForwardFFmpeg/Sources/CFFmpeg/*/include/module.modulemap
+ForwardFFmpeg/Sources/CFFmpeg/*/lib
+ForwardFFmpeg/Sources/CFFmpeg/*/share
+
+# Xcode
+xcuserdata/

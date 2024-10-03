@@ -1,0 +1,13 @@
+// https://forums.swift.org/t/is-swiftpm-support-c-language-link-custom-build-static-library-inside-targets/21614
+module CFFmpeg {
+  header "libav.h"
+  export *
+
+  link "avcodec"
+  link "avdevice"
+  link "avfilter"
+  link "avformat"
+  link "avutil"
+  link "swresample"
+  link "swscale"
+}
