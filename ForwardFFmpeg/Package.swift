@@ -1,4 +1,4 @@
-// swift-tools-version: 5.10
+// swift-tools-version: 6.0
 // The swift-tools-version declares the minimum version of Swift required to build this package.
 
 import Foundation
@@ -28,8 +28,9 @@ let package = Package(
       linkerSettings: [
         .linkedLibrary("bz2"),
         .linkedLibrary("iconv"),
+        .linkedLibrary("z"),
+        // Libraries of interest
         .linkedLibrary("opus"),
-        .linkedLibrary("z")
       ]
     )
   ]

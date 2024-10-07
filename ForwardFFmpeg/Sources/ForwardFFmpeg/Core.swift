@@ -20,7 +20,7 @@ public let AVSTATUS_EAGAIN = AVERR_EAGAIN
 public struct FFError: Error {
   public let code: Code
 
-  public struct Code: RawRepresentable {
+  public struct Code: Sendable, RawRepresentable {
     public var rawValue: Int32
 
     public static let endOfFile = Self(rawValue: AVSTATUS_EOF)
@@ -53,12 +53,22 @@ public class FFFormatContext {
     avformat_free_context(context)
   }
 
-  public func open(at url: UnsafePointer<CChar>!) throws {
+  public func open(at url: UnsafePointer<CChar>!) throws(FFError) {
     let status = avformat_open_input(&context, url, nil, nil)
 
     guard status == AVSTATUS_OK else {
       throw FFError(code: FFError.Code(rawValue: status))
     }
+  }
+
+  public func opening<T, E>(at url: UnsafePointer<CChar>!, _ body: () throws(E) -> T) throws -> T where E: Error {
+    try open(at: url)
+
+    defer {
+      avformat_close_input(&context)
+    }
+
+    return try body()
   }
 
   public func findStreamInfo() throws {
@@ -70,7 +80,7 @@ public class FFFormatContext {
   }
 
   public func findBestStream(
-    type: CFFmpeg.AVMediaType,
+    ofType type: CFFmpeg.AVMediaType,
     decoder: UnsafeMutablePointer<UnsafePointer<AVCodec>?>!
   ) throws -> Int32 {
     let result = av_find_best_stream(context, type, -1, -1, decoder, 0)
@@ -82,7 +92,7 @@ public class FFFormatContext {
     return result
   }
 
-  public func readFrame(into packet: UnsafeMutablePointer<AVPacket>!) throws {
+  public func receivePacket(_ packet: UnsafeMutablePointer<AVPacket>!) throws(FFError) {
     let status = av_read_frame(context, packet)
 
     guard status == AVSTATUS_OK else {
@@ -130,7 +140,8 @@ public class FFCodecContext {
     let status = avcodec_send_packet(context, packet)
 
     switch status {
-      case AVSTATUS_OK: break
+      case AVSTATUS_OK:
+        break
       case AVSTATUS_ENOMEM:
         fatalError()
       default:
@@ -314,4 +325,29 @@ extension AVChannelOrder {
 
 extension CFFmpeg.AVMediaType {
   public static let audio = AVMEDIA_TYPE_AUDIO
+  public static let video = AVMEDIA_TYPE_VIDEO
 }
+
+public struct FFDictionaryIterator: IteratorProtocol {
+  private let dict: OpaquePointer!
+  private var tag: UnsafePointer<AVDictionaryEntry>!
+
+  public mutating func next() -> UnsafePointer<AVDictionaryEntry>? {
+    let tag = av_dict_iterate(dict, tag)
+    self.tag = tag
+
+    return tag
+  }
+}
+
+extension FFDictionaryIterator {
+  public init(_ dict: OpaquePointer!, tag: UnsafePointer<AVDictionaryEntry>!) {
+    self.init(dict: dict, tag: tag)
+  }
+
+  public init(_ dict: OpaquePointer!) {
+    self.init(dict, tag: nil)
+  }
+}
+
+extension FFDictionaryIterator: Sequence {}

@@ -7,6 +7,9 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		00C46BB02CB0540200CDFD4D /* ForwardFFmpeg in Frameworks */ = {isa = PBXBuildFile; productRef = 00D8C0592BFA82E300F4F953 /* ForwardFFmpeg */; };
+		00C46BB12CB0540200CDFD4D /* ForwardFFmpeg in Frameworks */ = {isa = PBXBuildFile; productRef = 00D98C3D2CAE5AEC0008E0F1 /* ForwardFFmpeg */; };
+		00C46BB22CB0540200CDFD4D /* ForwardFFmpeg in Frameworks */ = {isa = PBXBuildFile; productRef = 00D98E412CAF33070008E0F1 /* ForwardFFmpeg */; };
 		00D98E452CAF33740008E0F1 /* Algorithms in Frameworks */ = {isa = PBXBuildFile; productRef = 00D98C402CAE5B180008E0F1 /* Algorithms */; };
 		00D98E5D2CAF3D060008E0F1 /* Preview Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 00D98E552CAF3D050008E0F1 /* Preview Assets.xcassets */; };
 		00D98E5E2CAF3D060008E0F1 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 00D98E572CAF3D050008E0F1 /* Assets.xcassets */; };
@@ -819,6 +822,9 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				00C46BB22CB0540200CDFD4D /* ForwardFFmpeg in Frameworks */,
+				00C46BB12CB0540200CDFD4D /* ForwardFFmpeg in Frameworks */,
+				00C46BB02CB0540200CDFD4D /* ForwardFFmpeg in Frameworks */,
 				00D98E452CAF33740008E0F1 /* Algorithms in Frameworks */,
 				00D98ECA2CAF48B50008E0F1 /* ForwardFFmpeg in Frameworks */,
 			);
@@ -830,8 +836,8 @@
 		0017ED1B2BF17A38008B3D76 = {
 			isa = PBXGroup;
 			children = (
-				00D98EC62CAF47690008E0F1 /* LICENSE */,
 				00D98E542CAF3C060008E0F1 /* README.md */,
+				00D98EC62CAF47690008E0F1 /* LICENSE */,
 				005810632BF40688009CB589 /* .gitignore */,
 				00D98E5C2CAF3D050008E0F1 /* Forward */,
 				00BAFB422BF9347E009B84D5 /* ForwardFFmpeg */,
@@ -2302,6 +2308,7 @@
 			isa = PBXNativeTarget;
 			buildConfigurationList = 0017ED332BF17A3D008B3D76 /* Build configuration list for PBXNativeTarget "Forward" */;
 			buildPhases = (
+				00BDCDA72CB32B1200D11525 /* Run Script */,
 				0017ED202BF17A38008B3D76 /* Sources */,
 				0017ED212BF17A38008B3D76 /* Frameworks */,
 				0017ED222BF17A38008B3D76 /* Resources */,
@@ -2375,6 +2382,29 @@
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXResourcesBuildPhase section */
+
+/* Begin PBXShellScriptBuildPhase section */
+		00BDCDA72CB32B1200D11525 /* Run Script */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+				"$(SRCROOT)/Tools/build-deps.sh",
+			);
+			name = "Run Script";
+			outputFileListPaths = (
+			);
+			outputPaths = (
+				"$(DERIVED_FILE_DIR)/ForwardFFmpeg/Sources/CFFmpeg/$(ARCH)",
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "# Type a script or drag a script file from your workspace to insert its path.\n./Tools/build-deps.sh\n";
+		};
+/* End PBXShellScriptBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
 		0017ED202BF17A38008B3D76 /* Sources */ = {
@@ -2522,6 +2552,7 @@
 				DEVELOPMENT_TEAM = UYJ357XWK6;
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_PREVIEWS = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = NO;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -2554,6 +2585,7 @@
 				DEVELOPMENT_TEAM = UYJ357XWK6;
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_PREVIEWS = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = NO;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
 				LD_RUNPATH_SEARCH_PATHS = (

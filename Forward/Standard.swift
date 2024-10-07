@@ -15,6 +15,7 @@ extension Bundle {
 extension Logger {
   static let main = Self()
   static let sandbox = Self(subsystem: Bundle.appIdentifier, category: "Sandbox")
+  static let ffmpeg = Self(subsystem: Bundle.appIdentifier, category: "FFmpeg")
 }
 
 extension RangeReplaceableCollection {
