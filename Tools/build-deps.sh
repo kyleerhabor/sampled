@@ -14,14 +14,18 @@ CFFMPEGDIR=ForwardFFmpeg/Sources/CFFmpeg
 OPUS_GIT_TAG=v1.5.2
 OPUS_GIT_URL=https://gitlab.xiph.org/xiph/opus.git
 OPUS_PATH="$DEPSDIR/opus"
-FFMPEG_GIT_COMMIT=358fdf30838682f2b183e67d247e0d4d53b5a6a4
+FFMPEG_GIT_COMMIT=477445722cc0d67439ca151c9d486c1bfca7a084
 FFMPEG_GIT_URL=https://git.ffmpeg.org/ffmpeg.git
 FFMPEG_PATH="$DEPSDIR/ffmpeg"
 GAS_PREPROCESSOR_COMMIT=7380ac24e1cd23a5e6d76c6af083d8fc5ab9e943
 GAS_PREPROCESSOR_URL=https://github.com/FFmpeg/gas-preprocessor.git
 GAS_PREPROCESSOR_PATH="$DEPSDIR/gas-preprocessor"
 
-EXTRA_CFLAGS="-O3"
+EXTRA_CFLAGS=""
+
+if [ "$CONFIGURATION" != "Debug" ]; then
+  EXTRA_CFLAGS="-O3"
+fi
 
 prefix () {
   local arch="$1"
@@ -39,18 +43,29 @@ max () {
 NCPU="$(sysctl -n hw.ncpu)"
 NJOB="$(max 1 "$(($NCPU / 2))")"
 
+gitdownload () {
+  local remote="$1"
+  local branch="$2"
+  local path="$3"
+
+  git -C "$path" pull "$remote" "$branch" || git clone "$remote" "$remote"
+}
+
+downloadbrew () {
+  brew install autoconf automake libtool nasm # Should we pin these?
+}
+
 downloadopus () {
-  brew install autoconf automake libtool # Should we pin these?
   git clone --depth=1 --branch="$OPUS_GIT_TAG" "$OPUS_GIT_URL" "$CWD/$OPUS_PATH"
 }
 
 downloadgas () {
-  git clone "$GAS_PREPROCESSOR_URL" "$CWD/$GAS_PREPROCESSOR_PATH"
+  gitdownload "$GAS_PREPROCESSOR_URL" master "$CWD/$GAS_PREPROCESSOR_PATH"
   git -C "$CWD/$GAS_PREPROCESSOR_PATH" checkout "$GAS_PREPROCESSOR_COMMIT"
 }
 
 downloadffmpeg () {
-  git clone "$FFMPEG_GIT_URL" "$CWD/$FFMPEG_PATH"
+  gitdownload "$FFMPEG_GIT_URL" master "$CWD/$FFMPEG_PATH"
   git -C "$CWD/$FFMPEG_PATH" checkout "$FFMPEG_GIT_COMMIT"
 }
 
@@ -129,21 +144,22 @@ buildffmpeg () {
   #...wv:        WavPack
   #
   # Decoders:
-  #   aac_at:   aac (AudioToolbox)   / Advanced Audio Coding
-  #   ac3_at:   ac3 (AudioToolbox)   / Dolby AC-3
-  #   alac_at:  alac (AudioToolbox)  / Apple Lossless Audio Codec
-  #   eac3_at:  eac3 (AudioToolbox)  / Dolby Digital Plus
-  #   libopus:  libopus Opus         / Opus
-  #   mjpeg:    MJPEG (Motion JPEG)  / Motion JPEG
-  #   mp1_at:   mp1 (AudioToolbox)   / MPEG-1 Audio Layer I
-  #   mp2_at:   mp2 (AudioToolbox)   / MPEG-1 Audio Layer II
-  #   mp3_at:   mp3 (AudioToolbox)   / MPEG-1 Audio Layer III
+  #   aac_at:   aac (AudioToolbox)                     / Advanced Audio Coding
+  #   ac3_at:   ac3 (AudioToolbox)                     / Dolby AC-3
+  #   alac_at:  alac (AudioToolbox)                    / Apple Lossless Audio Codec
+  #   eac3_at:  eac3 (AudioToolbox)                    / Dolby Digital Plus
+  #   libopus:  libopus Opus                           / Opus
+  #   mjpeg:    MJPEG (Motion JPEG)                    / Motion JPEG
+  #   mp1_at:   mp1 (AudioToolbox)                     / MPEG-1 Audio Layer I
+  #   mp2_at:   mp2 (AudioToolbox)                     / MPEG-1 Audio Layer II
+  #   mp3_at:   mp3 (AudioToolbox)                     / MPEG-1 Audio Layer III
+  #   png:      PNG (Portable Network Graphics) image  / PNG
   PKG_CONFIG_PATH="$CWD/$prefix/lib/pkgconfig" \
   ./configure --prefix="$CWD/$prefix" \
     --disable-network --disable-everything \
     --enable-libopus \
     --enable-demuxer='aac,ac3,aiff,flac,loas,matroska,mov,mp3,ogg,wav' \
-    --enable-decoder='*_at,libopus,mjpeg' \
+    --enable-decoder='*_at,libopus,mjpeg,png' \
     --enable-protocol='file' \
     --enable-cross-compile \
     --sysroot="$(xcrun --sdk macosx --show-sdk-path)" \
@@ -165,6 +181,7 @@ build () {
   buildffmpeg "$arch"
 }
 
+downloadbrew
 downloadopus
 downloadgas
 downloadffmpeg

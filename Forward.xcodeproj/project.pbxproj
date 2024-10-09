@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		00BDFB332CB42B7C009D66A8 /* Localizable.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = 00BDFB322CB42B7C009D66A8 /* Localizable.xcstrings */; };
 		00C46BB02CB0540200CDFD4D /* ForwardFFmpeg in Frameworks */ = {isa = PBXBuildFile; productRef = 00D8C0592BFA82E300F4F953 /* ForwardFFmpeg */; };
 		00C46BB12CB0540200CDFD4D /* ForwardFFmpeg in Frameworks */ = {isa = PBXBuildFile; productRef = 00D98C3D2CAE5AEC0008E0F1 /* ForwardFFmpeg */; };
 		00C46BB22CB0540200CDFD4D /* ForwardFFmpeg in Frameworks */ = {isa = PBXBuildFile; productRef = 00D98E412CAF33070008E0F1 /* ForwardFFmpeg */; };
@@ -361,6 +362,7 @@
 		00B5C8A12BF976C900212E92 /* ffmpeg.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = ffmpeg.h; sourceTree = "<group>"; };
 		00B5C8A32BF976C900212E92 /* Core.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Core.swift; sourceTree = "<group>"; };
 		00BAFB422BF9347E009B84D5 /* ForwardFFmpeg */ = {isa = PBXFileReference; lastKnownFileType = wrapper; path = ForwardFFmpeg; sourceTree = "<group>"; };
+		00BDFB322CB42B7C009D66A8 /* Localizable.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; path = Localizable.xcstrings; sourceTree = "<group>"; };
 		00D98C4C2CAF05BA0008E0F1 /* ffmpeg */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.executable"; path = ffmpeg; sourceTree = "<group>"; };
 		00D98C4D2CAF05BA0008E0F1 /* ffprobe */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.executable"; path = ffprobe; sourceTree = "<group>"; };
 		00D98C4F2CAF05BA0008E0F1 /* ac3_parser.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = ac3_parser.h; sourceTree = "<group>"; };
@@ -2275,6 +2277,7 @@
 				00D98E562CAF3D050008E0F1 /* Preview Content */,
 				00D98E572CAF3D050008E0F1 /* Assets.xcassets */,
 				00D98E592CAF3D050008E0F1 /* Forward.entitlements */,
+				00BDFB322CB42B7C009D66A8 /* Localizable.xcstrings */,
 			);
 			path = Forward;
 			sourceTree = "<group>";
@@ -2308,7 +2311,7 @@
 			isa = PBXNativeTarget;
 			buildConfigurationList = 0017ED332BF17A3D008B3D76 /* Build configuration list for PBXNativeTarget "Forward" */;
 			buildPhases = (
-				00BDCDA72CB32B1200D11525 /* Run Script */,
+				00BDCDA72CB32B1200D11525 /* C: Build Dependencies */,
 				0017ED202BF17A38008B3D76 /* Sources */,
 				0017ED212BF17A38008B3D76 /* Frameworks */,
 				0017ED222BF17A38008B3D76 /* Resources */,
@@ -2377,6 +2380,7 @@
 			files = (
 				00D98EC72CAF47690008E0F1 /* LICENSE in Resources */,
 				00D98E5D2CAF3D060008E0F1 /* Preview Assets.xcassets in Resources */,
+				00BDFB332CB42B7C009D66A8 /* Localizable.xcstrings in Resources */,
 				00D98E5E2CAF3D060008E0F1 /* Assets.xcassets in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -2384,7 +2388,7 @@
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXShellScriptBuildPhase section */
-		00BDCDA72CB32B1200D11525 /* Run Script */ = {
+		00BDCDA72CB32B1200D11525 /* C: Build Dependencies */ = {
 			isa = PBXShellScriptBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -2394,7 +2398,7 @@
 			inputPaths = (
 				"$(SRCROOT)/Tools/build-deps.sh",
 			);
-			name = "Run Script";
+			name = "C: Build Dependencies";
 			outputFileListPaths = (
 			);
 			outputPaths = (
@@ -2479,6 +2483,7 @@
 				ONLY_ACTIVE_ARCH = YES;
 				SDKROOT = macosx;
 				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
+				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
 			};
 			name = Debug;
@@ -2536,6 +2541,7 @@
 				MTL_FAST_MATH = YES;
 				SDKROOT = macosx;
 				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_EMIT_LOC_STRINGS = YES;
 			};
 			name = Release;
 		};

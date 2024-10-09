@@ -9,8 +9,11 @@ import SwiftUI
 
 struct AppScene: Scene {
   var body: some Scene {
-    Window("Forward", id: "app") {
-      ContentView()
+    Window("Library", id: "main") {
+      LibraryView()
+    }
+    .commands {
+      LibraryCommands()
     }
   }
 }

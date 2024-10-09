@@ -8,12 +8,15 @@
 import Foundation
 import OSLog
 
+func noop<each Argument>(_ args: repeat each Argument) -> Void {}
+
 extension Bundle {
   static let appIdentifier = Bundle.main.bundleIdentifier!
 }
 
 extension Logger {
   static let main = Self()
+  static let ui = Self(subsystem: Bundle.appIdentifier, category: "UI")
   static let sandbox = Self(subsystem: Bundle.appIdentifier, category: "Sandbox")
   static let ffmpeg = Self(subsystem: Bundle.appIdentifier, category: "FFmpeg")
 }
