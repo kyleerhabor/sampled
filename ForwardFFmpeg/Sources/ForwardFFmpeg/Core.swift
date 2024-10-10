@@ -37,11 +37,11 @@ public func open(
   }
 }
 
-public func opening<T, E>(
+public func opening<T>(
   _ context: UnsafeMutablePointer<UnsafeMutablePointer<AVFormatContext>?>!,
   at url: UnsafePointer<CChar>!,
-  _ body: () throws(E) -> T
-) throws -> T where E: Error {
+  _ body: () throws -> T
+) throws -> T {
   try open(context, at: url)
 
   defer {
@@ -84,14 +84,14 @@ public func receivePacket(
   }
 }
 
-public enum ReceivePacketStatus {
+public enum ReceivePacketState {
   case ok, endOfFile
 }
 
 public func iterateReceivePacket(
   _ context: UnsafeMutablePointer<AVFormatContext>!,
   packet: UnsafeMutablePointer<AVPacket>!
-) throws(FFError) -> ReceivePacketStatus {
+) throws(FFError) -> ReceivePacketState {
   do {
     try receivePacket(context, packet: packet)
   } catch let error where error.code == .endOfFile {
@@ -150,20 +150,20 @@ public func receiveFrame(
   }
 }
 
-public enum SendPacketStatus {
+public enum SendPacketState {
   case ok
 }
 
 public func iterateSendPacket(
   _ context: UnsafeMutablePointer<AVCodecContext>!,
   packet: UnsafePointer<AVPacket>!
-) throws(FFError) -> SendPacketStatus {
+) throws(FFError) -> SendPacketState {
   try sendPacket(context, packet: packet)
 
   return .ok
 }
 
-public enum ReceiveFrameStatus {
+public enum ReceiveFrameState {
   case ok,
        resourceTemporarilyUnavailable,
        endOfFile
@@ -172,7 +172,7 @@ public enum ReceiveFrameStatus {
 public func iterateReceiveFrame(
   _ context: UnsafeMutablePointer<AVCodecContext>!,
   frame: UnsafeMutablePointer<AVFrame>!
-) throws(FFError) -> ReceiveFrameStatus {
+) throws(FFError) -> ReceiveFrameState {
   do {
     try receiveFrame(context, frame: frame)
   } catch let error where error.code == .resourceTemporarilyUnavailable {

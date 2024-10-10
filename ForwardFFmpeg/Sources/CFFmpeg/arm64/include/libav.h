@@ -13,6 +13,7 @@
 #include "libavfilter/avfilter.h"
 #include "libavformat/avformat.h"
 #include "libavutil/avutil.h"
+#include "libavutil/imgutils.h"
 #include "libswresample/swresample.h"
 #include "libswscale/swscale.h"
 

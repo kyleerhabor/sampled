@@ -2311,7 +2311,9 @@
 			isa = PBXNativeTarget;
 			buildConfigurationList = 0017ED332BF17A3D008B3D76 /* Build configuration list for PBXNativeTarget "Forward" */;
 			buildPhases = (
-				00BDCDA72CB32B1200D11525 /* C: Build Dependencies */,
+				00672AF72CB764F400948CAB /* C: Download Dependencies */,
+				00672AF82CB7657500948CAB /* C: Build Opus */,
+				00672AF92CB7658A00948CAB /* C: Build FFmpeg */,
 				0017ED202BF17A38008B3D76 /* Sources */,
 				0017ED212BF17A38008B3D76 /* Frameworks */,
 				0017ED222BF17A38008B3D76 /* Resources */,
@@ -2388,7 +2390,27 @@
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXShellScriptBuildPhase section */
-		00BDCDA72CB32B1200D11525 /* C: Build Dependencies */ = {
+		00672AF72CB764F400948CAB /* C: Download Dependencies */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 8;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+				"$(SRCROOT)/Tools/download-deps.sh",
+			);
+			name = "C: Download Dependencies";
+			outputFileListPaths = (
+			);
+			outputPaths = (
+				"$(DERIVED_FILE_DIR)/build/deps",
+			);
+			runOnlyForDeploymentPostprocessing = 1;
+			shellPath = /bin/sh;
+			shellScript = "# Type a script or drag a script file from your workspace to insert its path.\n\n./Tools/download-deps.sh\n";
+		};
+		00672AF82CB7657500948CAB /* C: Build Opus */ = {
 			isa = PBXShellScriptBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -2396,17 +2418,50 @@
 			inputFileListPaths = (
 			);
 			inputPaths = (
-				"$(SRCROOT)/Tools/build-deps.sh",
+				"$(SRCROOT)/Tools/build-opus.sh",
 			);
-			name = "C: Build Dependencies";
+			name = "C: Build Opus";
 			outputFileListPaths = (
 			);
 			outputPaths = (
-				"$(DERIVED_FILE_DIR)/ForwardFFmpeg/Sources/CFFmpeg/$(ARCH)",
+				"$(DERIVED_FILE_DIR)/ForwardFFmpeg/Sources/CFFmpeg/$(ARCH)/include/opus",
+				"$(DERIVED_FILE_DIR)/ForwardFFmpeg/Sources/CFFmpeg/$(ARCH)/lib/libopus.*",
+				"$(DERIVED_FILE_DIR)/ForwardFFmpeg/Sources/CFFmpeg/$(ARCH)/include/pkgconfig/opus.pc",
+				"$(DERIVED_FILE_DIR)/ForwardFFmpeg/Sources/CFFmpeg/$(ARCH)/share/aclocal/opus.m4",
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "# Type a script or drag a script file from your workspace to insert its path.\n./Tools/build-deps.sh\n";
+			shellScript = "# Type a script or drag a script file from your workspace to insert its path.\n./Tools/build-opus.sh\n";
+		};
+		00672AF92CB7658A00948CAB /* C: Build FFmpeg */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+				"$(SRCROOT)/Tools/build-ffmpeg.sh",
+			);
+			name = "C: Build FFmpeg";
+			outputFileListPaths = (
+			);
+			outputPaths = (
+				"$(DERIVED_FILE_DIR)/ForwardFFmpeg/Sources/CFFmpeg/$(ARCH)/bin/ff*",
+				"$(DERIVED_FILE_DIR)/ForwardFFmpeg/Sources/CFFmpeg/$(ARCH)/include/libav*",
+				"$(DERIVED_FILE_DIR)/ForwardFFmpeg/Sources/CFFmpeg/$(ARCH)/include/libsw*",
+				"$(DERIVED_FILE_DIR)/ForwardFFmpeg/Sources/CFFmpeg/$(ARCH)/lib/libav*.a",
+				"$(DERIVED_FILE_DIR)/ForwardFFmpeg/Sources/CFFmpeg/$(ARCH)/lib/libsw*.a",
+				"$(DERIVED_FILE_DIR)/ForwardFFmpeg/Sources/CFFmpeg/$(ARCH)/lib/pkgconfig/libav*.pc",
+				"$(DERIVED_FILE_DIR)/ForwardFFmpeg/Sources/CFFmpeg/$(ARCH)/lib/pkgconfig/libsw*.pc",
+				"$(DERIVED_FILE_DIR)/ForwardFFmpeg/Sources/CFFmpeg/$(ARCH)/share/ffmpeg",
+				"$(DERIVED_FILE_DIR)/ForwardFFmpeg/Sources/CFFmpeg/$(ARCH)/share/man1/ff*.1",
+				"$(DERIVED_FILE_DIR)/ForwardFFmpeg/Sources/CFFmpeg/$(ARCH)/share/man3/libav*.3",
+				"$(DERIVED_FILE_DIR)/ForwardFFmpeg/Sources/CFFmpeg/$(ARCH)/share/man3/libsw*.3",
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "# Type a script or drag a script file from your workspace to insert its path.\n./Tools/build-ffmpeg.sh\n";
 		};
 /* End PBXShellScriptBuildPhase section */
 

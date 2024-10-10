@@ -131,27 +131,29 @@ struct LibraryView: View {
           let formatContext = FFFormatContext()
 
           do {
+            let fmtContext = formatContext.context
+
             return try opening(&formatContext.context, at: pathString) {
+              do {
+                // Yes, we need this for formats like FLAC.
+                try findStreamInfo(fmtContext)
+              } catch {
+                Logger.ffmpeg.error("\(error)")
+
+                return nil
+              }
+
               let streami: Int32
 
               do {
-                // Yes, we need this for formats like FLAC.
-                try findStreamInfo(formatContext.context)
+                streami = try findBestStream(fmtContext, ofType: .audio, decoder: nil)
               } catch {
                 Logger.ffmpeg.error("\(error)")
 
                 return nil
               }
 
-              do {
-                streami = try findBestStream(formatContext.context, ofType: .audio, decoder: nil)
-              } catch {
-                Logger.ffmpeg.error("\(error)")
-
-                return nil
-              }
-
-              let stream = formatContext.context.pointee.streams[Int(streami)]!
+              let stream = fmtContext!.pointee.streams[Int(streami)]!
               let titleKey = "title"
               let artistKey = "artist"
               let albumKey = "album"
@@ -161,7 +163,7 @@ struct LibraryView: View {
               let discNumberKey = "disc-number"
               let discTotalKey = "disc-total"
               let metadata = chain(
-                FFDictionaryIterator(formatContext.context.pointee.metadata),
+                FFDictionaryIterator(fmtContext!.pointee.metadata),
                 FFDictionaryIterator(stream.pointee.metadata)
               )
               .uniqued(on: \.pointee.key)
@@ -218,15 +220,15 @@ struct LibraryView: View {
                     let album = metadata[albumKey],
                     // Some formats (like Matroska) have the stream duration set to AV_NOPTS_VALUE, while exposing the
                     // real value in the format context.
-                      let duration = duration(stream.pointee.duration).map({ duration in
-                        av_q2d(
-                          av_mul_q(
-                            av_make_q(Int32(duration), 1),
-                            stream.pointee.time_base
-                          )
+                    let duration = duration(stream.pointee.duration).map({ duration in
+                      av_q2d(
+                        av_mul_q(
+                          av_make_q(Int32(duration), 1),
+                          stream.pointee.time_base
                         )
-                      })
-                      ?? duration(formatContext.context.pointee.duration).map({ Double($0 / FFAV_TIME_BASE) }) else {
+                      )
+                    })
+                    ?? duration(fmtContext!.pointee.duration).map({ Double($0 / FFAV_TIME_BASE) }) else {
                 return nil
               }
 
@@ -234,14 +236,14 @@ struct LibraryView: View {
               let videoStreami: Int32
 
               do {
-                videoStreami = try findBestStream(formatContext.context, ofType: .video, decoder: &decoder)
+                videoStreami = try findBestStream(fmtContext, ofType: .video, decoder: &decoder)
               } catch {
                 Logger.ffmpeg.error("\(error)")
 
                 return nil
               }
 
-              let videoStream = formatContext.context.pointee.streams[Int(videoStreami)]!
+              let videoStream = fmtContext!.pointee.streams[Int(videoStreami)]!
               let videoCodecContext = FFCodecContext(codec: decoder)
 
               do {
@@ -265,7 +267,7 @@ struct LibraryView: View {
               do {
                 loop:
                 while true {
-                  switch try iterateReceivePacket(formatContext.context, packet: packet.packet) {
+                  switch try iterateReceivePacket(fmtContext, packet: packet.packet) {
                     case .ok:
                       break
                     case .endOfFile:
