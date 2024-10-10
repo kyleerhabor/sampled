@@ -162,56 +162,59 @@ struct LibraryView: View {
               let trackTotalKey = "track-total"
               let discNumberKey = "disc-number"
               let discTotalKey = "disc-total"
-              let metadata = chain(
-                FFDictionaryIterator(fmtContext!.pointee.metadata),
-                FFDictionaryIterator(stream.pointee.metadata)
-              )
-              .uniqued(on: \.pointee.key)
-              .reduce(into: [String: String]()) { partialResult, tag in
-                let key = String(cString: tag.pointee.key)
-                let value = String(cString: tag.pointee.value)
+              let metadata = transform(
+                chain(
+                  FFDictionaryIterator(fmtContext!.pointee.metadata),
+                  FFDictionaryIterator(stream.pointee.metadata)
+                )
+                .uniqued(on: \.pointee.key)
+              ) { metadata in
+                metadata.reduce(into: [String: String](minimumCapacity: metadata.count)) { partialResult, tag in
+                  let key = String(cString: tag.pointee.key)
+                  let value = String(cString: tag.pointee.value)
 
-                func item(
-                  _ metadata: [String: String],
-                  value: String,
-                  numberKey: String,
-                  totalKey: String
-                ) -> [String: String] {
-                  let components = value.split(separator: "/", maxSplits: 1)
+                  func item(
+                    _ metadata: [String: String],
+                    value: String,
+                    numberKey: String,
+                    totalKey: String
+                  ) -> [String: String] {
+                    let components = value.split(separator: "/", maxSplits: 1)
 
-                  switch components.count {
-                    case 2: // [No.]/[Total]
-                      partialResult[totalKey] = String(components[1])
+                    switch components.count {
+                      case 2: // [No.]/[Total]
+                        partialResult[totalKey] = String(components[1])
 
-                      fallthrough
-                    case 1: // [No.]
-                      partialResult[numberKey] = String(components[0])
-                    default:
-                      fatalError("unreachable")
+                        fallthrough
+                      case 1: // [No.]
+                        partialResult[numberKey] = String(components[0])
+                      default:
+                        fatalError("unreachable")
+                    }
+
+                    return partialResult
                   }
 
-                  return partialResult
-                }
-
-                switch key {
-                  case "title", "TITLE":
-                    partialResult[titleKey] = value
-                  case "artist", "ARTIST":
-                    partialResult[artistKey] = value
-                  case "album", "ALBUM":
-                    partialResult[albumKey] = value
-                  case "album_artist", "ALBUM_ARTIST":
-                    partialResult[albumArtistKey] = value
-                  case "track":
-                    partialResult = item(partialResult, value: value, numberKey: trackNumberKey, totalKey: trackTotalKey)
-                  case "disc", "DISC":
-                    partialResult = item(partialResult, value: value, numberKey: discNumberKey, totalKey: discTotalKey)
-                  case "TRACKTOTAL": // TOTALTRACKS exists, but seems to always coincide with TRACKTOTAL
-                    partialResult[trackTotalKey] = value
-                  case "DISCTOTAL": // TOTALDISCS exists, but is the same situation as above.
-                    partialResult[discTotalKey] = value
-                  default:
-                    partialResult[key] = value
+                  switch key {
+                    case "title", "TITLE":
+                      partialResult[titleKey] = value
+                    case "artist", "ARTIST":
+                      partialResult[artistKey] = value
+                    case "album", "ALBUM":
+                      partialResult[albumKey] = value
+                    case "album_artist", "ALBUM_ARTIST":
+                      partialResult[albumArtistKey] = value
+                    case "track":
+                      partialResult = item(partialResult, value: value, numberKey: trackNumberKey, totalKey: trackTotalKey)
+                    case "disc", "DISC":
+                      partialResult = item(partialResult, value: value, numberKey: discNumberKey, totalKey: discTotalKey)
+                    case "TRACKTOTAL": // TOTALTRACKS exists, but seems to always coincide with TRACKTOTAL
+                      partialResult[trackTotalKey] = value
+                    case "DISCTOTAL": // TOTALDISCS exists, but is the same situation as above.
+                      partialResult[discTotalKey] = value
+                    default:
+                      partialResult[key] = value
+                  }
                 }
               }
 
@@ -228,7 +231,7 @@ struct LibraryView: View {
                         )
                       )
                     })
-                    ?? duration(fmtContext!.pointee.duration).map({ Double($0 / FFAV_TIME_BASE) }) else {
+                    ?? duration(fmtContext!.pointee.duration).map({ Double($0 / FF_TIME_BASE) }) else {
                 return nil
               }
 
@@ -298,26 +301,7 @@ struct LibraryView: View {
                         return nil
                     }
 
-                    let width = frame.frame.pointee.width
-                    let height = frame.frame.pointee.height
-
-                    guard let scaleContext = FFScaleContext(
-                      srcWidth: width,
-                      srcHeight: height,
-                      srcFormat: frame.frame.pointee.pixelFormat!,
-                      dstWidth: width,
-                      dstHeight: height,
-                      dstFormat: format
-                    ) else {
-                      Logger.ffmpeg.error("Could not create swscale context")
-
-                      return nil
-                    }
-
-                    try scale(scaleContext.context, source: frame.frame, destination: scaledFrame.frame)
-
-                    let buffer = scaledFrame.frame.pointee.buf.0!
-                    data.append(buffer.pointee.data, count: buffer.pointee.size)
+                    try Self.write(data: &data, frame: frame.frame, scaledFrame: scaledFrame.frame, format: format)
                   }
                 }
 
@@ -337,26 +321,7 @@ struct LibraryView: View {
                       return nil
                   }
 
-                  let width = frame.frame.pointee.width
-                  let height = frame.frame.pointee.height
-
-                  guard let scaleContext = FFScaleContext(
-                    srcWidth: width,
-                    srcHeight: height,
-                    srcFormat: frame.frame.pointee.pixelFormat!,
-                    dstWidth: width,
-                    dstHeight: height,
-                    dstFormat: format
-                  ) else {
-                    Logger.ffmpeg.error("Could not create swscale context")
-
-                    return nil
-                  }
-
-                  try scale(scaleContext.context, source: frame.frame, destination: scaledFrame.frame)
-
-                  let buffer = scaledFrame.frame.pointee.buf.0!
-                  data.append(buffer.pointee.data, count: buffer.pointee.size)
+                  try Self.write(data: &data, frame: frame.frame, scaledFrame: scaledFrame.frame, format: format)
                 }
               } catch {
                 Logger.ffmpeg.error("\(error)")
@@ -420,5 +385,34 @@ struct LibraryView: View {
     .focusedSceneValue(\.open, AppMenuActionItem(identity: .library, isEnabled: true) {
       isFileImporterPresented = true
     })
+  }
+
+  // TODO: Rename.
+  static func write(
+    data: inout Data,
+    frame: UnsafePointer<AVFrame>!,
+    scaledFrame: UnsafeMutablePointer<AVFrame>!,
+    format: AVPixelFormat
+  ) throws(FFError) {
+    let width = frame.pointee.width
+    let height = frame.pointee.height
+
+    guard let scaleContext = FFScaleContext(
+      srcWidth: width,
+      srcHeight: height,
+      srcFormat: frame.pointee.pixelFormat!,
+      dstWidth: width,
+      dstHeight: height,
+      dstFormat: format
+    ) else {
+      Logger.ffmpeg.error("Could not create swscale context")
+
+      throw FFError(code: FFError.Code.unknown)
+    }
+
+    try scale(scaleContext.context, source: frame, destination: scaledFrame)
+
+    let buffer = scaledFrame.pointee.buf.0!
+    data.append(buffer.pointee.data, count: buffer.pointee.size)
   }
 }

@@ -26,7 +26,7 @@ build () {
     --build="$(uname -m)-apple-darwin" \
     --host="$arch-apple-darwin" \
     CC=clang \
-    CFLAGS="-arch $arch $EXTRA_CFLAGS" \
+    CFLAGS="-arch $arch $EXTRA_CFLAGS"
 
   runmake
   popd

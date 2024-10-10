@@ -10,6 +10,13 @@ import OSLog
 
 func noop<each Argument>(_ args: repeat each Argument) -> Void {}
 
+func transform<T, E, each Argument>(
+  _ args: repeat each Argument,
+  body: (repeat each Argument) throws(E) -> T
+) throws(E) -> T {
+  try body(repeat each args)
+}
+
 extension Bundle {
   static let appIdentifier = Bundle.main.bundleIdentifier!
 }

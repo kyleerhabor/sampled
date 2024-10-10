@@ -10,13 +10,10 @@
 
 #include <stdio.h>
 
-const int AVERR_EOF;
-const int AVERR_DECODER_NOT_FOUND;
-const int AVERR_STREAM_NOT_FOUND;
-const int AVERR_EAGAIN;
-const int AVERR_ENOMEM;
-
-const int64_t FFAV_NOPTS_VALUE;
-const int64_t FFAV_TIME_BASE;
+const int FFERROR_EOF;
+const int FFERROR_EAGAIN;
+const int FFERROR_ENOMEM;
+const int64_t FF_NOPTS_VALUE;
+const int64_t FF_TIME_BASE;
 
 #endif /* ffmpeg_h */

@@ -10,15 +10,13 @@ import CoreFFmpeg
 import AVFoundation
 import Foundation
 
-public let AVSTATUS_OK: Int32 = 0
-public let AVSTATUS_EOF = AVERR_EOF
-public let AVSTATUS_DECODER_NOT_FOUND = AVERR_DECODER_NOT_FOUND
-public let AVSTATUS_STREAM_NOT_FOUND = AVERR_STREAM_NOT_FOUND
-public let AVSTATUS_ENOMEM = AVERR_ENOMEM
-public let AVSTATUS_EAGAIN = AVERR_EAGAIN
+public let FFSTATUS_OK: Int32 = 0
+public let FFSTATUS_EOF = FFERROR_EOF
+public let FFSTATUS_ENOMEM = FFERROR_ENOMEM
+public let FFSTATUS_EAGAIN = FFERROR_EAGAIN
 
 public func duration(_ duration: Int64) -> Int64? {
-  guard duration != FFAV_NOPTS_VALUE else {
+  guard duration != FF_NOPTS_VALUE else {
     return nil
   }
 
@@ -26,13 +24,12 @@ public func duration(_ duration: Int64) -> Int64? {
 }
 
 public func open(
-  _ context: UnsafeMutablePointer<UnsafeMutablePointer<AVFormatContext>?>!
-  ,
+  _ context: UnsafeMutablePointer<UnsafeMutablePointer<AVFormatContext>?>!,
   at url: UnsafePointer<CChar>!
 ) throws(FFError) {
   let status = avformat_open_input(context, url, nil, nil)
 
-  guard status == AVSTATUS_OK else {
+  guard status == FFSTATUS_OK else {
     throw FFError(code: FFError.Code(rawValue: status))
   }
 }
@@ -54,7 +51,7 @@ public func opening<T>(
 public func findStreamInfo(_ context: UnsafeMutablePointer<AVFormatContext>!) throws(FFError) {
   let status = avformat_find_stream_info(context, nil)
 
-  guard status >= AVSTATUS_OK else {
+  guard status >= FFSTATUS_OK else {
     throw FFError(code: FFError.Code(rawValue: status))
   }
 }
@@ -66,7 +63,7 @@ public func findBestStream(
 ) throws(FFError) -> Int32 {
   let result = av_find_best_stream(context, type, -1, -1, decoder, 0)
 
-  guard result >= AVSTATUS_OK else {
+  guard result >= FFSTATUS_OK else {
     throw FFError(code: FFError.Code(rawValue: result))
   }
 
@@ -79,7 +76,7 @@ public func receivePacket(
 ) throws(FFError) {
   let status = av_read_frame(context, packet)
 
-  guard status == AVSTATUS_OK else {
+  guard status == FFSTATUS_OK else {
     throw FFError(code: FFError.Code(rawValue: status))
   }
 }
@@ -107,7 +104,7 @@ public func copyCodecParameters(
 ) throws(FFError) {
   let result = avcodec_parameters_to_context(context, params)
 
-  guard result >= AVSTATUS_OK else {
+  guard result >= FFSTATUS_OK else {
     throw FFError(code: FFError.Code(rawValue: result))
   }
 }
@@ -118,7 +115,7 @@ public func open(
 ) throws(FFError) {
   let openStatus = avcodec_open2(context, codec, nil)
 
-  guard openStatus == AVSTATUS_OK else {
+  guard openStatus == FFSTATUS_OK else {
     throw FFError(code: FFError.Code(rawValue: openStatus))
   }
 }
@@ -130,9 +127,9 @@ public func sendPacket(
   let status = avcodec_send_packet(context, packet)
 
   switch status {
-    case AVSTATUS_OK:
+    case FFSTATUS_OK:
       break
-    case AVSTATUS_ENOMEM:
+    case FFSTATUS_ENOMEM:
       fatalError()
     default:
       throw FFError(code: FFError.Code(rawValue: status))
@@ -145,7 +142,7 @@ public func receiveFrame(
 ) throws(FFError) {
   let status = avcodec_receive_frame(context, frame)
 
-  guard status == AVSTATUS_OK else {
+  guard status == FFSTATUS_OK else {
     throw FFError(code: FFError.Code(rawValue: status))
   }
 }
@@ -197,7 +194,7 @@ public func scale(
   // to the slice height.
   let scaleStatus = sws_scale_frame(context, destination, source)
 
-  guard scaleStatus >= AVSTATUS_OK else {
+  guard scaleStatus >= FFSTATUS_OK else {
     throw FFError(code: FFError.Code(rawValue: scaleStatus))
   }
 }
@@ -205,13 +202,16 @@ public func scale(
 public struct FFError: Error {
   public let code: Code
 
+  public init(code: Code) {
+    self.code = code
+  }
+
   public struct Code: Sendable, RawRepresentable {
     public var rawValue: Int32
 
-    public static let endOfFile = Self(rawValue: AVSTATUS_EOF)
-    public static let resourceTemporarilyUnavailable = Self(rawValue: AVSTATUS_EAGAIN)
-    public static let decoderNotFound = Self(rawValue: AVSTATUS_DECODER_NOT_FOUND)
-    public static let streamNotFound = Self(rawValue: AVSTATUS_STREAM_NOT_FOUND)
+    public static let unknown = Self(rawValue: -1)
+    public static let endOfFile = Self(rawValue: FFSTATUS_EOF)
+    public static let resourceTemporarilyUnavailable = Self(rawValue: FFSTATUS_EAGAIN)
 
     public init(rawValue: Int32) {
       self.rawValue = rawValue
