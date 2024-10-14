@@ -13,8 +13,8 @@ build () {
   local arch="$1"
   echo "Building FFmpeg for $arch"
 
-  local PATH="$CWD/$(prefix "$arch")/bin:$PATH"
   local prefix="$(prefix "$arch")"
+  local PATH="$CWD/$prefix/bin:$PATH"
   pushd "$CWD/$FFMPEGDIR"
 
   # As of 358fdf3, FFmpeg's C compiler test does not consider sysroot with spaces, and we can't escape it ourselves via

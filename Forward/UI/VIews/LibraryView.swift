@@ -13,54 +13,57 @@ import OSLog
 import SwiftUI
 
 struct LibraryTrackPosition {
-  let number: Int
-  let total: Int
+  let number: Int?
+  let total: Int?
 }
 
+extension LibraryTrackPosition: Equatable {}
+
 struct LibraryTrack {
-  let url: URL
+  let source: URLSource
 
   let title: String
   let artist: String
   let album: String
+  let albumArtist: String?
+  let date: Date?
   let coverImage: NSImage
   let duration: Duration
-  let albumArtist: String?
   let track: LibraryTrackPosition?
   let disc: LibraryTrackPosition?
 }
 
+extension LibraryTrack: Equatable {}
+
 extension LibraryTrack: Identifiable {
-  var id: URL { url }
+  var id: URL { source.url }
 }
 
 struct LibraryTrackPositionView: View {
-  let pos: LibraryTrackPosition
+  let item: Int?
 
   var body: some View {
-    Text(verbatim: "\(pos.number) of \(pos.total)")
+    Text(item ?? 0, format: .number.grouping(.never))
       .monospacedDigit()
+      .visible(item != nil)
   }
 }
 
 struct LibraryView: View {
   @State private var isFileImporterPresented = false
   @State private var tracks = [LibraryTrack]()
+  @State private var selection = Set<LibraryTrack.ID>()
   @State private var popoverTrack: LibraryTrack?
 
   var body: some View {
-    Table(of: LibraryTrack.self) {
+    Table(tracks, selection: $selection) {
       TableColumn(Text(verbatim: "Track №")) { track in
-        Text(track.track.map { String($0.number) } ?? "")
-          .monospacedDigit()
-          .visible(track.track != nil)
+        LibraryTrackPositionView(item: track.track?.number)
       }
       .alignment(.numeric)
 
       TableColumn(Text(verbatim: "Disc №")) { track in
-        Text(track.disc.map { String($0.number) } ?? "")
-          .monospacedDigit()
-          .visible(track.disc != nil)
+        LibraryTrackPositionView(item: track.disc?.number)
       }
       .alignment(.numeric)
 
@@ -78,23 +81,15 @@ struct LibraryView: View {
         )
         .monospacedDigit()
       }
-    } rows: {
-      ForEach(tracks) { track in
-        TableRow(track)
-          .contextMenu {
-            Button("Show Information") {
-              popoverTrack = track
-            }
-          }
-      }
     }
-    .popover(item: $popoverTrack, attachmentAnchor: .point(.top)) { track in
-      Image(nsImage: track.coverImage)
-        .resizable()
-        .frame(width: 256, height: 256)
-        .scaledToFit()
-        .clipShape(.rect(cornerRadius: 8))
-        .padding()
+    .contextMenu { ids in
+      Button("Finder.Item.Show") {
+        let urls = tracks
+          .filter(in: ids, by: \.id)
+          .map(\.source.url)
+
+        NSWorkspace.shared.activateFileViewerSelecting(urls)
+      }
     }
     .fileImporter(
       isPresented: $isFileImporterPresented,
@@ -126,7 +121,9 @@ struct LibraryView: View {
       let packet = FFPacket()
 
       tracks = urls.compactMap { url in
-        url.accessingSecurityScopedResource {
+        let source = URLSource(url: url, options: [.withReadOnlySecurityScope, .withoutImplicitSecurityScope])
+
+        return source.accessingSecurityScopedResource {
           let pathString = url.pathString
           let formatContext = FFFormatContext()
 
@@ -158,6 +155,7 @@ struct LibraryView: View {
               let artistKey = "artist"
               let albumKey = "album"
               let albumArtistKey = "album-artist"
+              let dateKey = "date"
               let trackNumberKey = "track-number"
               let trackTotalKey = "track-total"
               let discNumberKey = "disc-number"
@@ -169,25 +167,25 @@ struct LibraryView: View {
                 )
                 .uniqued(on: \.pointee.key)
               ) { metadata in
-                metadata.reduce(into: [String: String](minimumCapacity: metadata.count)) { partialResult, tag in
+                metadata.reduce(into: [String: Any](minimumCapacity: metadata.count)) { partialResult, tag in
                   let key = String(cString: tag.pointee.key)
                   let value = String(cString: tag.pointee.value)
 
                   func item(
-                    _ metadata: [String: String],
+                    _ metadata: [String: Any],
                     value: String,
                     numberKey: String,
                     totalKey: String
-                  ) -> [String: String] {
+                  ) -> [String: Any] {
                     let components = value.split(separator: "/", maxSplits: 1)
 
                     switch components.count {
                       case 2: // [No.]/[Total]
-                        partialResult[totalKey] = String(components[1])
+                        partialResult[totalKey] = Int(components[1])
 
                         fallthrough
                       case 1: // [No.]
-                        partialResult[numberKey] = String(components[0])
+                        partialResult[numberKey] = Int(components[0])
                       default:
                         fatalError("unreachable")
                     }
@@ -204,6 +202,21 @@ struct LibraryView: View {
                       partialResult[albumKey] = value
                     case "album_artist", "ALBUM_ARTIST":
                       partialResult[albumArtistKey] = value
+                    case "date", "DATE": // ORIGINALDATE and ORIGINALYEAR exist, but seem specific to MusicBrainz Picard.
+                      let date: Date
+
+                      do {
+                        // 2024-03-02
+                        date = try Date(value, strategy: .iso8601.year())
+                      } catch {
+                        Logger.ui.error("\(error)")
+
+                        return
+                      }
+
+                      partialResult[dateKey] = date
+
+                      break
                     case "track":
                       partialResult = item(partialResult, value: value, numberKey: trackNumberKey, totalKey: trackTotalKey)
                     case "disc", "DISC":
@@ -218,20 +231,14 @@ struct LibraryView: View {
                 }
               }
 
-              guard let title = metadata[titleKey],
-                    let artist = metadata[artistKey],
-                    let album = metadata[albumKey],
+              guard let title = metadata[titleKey] as? String,
+                    let artist = metadata[artistKey] as? String,
+                    let album = metadata[albumKey] as? String,
                     // Some formats (like Matroska) have the stream duration set to AV_NOPTS_VALUE, while exposing the
                     // real value in the format context.
-                    let duration = duration(stream.pointee.duration).map({ duration in
-                      av_q2d(
-                        av_mul_q(
-                          av_make_q(Int32(duration), 1),
-                          stream.pointee.time_base
-                        )
-                      )
-                    })
-                    ?? duration(fmtContext!.pointee.duration).map({ Double($0 / FF_TIME_BASE) }) else {
+                    let duration = duration(stream.pointee.duration)
+                      .map({ Double($0) * av_q2d(stream.pointee.time_base) })
+                      ?? duration(fmtContext!.pointee.duration).map({ Double($0 / FF_TIME_BASE) }) else {
                 return nil
               }
 
@@ -351,27 +358,23 @@ struct LibraryView: View {
                 return nil
               }
 
-              func position(_ metadata: [String: String], numberKey: String, totalKey: String) -> LibraryTrackPosition? {
-                guard let numberValue = metadata[numberKey],
-                      let number = Int(numberValue),
-                      let totalValue = metadata[totalKey],
-                      let total = Int(totalValue) else {
-                  return nil
-                }
-
-                return LibraryTrackPosition(number: number, total: total)
-              }
-
               return LibraryTrack(
-                url: url,
+                source: source,
                 title: title,
                 artist: artist,
                 album: album,
+                albumArtist: metadata[albumArtistKey] as? String,
+                date: metadata[dateKey] as? Date,
                 coverImage: NSImage(cgImage: image, size: NSSize(width: width, height: height)),
                 duration: Duration.seconds(duration),
-                albumArtist: metadata[albumArtistKey],
-                track: position(metadata, numberKey: trackNumberKey, totalKey: trackTotalKey),
-                disc: position(metadata, numberKey: discNumberKey, totalKey: discTotalKey)
+                track: LibraryTrackPosition(
+                  number: metadata[trackNumberKey] as? Int,
+                  total: metadata[trackTotalKey] as? Int
+                ),
+                disc: LibraryTrackPosition(
+                  number: metadata[discNumberKey] as? Int,
+                  total: metadata[discTotalKey] as? Int
+                )
               )
             }
           } catch {
@@ -385,6 +388,8 @@ struct LibraryView: View {
     .focusedSceneValue(\.open, AppMenuActionItem(identity: .library, isEnabled: true) {
       isFileImporterPresented = true
     })
+    // TODO: Replace.
+    .focusedSceneValue(\.tracks, tracks.filter(in: selection, by: \.id))
   }
 
   // TODO: Rename.

@@ -56,6 +56,12 @@ extension View {
   }
 }
 
+extension Text {
+  init() {
+    self.init(verbatim: "")
+  }
+}
+
 enum OpenIdentity {
   case library
 }
@@ -64,4 +70,5 @@ extension OpenIdentity: Equatable {}
 
 extension FocusedValues {
   @Entry var open: AppMenuActionItem<OpenIdentity?>?
+  @Entry var tracks: [LibraryTrack]?
 }

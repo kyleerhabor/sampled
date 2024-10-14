@@ -15,5 +15,7 @@ struct AppScene: Scene {
     .commands {
       LibraryCommands()
     }
+
+    LibraryInfoScene()
   }
 }

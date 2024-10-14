@@ -11,7 +11,6 @@
 CFFMPEGDIR=ForwardFFmpeg/Sources/CFFmpeg
 DEPSDIR=deps
 export OPUSDIR="$DEPSDIR/opus"
-export GASDIR="$DEPSDIR/gas-preprocessor"
 export FFMPEGDIR="$DEPSDIR/ffmpeg"
 
 prefix () {

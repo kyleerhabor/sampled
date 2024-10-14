@@ -17,22 +17,30 @@ func transform<T, E, each Argument>(
   try body(repeat each args)
 }
 
+extension Duration {
+  static let hour = Self.seconds(60 * 60)
+}
+
+extension Sequence {
+  func filter<T>(in set: some SetAlgebra<T>, by transform: (Element) -> T) -> [Element] {
+    self.filter { set.contains(transform($0)) }
+  }
+}
+
+// MARK: - Darwin
+
 extension Bundle {
-  static let appIdentifier = Bundle.main.bundleIdentifier!
+  static let appID = Bundle.main.bundleIdentifier!
 }
 
 extension Logger {
   static let main = Self()
-  static let ui = Self(subsystem: Bundle.appIdentifier, category: "UI")
-  static let sandbox = Self(subsystem: Bundle.appIdentifier, category: "Sandbox")
-  static let ffmpeg = Self(subsystem: Bundle.appIdentifier, category: "FFmpeg")
+  static let ui = Self(subsystem: Bundle.appID, category: "UI")
+  static let sandbox = Self(subsystem: Bundle.appID, category: "Sandbox")
+  static let ffmpeg = Self(subsystem: Bundle.appID, category: "FFmpeg")
 }
-
-extension RangeReplaceableCollection {
-  init(minimumCapacity capacity: Int) {
-    self.init()
-    self.reserveCapacity(capacity)
-  }
+extension Date {
+  static var epoch = Date(timeIntervalSinceReferenceDate: 0)
 }
 
 extension URL {
@@ -60,6 +68,10 @@ extension URL {
   }
 }
 
+extension URL.BookmarkCreationOptions {
+  public static let withReadOnlySecurityScope = Self([.withSecurityScope, .securityScopeAllowOnlyReadAccess])
+}
+
 protocol SecurityScopedResource {
   associatedtype Scope
 
@@ -69,7 +81,7 @@ protocol SecurityScopedResource {
 }
 
 extension SecurityScopedResource {
-  func accessingSecurityScopedResource<T, Failure>(_ body: () throws(Failure) -> T) throws(Failure) -> T {
+  func accessingSecurityScopedResource<T, E>(_ body: () throws(E) -> T) throws(E) -> T {
     let scope = startSecurityScope()
 
     defer {
@@ -87,5 +99,27 @@ extension URL: SecurityScopedResource {
     }
 
     self.endSecurityScope()
+  }
+}
+
+struct URLSource {
+  let url: URL
+  let options: URL.BookmarkCreationOptions
+
+  init(url: URL, options: URL.BookmarkCreationOptions) {
+    self.url = url
+    self.options = options
+  }
+}
+
+extension URLSource: Equatable {}
+
+extension URLSource: SecurityScopedResource {
+  func startSecurityScope() -> Bool {
+    options.contains(.withSecurityScope) && url.startSecurityScope()
+  }
+
+  func endSecurityScope(_ scope: Bool) {
+    url.endSecurityScope(scope)
   }
 }

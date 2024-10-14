@@ -13,14 +13,15 @@ build () {
   local arch="$1"
   echo "Building libopus for $arch"
 
-  local PATH="$CWD/$(prefix "$arch")/bin:$PATH"
+  local prefix="$(prefix "$arch")"
+  local PATH="$CWD/$prefix/bin:$PATH"
   pushd "$CWD/$OPUSDIR"
   ./autogen.sh
 
   # We can configure libopus to build for multiple architectures, but it requires manual code signing to launch the app.
   #
   # TODO: Add note about host-build confusion.
-  ./configure --prefix="$CWD/$(prefix "$arch")" \
+  ./configure --prefix="$CWD/$prefix" \
     --with-sysroot="$(xcrun --sdk macosx --show-sdk-path)" \
     --disable-intrinsics --disable-shared \
     --build="$(uname -m)-apple-darwin" \
