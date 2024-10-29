@@ -2,6 +2,12 @@
 
 The universal music player.
 
+## Rationale
+
+Coming soon...
+
+Forward is highly inspired by the [Meta music tag editor][meta] and [Doppler music player][doppler].
+
 ## Use
 
 > [!NOTE]
@@ -35,4 +41,6 @@ Subsequent builds should perform much better.
 
 [^1]: An initial build on my 2019 MacBook Pro takes ~5 minutes to complete. 
 
+[meta]: https://www.nightbirdsevolve.com/meta
+[doppler]: https://brushedtype.co/doppler
 [releases]: https://github.com/kyleerhabor/forward/releases

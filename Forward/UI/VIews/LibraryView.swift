@@ -104,11 +104,6 @@ struct LibraryView: View {
       }
       .alignment(.numeric)
 
-      TableColumn("Track.Column.Duration") { track in
-        LibraryTrackDurationView(duration: track.duration)
-      }
-      .alignment(.numeric)
-
       TableColumn("Track.Column.Title", value: \.title)
       TableColumn(preferArtistsDisplay ? "Track.Column.Artists" : "Track.Column.Artist") { track in
         LibraryTrackArtistContentView(artists: track.artists, artist: track.artist)
@@ -121,6 +116,11 @@ struct LibraryView: View {
       TableColumn("Track.Column.AlbumArtist") { track in
         Text(track.albumArtist ?? "")
       }
+
+      TableColumn("Track.Column.Duration") { track in
+        LibraryTrackDurationView(duration: track.duration)
+      }
+      .alignment(.numeric)
     }
     .contextMenu { ids in
       Button("Finder.Item.Show") {
