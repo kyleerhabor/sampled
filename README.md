@@ -11,9 +11,9 @@ Forward is highly inspired by the [Meta music tag editor][meta] and [Doppler mus
 ## Use
 
 > [!NOTE]
->  
-> The app is in development with limited feature support. Audio playback, for example, is currently unavailable (you can
-> browse metadata, however).
+>
+> Forward is in development and has limited feature support. Audio playback, for example, is currently unavailable (you
+> can browse metadata, however).
 
 You can either download a release of the app from the [Releases][releases] page or build the project from source in Xcode.
 
