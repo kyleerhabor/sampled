@@ -199,6 +199,30 @@ public func scale(
   }
 }
 
+extension AVFrame {
+  static public let unknownFormat = -1
+
+  public var pixelFormat: AVPixelFormat? {
+    let format = self.format
+
+    guard format != Self.unknownFormat else {
+      return nil
+    }
+
+    return AVPixelFormat(rawValue: format)
+  }
+
+  public var sampleFormat: AVSampleFormat? {
+    let format = self.format
+
+    guard format != Self.unknownFormat else {
+      return nil
+    }
+
+    return AVSampleFormat(rawValue: format)
+  }
+}
+
 public struct FFError: Error {
   public let code: Code
 
@@ -276,30 +300,6 @@ public class FFPacket {
 
   deinit {
     av_packet_free(&packet)
-  }
-}
-
-extension AVFrame {
-  static public let unknownFormat = -1
-
-  public var pixelFormat: AVPixelFormat? {
-    let format = self.format
-
-    guard format != Self.unknownFormat else {
-      return nil
-    }
-
-    return AVPixelFormat(rawValue: format)
-  }
-
-  public var sampleFormat: AVSampleFormat? {
-    let format = self.format
-
-    guard format != Self.unknownFormat else {
-      return nil
-    }
-
-    return AVSampleFormat(rawValue: format)
   }
 }
 
@@ -475,6 +475,7 @@ extension CFFmpeg.AVMediaType {
   public static let video = AVMEDIA_TYPE_VIDEO
 }
 
+// I'm not sure if libavutil's AVDictionary keys are unique.
 public struct FFDictionaryIterator: IteratorProtocol {
   private let dict: OpaquePointer!
   private var tag: UnsafePointer<AVDictionaryEntry>!
@@ -488,12 +489,8 @@ public struct FFDictionaryIterator: IteratorProtocol {
 }
 
 extension FFDictionaryIterator {
-  public init(_ dict: OpaquePointer!, tag: UnsafePointer<AVDictionaryEntry>!) {
+  public init(_ dict: OpaquePointer!, tag: UnsafePointer<AVDictionaryEntry>! = nil) {
     self.init(dict: dict, tag: tag)
-  }
-
-  public init(_ dict: OpaquePointer!) {
-    self.init(dict, tag: nil)
   }
 }
 

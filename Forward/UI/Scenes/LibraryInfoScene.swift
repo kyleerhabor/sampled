@@ -15,7 +15,7 @@ struct LibraryInfoScene: Scene {
       LibraryInfoView(tracks: tracks)
         .frame(
           width: 224, // 192 - 256
-          height: 480, // 448 - 512
+          height: 496, // 480 - 512
           alignment: .top
         )
     }

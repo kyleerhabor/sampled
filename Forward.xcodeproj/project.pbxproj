@@ -815,6 +815,7 @@
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
+		0030BAB82CD17B8C0053BB6E /* Documentation */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = Documentation; sourceTree = "<group>"; };
 		00D98C492CAEE7050008E0F1 /* Tools */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = Tools; sourceTree = "<group>"; };
 		00D98EB82CAF3D3C0008E0F1 /* UI */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = UI; sourceTree = "<group>"; };
 /* End PBXFileSystemSynchronizedRootGroup section */
@@ -844,6 +845,7 @@
 				00D98E5C2CAF3D050008E0F1 /* Forward */,
 				00BAFB422BF9347E009B84D5 /* ForwardFFmpeg */,
 				00D98C492CAEE7050008E0F1 /* Tools */,
+				0030BAB82CD17B8C0053BB6E /* Documentation */,
 				0017ED252BF17A38008B3D76 /* Products */,
 				00EF01A22BF32AAF008BF17B /* Frameworks */,
 			);

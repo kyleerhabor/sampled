@@ -52,6 +52,8 @@ struct LibraryInfoPositionView: View {
 }
 
 struct LibraryInfoView: View {
+  @AppStorage(StorageKeys.preferArtistsDisplay.name) private var preferArtistsDisplay = StorageKeys.preferArtistsDisplay.defaultValue
+
   let tracks: [LibraryTrack]?
 
   private var track: LibraryTrack? {
@@ -60,9 +62,13 @@ struct LibraryInfoView: View {
 
   var body: some View {
     VStack(spacing: 0) {
+      // TODO: Configure to scale to fill while respecting bounds.
+      //
+      // For some reason, setting contentMode to .fill causes square images to extend past the bounds. This doesn't
+      // occur for .fit, but won't act appropriately at different dimensions (or if space is reduced).
       Image(nsImage: track?.coverImage ?? NSImage())
         .resizable()
-        .scaledToFit()
+        .aspectRatio(1, contentMode: .fit)
 
       // FIXME: Field heights slightly shift when selecting item.
       Grid(alignment: .centerFirstTextBaseline, verticalSpacing: 0) {
@@ -70,7 +76,7 @@ struct LibraryInfoView: View {
           .ignoresSafeArea(edges: .horizontal)
 
         GridRow {
-          Text("Title")
+          Text("Track.Column.Title")
             .gridColumnAlignment(.trailing)
             .foregroundStyle(.secondary)
 
@@ -86,10 +92,10 @@ struct LibraryInfoView: View {
           .ignoresSafeArea()
 
         GridRow {
-          Text("Artist")
+          Text(preferArtistsDisplay ? "Track.Column.Artists" : "Track.Column.Artist")
             .foregroundStyle(.secondary)
 
-          Text(track?.artist ?? "")
+          LibraryTrackArtistContentView(artists: track?.artists ?? [], artist: track?.artist)
         }
         .font(.caption)
         .lineLimit(1, reservesSpace: true)
@@ -99,7 +105,7 @@ struct LibraryInfoView: View {
           .ignoresSafeArea()
 
         GridRow {
-          Text("Album")
+          Text("Track.Column.Album")
             .foregroundStyle(.secondary)
 
           Text(track?.album ?? "")
@@ -112,7 +118,7 @@ struct LibraryInfoView: View {
           .ignoresSafeArea()
 
         GridRow {
-          Text("Album Artist")
+          Text("Track.Column.AlbumArtist")
             .foregroundStyle(.secondary)
 
           Text(track?.albumArtist ?? "")
@@ -125,7 +131,7 @@ struct LibraryInfoView: View {
           .ignoresSafeArea()
 
         GridRow {
-          Text("Year")
+          Text("Track.Column.Track.Year")
             .foregroundStyle(.secondary)
 
           Text(track?.date ?? Date.epoch, format: .dateTime.year())
@@ -141,7 +147,7 @@ struct LibraryInfoView: View {
           .ignoresSafeArea()
 
         GridRow {
-          Text("Track №")
+          Text("Track.Column.Track")
             .foregroundStyle(.secondary)
 
           HStack(alignment: .firstTextBaseline) {
@@ -156,7 +162,7 @@ struct LibraryInfoView: View {
           .ignoresSafeArea()
 
         GridRow {
-          Text("Disc №")
+          Text("Track.Column.Disc")
             .foregroundStyle(.secondary)
 
           HStack(alignment: .firstTextBaseline) {
@@ -171,21 +177,11 @@ struct LibraryInfoView: View {
           .ignoresSafeArea()
 
         GridRow {
-          Text("Duration")
+          Text("Track.Column.Duration")
             .foregroundStyle(.secondary)
 
-          let duration = track?.duration ?? Duration.zero
-
-          Text(
-            duration,
-            format: .time(
-              pattern: duration >= .hour
-              ? .hourMinuteSecond(padHourToLength: 2, roundFractionalSeconds: .towardZero)
-              : .minuteSecond(padMinuteToLength: 2, roundFractionalSeconds: .towardZero)
-            )
-          )
-          .monospacedDigit()
-          .visible(track?.duration != nil)
+          LibraryTrackDurationView(duration: track?.duration ?? Duration.zero)
+            .visible(track?.duration != nil)
         }
         .font(.caption)
         .lineLimit(1, reservesSpace: true)

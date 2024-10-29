@@ -1,21 +1,6 @@
 {
   "sourceLanguage" : "en",
   "strings" : {
-    "Album" : {
-
-    },
-    "Album Artist" : {
-
-    },
-    "Artist" : {
-
-    },
-    "Disc №" : {
-
-    },
-    "Duration" : {
-
-    },
     "Finder.Item.Show" : {
       "localizations" : {
         "en" : {
@@ -42,14 +27,105 @@
         }
       }
     },
-    "Title" : {
-
+    "Settings.PreferArtistsDisplay" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Prefer displaying artists as a list"
+          }
+        }
+      }
     },
-    "Track №" : {
-
+    "Track.Column.Album" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Album"
+          }
+        }
+      }
     },
-    "Year" : {
-
+    "Track.Column.AlbumArtist" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Album Artist"
+          }
+        }
+      }
+    },
+    "Track.Column.Artist" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Artist"
+          }
+        }
+      }
+    },
+    "Track.Column.Artists" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Artists"
+          }
+        }
+      }
+    },
+    "Track.Column.Disc" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Disc №"
+          }
+        }
+      }
+    },
+    "Track.Column.Duration" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Duration"
+          }
+        }
+      }
+    },
+    "Track.Column.Title" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Title"
+          }
+        }
+      }
+    },
+    "Track.Column.Track" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Track №"
+          }
+        }
+      }
+    },
+    "Track.Column.Track.Year" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Year"
+          }
+        }
+      }
     }
   },
   "version" : "1.0"

@@ -17,5 +17,11 @@ struct AppScene: Scene {
     }
 
     LibraryInfoScene()
+
+    Settings {
+      SettingsView()
+        .frame(width: 384) // 256 - 512
+    }
+    .windowResizability(.contentSize)
   }
 }

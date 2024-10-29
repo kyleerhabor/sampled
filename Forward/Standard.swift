@@ -39,13 +39,18 @@ extension Logger {
   static let sandbox = Self(subsystem: Bundle.appID, category: "Sandbox")
   static let ffmpeg = Self(subsystem: Bundle.appID, category: "FFmpeg")
 }
+
 extension Date {
-  static var epoch = Date(timeIntervalSinceReferenceDate: 0)
+  static let epoch = Date(timeIntervalSinceReferenceDate: 0)
 }
 
 extension URL {
   var pathString: String {
     self.path(percentEncoded: false)
+  }
+
+  var lastPath: String {
+    self.deletingPathExtension().lastPathComponent
   }
 
   // TODO: Move security-scoped related code elsewhere.
