@@ -23,7 +23,7 @@ public func duration(_ duration: Int64) -> Int64? {
   return duration
 }
 
-public func open(
+public func openInput(
   _ context: UnsafeMutablePointer<UnsafeMutablePointer<AVFormatContext>?>!,
   at url: UnsafePointer<CChar>!
 ) throws(FFError) {
@@ -34,18 +34,18 @@ public func open(
   }
 }
 
-public func opening<T>(
+public func openingInput<T>(
   _ context: UnsafeMutablePointer<UnsafeMutablePointer<AVFormatContext>?>!,
   at url: UnsafePointer<CChar>!,
-  _ body: () throws -> T
+  _ body: (UnsafeMutablePointer<AVFormatContext>?) throws -> T
 ) throws -> T {
-  try open(context, at: url)
+  try openInput(context, at: url)
 
   defer {
     avformat_close_input(context)
   }
 
-  return try body()
+  return try body(context.pointee)
 }
 
 public func findStreamInfo(_ context: UnsafeMutablePointer<AVFormatContext>!) throws(FFError) {
@@ -70,9 +70,9 @@ public func findBestStream(
   return result
 }
 
-public func receivePacket(
+public func readFrame(
   _ context: UnsafeMutablePointer<AVFormatContext>!,
-  packet: UnsafeMutablePointer<AVPacket>!
+  into packet: UnsafeMutablePointer<AVPacket>!
 ) throws(FFError) {
   let status = av_read_frame(context, packet)
 
@@ -81,16 +81,16 @@ public func receivePacket(
   }
 }
 
-public enum ReceivePacketState {
+public enum ReadFrameState {
   case ok, endOfFile
 }
 
-public func iterateReceivePacket(
+public func iterateReadFrame(
   _ context: UnsafeMutablePointer<AVFormatContext>!,
-  packet: UnsafeMutablePointer<AVPacket>!
-) throws(FFError) -> ReceivePacketState {
+  into packet: UnsafeMutablePointer<AVPacket>!
+) throws(FFError) -> ReadFrameState {
   do {
-    try receivePacket(context, packet: packet)
+    try readFrame(context, into: packet)
   } catch let error where error.code == .endOfFile {
     return .endOfFile
   }
@@ -109,7 +109,7 @@ public func copyCodecParameters(
   }
 }
 
-public func open(
+public func openCodec(
   _ context: UnsafeMutablePointer<AVCodecContext>!,
   codec: UnsafePointer<AVCodec>!
 ) throws(FFError) {
@@ -148,7 +148,7 @@ public func receiveFrame(
 }
 
 public enum SendPacketState {
-  case ok
+  case ok, resourceTemporarilyUnavailable, endOfFile, invalidInput
 }
 
 public func iterateSendPacket(
@@ -161,9 +161,7 @@ public func iterateSendPacket(
 }
 
 public enum ReceiveFrameState {
-  case ok,
-       resourceTemporarilyUnavailable,
-       endOfFile
+  case ok, resourceTemporarilyUnavailable, endOfFile, invalidInput
 }
 
 public func iterateReceiveFrame(
@@ -181,7 +179,7 @@ public func iterateReceiveFrame(
   return .ok
 }
 
-public func scale(
+public func scaleFrame(
   _ context: OpaquePointer!,
   source: UnsafePointer<AVFrame>!,
   destination: UnsafeMutablePointer<AVFrame>!
@@ -197,6 +195,45 @@ public func scale(
   guard scaleStatus >= FFSTATUS_OK else {
     throw FFError(code: FFError.Code(rawValue: scaleStatus))
   }
+}
+
+public func configureResampler(
+  _ context: OpaquePointer!,
+  source: UnsafePointer<AVFrame>!,
+  destination: UnsafePointer<AVFrame>!
+) throws(FFError) {
+  let status = swr_config_frame(context, destination, source)
+
+  guard status == FFSTATUS_OK else {
+    throw FFError(code: FFError.Code(rawValue: status))
+  }
+}
+
+public func resampleFrame(
+  _ context: OpaquePointer!,
+  source: UnsafePointer<AVFrame>!,
+  destination: UnsafeMutablePointer<AVFrame>!
+) throws(FFError) {
+  let status = swr_convert_frame(context, destination, source)
+
+  guard status == FFSTATUS_OK else {
+    throw FFError(code: FFError.Code(rawValue: status))
+  }
+}
+
+public func resampleFrame(
+  _ context: OpaquePointer!,
+  source: UnsafePointer<AVFrame>!,
+  destination: UnsafeMutablePointer<AVFrame>!,
+  channelLayout: AVChannelLayout,
+  sampleRate: Int32,
+  sampleFormat: Int32
+) throws(FFError) {
+  destination.pointee.ch_layout = channelLayout
+  destination.pointee.sample_rate = sampleRate
+  destination.pointee.format = sampleFormat
+
+  try resampleFrame(context, source: source, destination: destination)
 }
 
 extension AVFrame {
@@ -324,50 +361,8 @@ public class FFFrame {
 }
 
 extension AVSampleFormat {
-  public var isPlanar: Bool {
-    av_sample_fmt_is_planar(self) == 1
-  }
-
-  public init?(settings: [String: Any]) {
-    // As of May 29th, 2024, Apple's documentation claims AVLinearPCMBitDepthKey can be 8, 16, 24, or 32; however, this
-    // is not true, given AVAudioCommonFormat.pcmFormatFloat64 has a bit depth of 64.
-
-    // Do we need to check AVLinearPCMIsBigEndianKey?
-    guard let bitDepth = settings[AVLinearPCMBitDepthKey] as? Int,
-          let isFloat = settings[AVLinearPCMIsFloatKey] as? Bool,
-          let isNonInterleaved = settings[AVLinearPCMIsNonInterleaved] as? Bool else {
-      return nil
-    }
-
-    switch (bitDepth, isFloat, isNonInterleaved) {
-      case (8, false, false): self = AV_SAMPLE_FMT_U8
-      case (8, false, true): self = AV_SAMPLE_FMT_U8P
-      case (16, false, false): self = AV_SAMPLE_FMT_S16
-      case (16, false, true): self = AV_SAMPLE_FMT_S16P
-      case (32, false, false): self = AV_SAMPLE_FMT_S32
-      case (32, false, true): self = AV_SAMPLE_FMT_S32P
-      case (32, true, false): self = AV_SAMPLE_FMT_FLT
-      case (32, true, true): self = AV_SAMPLE_FMT_FLTP
-      case (64, false, false): self = AV_SAMPLE_FMT_S64
-      case (64, false, true): self = AV_SAMPLE_FMT_S64P
-      case (64, true, false): self = AV_SAMPLE_FMT_DBL
-      case (64, true, true): self = AV_SAMPLE_FMT_DBLP
-      default: return nil
-    }
-  }
-}
-
-extension AVAudioCommonFormat {
-  public init?(_ sampleFormat: AVSampleFormat) {
-    switch sampleFormat {
-      case AV_SAMPLE_FMT_S16, AV_SAMPLE_FMT_S16P: self = .pcmFormatInt16
-      case AV_SAMPLE_FMT_S32, AV_SAMPLE_FMT_S32P: self = .pcmFormatInt32
-      case AV_SAMPLE_FMT_FLT, AV_SAMPLE_FMT_FLTP: self = .pcmFormatFloat32
-      case AV_SAMPLE_FMT_DBL, AV_SAMPLE_FMT_DBLP: self = .pcmFormatFloat64
-      case AV_SAMPLE_FMT_U8, AV_SAMPLE_FMT_U8P,
-           AV_SAMPLE_FMT_S64, AV_SAMPLE_FMT_S64P: self = .otherFormat
-      default: return nil
-    }
+  public var isInterleaved: Bool {
+    av_sample_fmt_is_planar(self) == 0
   }
 }
 
@@ -405,70 +400,25 @@ public class FFScaleContext {
   }
 }
 
-//public class FFResampleContext {
-//  public var context: OpaquePointer!
-//
-//  public init(context: OpaquePointer!) {
-//    self.context = context
-//  }
-//
-//  public convenience init() {
-//    guard let context = swr_alloc() else {
-//      fatalError()
-//    }
-//
-//    self.init(context: context)
-//  }
-//
-//  deinit {
-//    swr_free(&context)
-//  }
-//
-//  public func configure(
-//    inputChannelLayout: UnsafePointer<AVChannelLayout>!,
-//    inputSampleFormat: AVSampleFormat,
-//    inputSampleRate: Int32,
-//    outputChannelLayout: UnsafePointer<AVChannelLayout>!,
-//    outputSampleFormat: AVSampleFormat,
-//    outputSampleRate: Int32
-//  ) throws {
-//    let status = swr_alloc_set_opts2(
-//      &context,
-//      outputChannelLayout,
-//      outputSampleFormat,
-//      outputSampleRate,
-//      inputChannelLayout,
-//      inputSampleFormat,
-//      inputSampleRate,
-//      0, // ?
-//      nil
-//    )
-//
-//    guard status == AVSTATUS_OK else {
-//      throw FFError(code: FFError.Code(rawValue: status))
-//    }
-//  }
-//
-//  public func initialize() throws {
-//    let status = swr_init(context)
-//
-//    guard status == AVSTATUS_OK else {
-//      throw FFError(code: FFError.Code(rawValue: status))
-//    }
-//  }
-//
-//  public func convertFrame(from source: UnsafePointer<AVFrame>!, to destination: UnsafeMutablePointer<AVFrame>!) throws {
-//    let status = swr_convert_frame(context, destination, source)
-//
-//    guard status == AVSTATUS_OK else {
-//      throw FFError(code: FFError.Code(rawValue: status))
-//    }
-//  }
-//}
-//
-//extension AVChannelOrder {
-//  public static let native = AV_CHANNEL_ORDER_NATIVE
-//}
+public class FFResampleContext {
+  public var context: OpaquePointer!
+
+  public init(context: OpaquePointer!) {
+    self.context = context
+  }
+
+  public convenience init() {
+    guard let context = swr_alloc() else {
+      fatalError()
+    }
+
+    self.init(context: context)
+  }
+
+  deinit {
+    swr_free(&context)
+  }
+}
 
 extension CFFmpeg.AVMediaType {
   public static let audio = AVMEDIA_TYPE_AUDIO

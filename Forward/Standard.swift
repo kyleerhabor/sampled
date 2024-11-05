@@ -34,8 +34,8 @@ extension Bundle {
 }
 
 extension Logger {
-  static let main = Self()
   static let ui = Self(subsystem: Bundle.appID, category: "UI")
+  static let model = Self(subsystem: Bundle.appID, category: "Model")
   static let sandbox = Self(subsystem: Bundle.appID, category: "Sandbox")
   static let ffmpeg = Self(subsystem: Bundle.appID, category: "FFmpeg")
 }
