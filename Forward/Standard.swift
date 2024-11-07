@@ -95,6 +95,18 @@ extension SecurityScopedResource {
 
     return try body()
   }
+
+  public func accessingSecurityScopedResource<T, E>(
+    _ body: @isolated(any) () async throws(E) -> T
+  ) async throws(E) -> T where T: Sendable {
+    let scope = startSecurityScope()
+
+    defer {
+      endSecurityScope(scope)
+    }
+
+    return try await body()
+  }
 }
 
 extension URL: SecurityScopedResource {
@@ -126,5 +138,20 @@ extension URLSource: SecurityScopedResource {
 
   func endSecurityScope(_ scope: Bool) {
     url.endSecurityScope(scope)
+  }
+}
+
+extension Actor {
+  public func isolated<T, E>(
+    _ body: @Sendable (isolated Self) throws(E) -> T
+  ) throws(E) -> T {
+    try body(self)
+  }
+
+  public func isolated<T, E, each Argument>(
+    _ args: repeat each Argument,
+    body: (isolated Self, repeat each Argument) throws(E) -> T
+  ) throws(E) -> T {
+    try body(self, repeat each args)
   }
 }

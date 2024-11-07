@@ -17,6 +17,7 @@ fatalError("cannot create path from unknown architecture")
 
 let package = Package(
   name: "ForwardFFmpeg",
+  platforms: [.macOS(.v15)],
   products: [.library(name: "ForwardFFmpeg", targets: ["ForwardFFmpeg"])],
   targets: [
     .target(name: "ForwardFFmpeg", dependencies: ["CoreFFmpeg"]),

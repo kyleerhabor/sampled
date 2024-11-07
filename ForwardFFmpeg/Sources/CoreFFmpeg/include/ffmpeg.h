@@ -10,10 +10,10 @@
 
 #include <stdio.h>
 
-const int FFERROR_EOF;
-const int FFERROR_EAGAIN;
-const int FFERROR_ENOMEM;
-const int64_t FF_NOPTS_VALUE;
-const int64_t FF_TIME_BASE;
+const int FFAVERROR_EOF;
+const int FFAVERROR_EAGAIN;
+const int FFAVERROR_ENOMEM;
+const int64_t FFAV_NOPTS_VALUE;
+const int64_t FFAV_TIME_BASE;
 
 #endif /* ffmpeg_h */

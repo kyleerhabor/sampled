@@ -66,7 +66,7 @@ struct LibraryInfoView: View {
       //
       // For some reason, setting contentMode to .fill causes square images to extend past the bounds. This doesn't
       // occur for .fit, but won't act appropriately at different dimensions (or if space is reduced).
-      Image(nsImage: track?.coverImage ?? NSImage())
+      Image(nsImage: track?.coverImage.map { NSImage(cgImage: $0, size: .zero) } ?? NSImage())
         .resizable()
         .aspectRatio(1, contentMode: .fit)
 

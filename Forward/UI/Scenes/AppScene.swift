@@ -9,8 +9,11 @@ import SwiftUI
 
 struct AppScene: Scene {
   var body: some Scene {
-    Window("Library", id: "main") {
+    WindowGroup { $library in
       LibraryView()
+        .environment(library)
+    } defaultValue: {
+      LibraryModel(id: .main)
     }
     .commands {
       LibraryCommands()

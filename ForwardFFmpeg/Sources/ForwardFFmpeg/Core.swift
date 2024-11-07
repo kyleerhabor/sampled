@@ -11,17 +11,27 @@ import AVFoundation
 import Foundation
 
 public let FFSTATUS_OK: Int32 = 0
-public let FFSTATUS_EOF = FFERROR_EOF
-public let FFSTATUS_ENOMEM = FFERROR_ENOMEM
-public let FFSTATUS_EAGAIN = FFERROR_EAGAIN
+public let FFSTATUS_EOF = FFAVERROR_EOF
+public let FFSTATUS_ENOMEM = FFAVERROR_ENOMEM
+public let FFSTATUS_EAGAIN = FFAVERROR_EAGAIN
 
 public func duration(_ duration: Int64) -> Int64? {
-  guard duration != FF_NOPTS_VALUE else {
+  guard duration != FFAV_NOPTS_VALUE else {
     return nil
   }
 
   return duration
 }
+
+public func bufferCount(sampleFormat: AVSampleFormat, channelCount: Int32) -> Int32 {
+  if sampleFormat.isInterleaved {
+    return 1
+  }
+
+  return channelCount
+}
+
+// MARK: -
 
 public func openInput(
   _ context: UnsafeMutablePointer<UnsafeMutablePointer<AVFormatContext>?>!,
@@ -38,7 +48,21 @@ public func openingInput<T>(
   _ context: UnsafeMutablePointer<UnsafeMutablePointer<AVFormatContext>?>!,
   at url: UnsafePointer<CChar>!,
   _ body: (UnsafeMutablePointer<AVFormatContext>?) throws -> T
-) throws -> T {
+) throws -> T where T: ~Copyable {
+  try openInput(context, at: url)
+
+  defer {
+    avformat_close_input(context)
+  }
+
+  return try body(context.pointee)
+}
+
+public func openingInput<T>(
+  _ context: UnsafeMutablePointer<UnsafeMutablePointer<AVFormatContext>?>!,
+  at url: UnsafePointer<CChar>!,
+  _ body: (UnsafeMutablePointer<AVFormatContext>?) throws(FFError) -> T
+) throws(FFError) -> T where T: ~Copyable {
   try openInput(context, at: url)
 
   defer {
@@ -51,7 +75,7 @@ public func openingInput<T>(
 public func findStreamInfo(_ context: UnsafeMutablePointer<AVFormatContext>!) throws(FFError) {
   let status = avformat_find_stream_info(context, nil)
 
-  guard status >= FFSTATUS_OK else {
+  guard status >= 0 else {
     throw FFError(code: FFError.Code(rawValue: status))
   }
 }
@@ -63,7 +87,7 @@ public func findBestStream(
 ) throws(FFError) -> Int32 {
   let result = av_find_best_stream(context, type, -1, -1, decoder, 0)
 
-  guard result >= FFSTATUS_OK else {
+  guard result >= 0 else {
     throw FFError(code: FFError.Code(rawValue: result))
   }
 
@@ -104,7 +128,7 @@ public func copyCodecParameters(
 ) throws(FFError) {
   let result = avcodec_parameters_to_context(context, params)
 
-  guard result >= FFSTATUS_OK else {
+  guard result >= 0 else {
     throw FFError(code: FFError.Code(rawValue: result))
   }
 }
@@ -192,7 +216,7 @@ public func scaleFrame(
   // to the slice height.
   let scaleStatus = sws_scale_frame(context, destination, source)
 
-  guard scaleStatus >= FFSTATUS_OK else {
+  guard scaleStatus >= 0 else {
     throw FFError(code: FFError.Code(rawValue: scaleStatus))
   }
 }

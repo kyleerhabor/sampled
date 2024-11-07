@@ -18,6 +18,8 @@ extension StorageKey {
   }
 }
 
+extension StorageKey: Sendable where Value: Sendable {}
+
 enum StorageKeys {
   static let preferArtistsDisplay = StorageKey("prefer-artists-display", defaultValue: false)
 }

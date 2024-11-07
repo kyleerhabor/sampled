@@ -45,6 +45,7 @@ extension AppMenuItem where A == AppMenuItemDefaultAction {
 
 extension KeyboardShortcut {
   static let open = KeyboardShortcut("o", modifiers: .command)
+  static let add = KeyboardShortcut("a", modifiers: [.command, .option])
 }
 
 extension View {
@@ -62,13 +63,8 @@ extension Text {
   }
 }
 
-enum OpenIdentity {
-  case library
-}
-
-extension OpenIdentity: Equatable {}
-
 extension FocusedValues {
-  @Entry var open: AppMenuActionItem<OpenIdentity?>?
+  @Entry var open: AppMenuActionItem<LibraryModelID?>?
+  @Entry var importTracks: AppMenuActionItem<LibraryModelID?>?
   @Entry var tracks: [LibraryTrack]?
 }

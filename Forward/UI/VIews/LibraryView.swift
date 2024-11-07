@@ -10,8 +10,11 @@ import CoreFFmpeg
 import ForwardFFmpeg
 import Algorithms
 import AVFoundation
+import MediaPlayer
 import OSLog
 import SwiftUI
+
+let libraryContentTypes: [UTType] = [.item]
 
 struct LibraryTrackPosition {
   let number: Int?
@@ -28,7 +31,7 @@ struct LibraryTrack {
   let album: String?
   let albumArtist: String?
   let date: Date?
-  let coverImage: NSImage?
+  let coverImage: CGImage?
   let track: LibraryTrackPosition?
   let disc: LibraryTrackPosition?
 }
@@ -86,24 +89,48 @@ struct LibraryTrackDurationView: View {
   }
 }
 
-let audioEngine = AVAudioEngine()
-let audioPlayer = {
-  let node = AVAudioPlayerNode()
-  audioEngine.attach(node)
-  audioEngine.connect(node, to: audioEngine.mainMixerNode, format: nil)
+actor AudioPlayer {
+  private let engine: AVAudioEngine
+  private var players: Set<AVAudioPlayerNode>
 
-  return node
-}()
+  init(engine: AVAudioEngine) {
+    self.engine = engine
+    self.players = []
+  }
+
+  func play(buffer: AVAudioPCMBuffer) throws {
+    let player = AVAudioPlayerNode()
+    engine.attach(player)
+    engine.connect(player, to: engine.mainMixerNode, format: buffer.format)
+
+    Task {
+      await player.scheduleBuffer(buffer)
+
+      players.remove(player)
+
+      if players.isEmpty {
+        engine.stop()
+      }
+    }
+
+    try engine.start()
+    players.forEach { $0.stop() }
+    players.insert(player)
+
+    player.play()
+  }
+}
+
+let player = AudioPlayer(engine: AVAudioEngine())
 
 struct LibraryView: View {
   @AppStorage(StorageKeys.preferArtistsDisplay.name) private var preferArtistsDisplay = StorageKeys.preferArtistsDisplay.defaultValue
+  @Environment(LibraryModel.self) private var library
   @State private var isFileImporterPresented = false
-  @State private var tracks = [LibraryTrack]()
   @State private var selection = Set<LibraryTrack.ID>()
-  @State private var popoverTrack: LibraryTrack?
 
   var body: some View {
-    Table(tracks, selection: $selection) {
+    Table(library.tracks, selection: $selection) {
       TableColumn("Track.Column.Track") { track in
         LibraryTrackPositionView(item: track.track?.number)
       }
@@ -134,18 +161,20 @@ struct LibraryView: View {
     }
     .contextMenu { ids in
       Button("Finder.Item.Show") {
-        let urls = tracks
+        let urls = library.tracks
           .filter(in: ids, by: \.id)
           .map(\.source.url)
 
         NSWorkspace.shared.activateFileViewerSelecting(urls)
       }
     } primaryAction: { ids in
-      guard let track = tracks.filter(in: ids, by: \.id).first else {
+      guard let track = library.tracks.filter(in: ids, by: \.id).first else {
         return
       }
 
-      Self.play(track: track)
+      Task {
+        await Self.play(track: track)
+      }
     }
 //    .safeAreaInset(edge: .bottom, spacing: 0) {
 //      VStack(spacing: 0) {
@@ -158,7 +187,7 @@ struct LibraryView: View {
 //    }
     .fileImporter(
       isPresented: $isFileImporterPresented,
-      allowedContentTypes: [.item],
+      allowedContentTypes: libraryContentTypes,
       allowsMultipleSelection: true
     ) { result in
       let urls: [URL]
@@ -173,308 +202,23 @@ struct LibraryView: View {
       }
 
       Task {
-        tracks = await Self.process(urls: urls)
+        library.tracks = await Self.load(urls: urls)
       }
     }
-    .focusedSceneValue(\.open, AppMenuActionItem(identity: .library, isEnabled: true) {
+    .focusedSceneValue(\.importTracks, AppMenuActionItem(identity: library.id, isEnabled: true) {
       isFileImporterPresented = true
     })
     // TODO: Replace.
-    .focusedSceneValue(\.tracks, tracks.filter(in: selection, by: \.id))
+    .focusedSceneValue(\.tracks, library.tracks.filter(in: selection, by: \.id))
   }
 
-  // TODO: Rename.
-  static private func write(
-    data: inout Data,
-    frame: UnsafePointer<AVFrame>!,
-    scaledFrame: UnsafeMutablePointer<AVFrame>!,
-    format: AVPixelFormat
-  ) throws(FFError) {
-    let width = frame.pointee.width
-    let height = frame.pointee.height
-
-    guard let scaleContext = FFScaleContext(
-      srcWidth: width,
-      srcHeight: height,
-      srcFormat: frame.pointee.pixelFormat!,
-      dstWidth: width,
-      dstHeight: height,
-      dstFormat: format
-    ) else {
-      Logger.ffmpeg.error("Could not create swscale context")
-
-      throw FFError(code: FFError.Code.unknown)
-    }
-
-    try scaleFrame(scaleContext.context, source: frame, destination: scaledFrame)
-
-    let buffer = scaledFrame.pointee.buf.0!
-    data.append(buffer.pointee.data, count: buffer.pointee.size)
-  }
-
-  static private func readImage(
-    formatContext: UnsafeMutablePointer<AVFormatContext>!,
-    packet: UnsafeMutablePointer<AVPacket>!,
-    frame: UnsafeMutablePointer<AVFrame>!,
-    scaledFrame: UnsafeMutablePointer<AVFrame>!
-  ) -> CGImage? {
-    var decoder: UnsafePointer<AVCodec>!
-    let streami: Int32
-
-    do {
-      streami = try findBestStream(formatContext, ofType: .video, decoder: &decoder)
-    } catch {
-      Logger.ffmpeg.error("\(error)")
-
-      return nil
-    }
-
-    let stream = formatContext!.pointee.streams[Int(streami)]!
-    let codecContext = FFCodecContext(codec: decoder)
-
-    do {
-      try copyCodecParameters(codecContext.context, params: stream.pointee.codecpar)
-    } catch {
-      Logger.ffmpeg.error("\(error)")
-
-      return nil
-    }
-
-    do {
-      try openCodec(codecContext.context, codec: decoder)
-    } catch {
-      Logger.ffmpeg.error("\(error)")
-
-      return nil
-    }
-
-    let packet = stream.pointee.attached_pic
-    let packetStatus: SendPacketState
-
-    do {
-      packetStatus = try withUnsafePointer(to: packet) { pointer in
-        try iterateSendPacket(codecContext.context, packet: pointer)
-      }
-    } catch {
-      Logger.ffmpeg.error("\(error)")
-
-      return nil
-    }
-
-    guard packetStatus == .ok else {
-      return nil
-    }
-
-    let frameStatus: ReceiveFrameState
-
-    do {
-      frameStatus = try iterateReceiveFrame(codecContext.context, frame: frame)
-    } catch {
-      Logger.ffmpeg.error("\(error)")
-
-      return nil
-    }
-
-    guard frameStatus == .ok else {
-      return nil
-    }
-
-    var data = Data()
-    let format = AV_PIX_FMT_RGBA
-
-    do {
-      try Self.write(data: &data, frame: frame, scaledFrame: scaledFrame, format: format)
-    } catch {
-      Logger.ffmpeg.error("\(error)")
-
-      return nil
-    }
-
-    guard let formatDesc = av_pix_fmt_desc_get(format) else {
-      return nil
-    }
-
-    let bitsPerPixel = Int(av_get_bits_per_pixel(formatDesc))
-    let width = Int(codecContext.context.pointee.width)
-    let height = Int(codecContext.context.pointee.height)
-
-    guard let provider = CGDataProvider(data: data as CFData) else {
-      return nil
-    }
-
-    return CGImage(
-      width: width,
-      height: height,
-      bitsPerComponent: Int(bitsPerPixel / Int(formatDesc.pointee.nb_components)),
-      bitsPerPixel: bitsPerPixel,
-      bytesPerRow: Int(scaledFrame.pointee.linesize.0),
-      space: CGColorSpace(name: CGColorSpace.sRGB)!,
-      // I don't know why, but specifying premultipliedLast makes transparency work (as opposed to
-      // noneSkipLast). In fact, I don't really understand this property at all.
-      bitmapInfo: CGBitmapInfo(rawValue: CGImageAlphaInfo.premultipliedLast.rawValue),
-      provider: provider,
-      decode: nil,
-      shouldInterpolate: true,
-      intent: .defaultIntent
-    )
-  }
-
-  static private func process(urls: [URL]) async -> [LibraryTrack] {
-    let frame = FFFrame()
-    let scaledFrame = FFFrame()
-    let packet = FFPacket()
-
-    return urls.compactMap { url in
+  static private func load(urls: [URL]) async -> [LibraryTrack] {
+    urls.compactMap { url in
       let source = URLSource(url: url, options: [.withReadOnlySecurityScope, .withoutImplicitSecurityScope])
 
       return source.accessingSecurityScopedResource {
-        let pathString = url.pathString
-        let formatContext = FFFormatContext()
-
         do {
-          return try openingInput(&formatContext.context, at: pathString) { formatContext in
-            do {
-              // Yes, we need this for formats like FLAC.
-              try findStreamInfo(formatContext)
-            } catch {
-              Logger.ffmpeg.error("\(error)")
-
-              return nil
-            }
-
-            let streami: Int32
-
-            do {
-              streami = try findBestStream(formatContext, ofType: .audio, decoder: nil)
-            } catch {
-              Logger.ffmpeg.error("\(error)")
-
-              return nil
-            }
-
-            let stream = formatContext!.pointee.streams[Int(streami)]!
-            let titleKey = "title"
-            let artistKey = "artist"
-            let artistsKey = "artists"
-            let albumKey = "album"
-            let albumArtistKey = "album-artist"
-            let dateKey = "date"
-            let trackNumberKey = "track-number"
-            let trackTotalKey = "track-total"
-            let discNumberKey = "disc-number"
-            let discTotalKey = "disc-total"
-            let metadata = transform(
-              chain(
-                FFDictionaryIterator(formatContext!.pointee.metadata),
-                FFDictionaryIterator(stream.pointee.metadata)
-              )
-              .uniqued(on: \.pointee.key)
-            ) { metadata in
-              metadata.reduce(into: [String: Any](minimumCapacity: metadata.count)) { partialResult, tag in
-                let key = String(cString: tag.pointee.key)
-                let value = String(cString: tag.pointee.value)
-
-                func item(
-                  _ metadata: [String: Any],
-                  value: String,
-                  numberKey: String,
-                  totalKey: String
-                ) -> [String: Any] {
-                  let components = value.split(separator: "/", maxSplits: 1)
-
-                  switch components.count {
-                    case 2: // [Number]/[Total]
-                      partialResult[totalKey] = Int(components[1])
-
-                      fallthrough
-                    case 1: // [Number]
-                      partialResult[numberKey] = Int(components[0])
-                    default:
-                      fatalError("unreachable")
-                  }
-
-                  return partialResult
-                }
-
-                switch key {
-                  case "title", "TITLE":
-                    partialResult[titleKey] = value
-                  case "artist", "ARTIST":
-                    partialResult[artistKey] = value
-                  case "ARTISTS": // This may be specific to MusicBrainz.
-                    partialResult[artistsKey] = value
-                      .split(separator: ";")
-                      .map { $0.trimmingCharacters(in: .whitespaces) }
-                  case "album", "ALBUM":
-                    partialResult[albumKey] = value
-                  case "album_artist", "ALBUM_ARTIST":
-                    partialResult[albumArtistKey] = value
-                  case "date", "DATE": // ORIGINALDATE and ORIGINALYEAR exist, but seem specific to MusicBrainz.
-                    let date: Date
-
-                    do {
-                      date = try Date(value, strategy: .iso8601.year())
-                    } catch {
-                      Logger.ui.error("\(error)")
-
-                      return
-                    }
-
-                    partialResult[dateKey] = date
-                  case "track":
-                    partialResult = item(partialResult, value: value, numberKey: trackNumberKey, totalKey: trackTotalKey)
-                  case "disc", "DISC":
-                    partialResult = item(partialResult, value: value, numberKey: discNumberKey, totalKey: discTotalKey)
-                  case "TRACKTOTAL": // TOTALTRACKS exists, but seems to always coincide with TRACKTOTAL.
-                    partialResult[trackTotalKey] = Int(value)
-                  case "DISCTOTAL": // TOTALDISCS exists, but is in the same situation as above.
-                    partialResult[discTotalKey] = Int(value)
-                  default:
-                    partialResult[key] = value
-                }
-              }
-            }
-
-            // Some formats (like Matroska) have the stream duration set to AV_NOPTS_VALUE, while exposing the real
-            // value in the format context.
-            //
-            // TODO: Consider calculating duration from audio stream.
-            //
-            // This would involve performing arithmetic on the sample count.
-            guard let duration = duration(stream.pointee.duration)
-              .map({ Double($0) * av_q2d(stream.pointee.time_base) })
-                    ?? duration(formatContext!.pointee.duration).map({ Double($0 / FF_TIME_BASE) }) else {
-              return nil
-            }
-
-            let artist = metadata[artistKey] as? String
-            let image = Self.readImage(
-              formatContext: formatContext,
-              packet: packet.packet,
-              frame: frame.frame,
-              scaledFrame: scaledFrame.frame
-            )
-
-            return LibraryTrack(
-              source: source,
-              title: metadata[titleKey] as? String ?? url.lastPath,
-              duration: Duration.seconds(duration),
-              artist: metadata[artistKey] as? String,
-              artists: metadata[artistsKey] as? [String] ?? artist.map { [$0] } ?? [],
-              album: metadata[albumKey] as? String,
-              albumArtist: metadata[albumArtistKey] as? String,
-              date: metadata[dateKey] as? Date,
-              coverImage: image.map { NSImage(cgImage: $0, size: .zero) },
-              track: LibraryTrackPosition(
-                number: metadata[trackNumberKey] as? Int,
-                total: metadata[trackTotalKey] as? Int
-              ),
-              disc: LibraryTrackPosition(
-                number: metadata[discNumberKey] as? Int,
-                total: metadata[discTotalKey] as? Int
-              )
-            )
-          }
+          return try LibraryModel.read(source: source)
         } catch {
           Logger.ffmpeg.error("\(error)")
 
@@ -484,13 +228,13 @@ struct LibraryView: View {
     }
   }
 
-  static private func resampleFrame(
+  nonisolated static private func resampleFrame(
     _ context: OpaquePointer!,
     source: UnsafePointer<AVFrame>!,
     destination: UnsafeMutablePointer<AVFrame>!,
     channelLayout: AVChannelLayout,
     sampleRate: Int32,
-    sampleFormat: Int32,
+    sampleFormat: AVSampleFormat,
     buffers: inout [Data]
   ) throws(FFError) {
     try ForwardFFmpeg.resampleFrame(
@@ -499,32 +243,31 @@ struct LibraryView: View {
       destination: destination,
       channelLayout: channelLayout,
       sampleRate: sampleRate,
-      sampleFormat: sampleFormat
+      sampleFormat: sampleFormat.rawValue
     )
 
     let stride = destination.pointee.nb_samples * av_get_bytes_per_sample(AVSampleFormat(rawValue: destination.pointee.format))
+    let bufferCount = bufferCount(sampleFormat: sampleFormat, channelCount: channelLayout.nb_channels)
 
-    for channeli in 0..<Int(channelLayout.nb_channels) {
+    for channeli in 0..<Int(bufferCount) {
       buffers[channeli].append(destination.pointee.extended_data[channeli]!, count: Int(stride))
     }
   }
 
-  static private func play(track: LibraryTrack) {
+  nonisolated static private func play(track: LibraryTrack) async {
     let source = track.source
-
-    source.accessingSecurityScopedResource {
+    let buffer: AVAudioPCMBuffer? = source.accessingSecurityScopedResource {
       let pathString = source.url.pathString
       let formatContext = FFFormatContext()
 
       do {
-        try openingInput(&formatContext.context, at: pathString) { formatContext in
+        return try openingInput(&formatContext.context, at: pathString) { formatContext in
           do {
-            // Yes, we need this for formats like FLAC.
             try findStreamInfo(formatContext)
           } catch {
             Logger.ffmpeg.error("\(error)")
 
-            return
+            return nil
           }
 
           var decoder: UnsafePointer<AVCodec>!
@@ -535,7 +278,7 @@ struct LibraryView: View {
           } catch {
             Logger.ffmpeg.error("\(error)")
 
-            return
+            return nil
           }
 
           let stream = formatContext!.pointee.streams[Int(streami)]!
@@ -547,7 +290,7 @@ struct LibraryView: View {
           } catch {
             Logger.ffmpeg.error("\(error)")
 
-            return
+            return nil
           }
 
           let packet = FFPacket()
@@ -557,8 +300,11 @@ struct LibraryView: View {
           let channelLayout = codecContext.context.pointee.ch_layout
           let sampleRate = codecContext.context.pointee.sample_rate
           let sampleFormat = AV_SAMPLE_FMT_FLTP
-          let channelCount = channelLayout.nb_channels
-          var buffers = [Data](repeating: Data(), count: Int(channelCount))
+          let bufferCount = bufferCount(sampleFormat: sampleFormat, channelCount: channelLayout.nb_channels)
+          var buffers = [Data](
+            repeating: Data(),
+            count: Int(bufferCount)
+          )
 
           do {
             func action() throws(FFError) {
@@ -569,7 +315,7 @@ struct LibraryView: View {
                 destination: resampled.frame,
                 channelLayout: channelLayout,
                 sampleRate: sampleRate,
-                sampleFormat: sampleFormat.rawValue,
+                sampleFormat: sampleFormat,
                 buffers: &buffers
               )
 
@@ -582,7 +328,7 @@ struct LibraryView: View {
                 destination: resampled.frame,
                 channelLayout: channelLayout,
                 sampleRate: sampleRate,
-                sampleFormat: sampleFormat.rawValue,
+                sampleFormat: sampleFormat,
                 buffers: &buffers
               )
             }
@@ -604,7 +350,7 @@ struct LibraryView: View {
                 case .ok:
                   break
                 default:
-                  return
+                  return nil
               }
 
               loop:
@@ -615,7 +361,7 @@ struct LibraryView: View {
                   case .resourceTemporarilyUnavailable:
                     break loop
                   default:
-                    return
+                    return nil
                 }
 
                 do {
@@ -623,7 +369,7 @@ struct LibraryView: View {
                 } catch {
                   Logger.ffmpeg.error("\(error)")
 
-                  return
+                  return nil
                 }
               }
             }
@@ -632,7 +378,7 @@ struct LibraryView: View {
               case .ok:
                 break
               default:
-                return
+                return nil
             }
 
             loop:
@@ -643,7 +389,7 @@ struct LibraryView: View {
                 case .endOfFile:
                   break loop
                 default:
-                  return
+                  return nil
               }
 
               do {
@@ -651,17 +397,14 @@ struct LibraryView: View {
               } catch {
                 Logger.ffmpeg.error("\(error)")
 
-                return
+                return nil
               }
             }
           } catch {
             Logger.ffmpeg.error("\(error)")
 
-            return
+            return nil
           }
-
-          var layout = AudioChannelLayout()
-          layout.mChannelLayoutTag = kAudioChannelLayoutTag_UseChannelBitmap
 
           struct S {
             let channel: AVChannel
@@ -686,6 +429,8 @@ struct LibraryView: View {
             S(channel: AV_CHAN_TOP_BACK_RIGHT, bitmap: .bit_TopBackRight)
           ]
 
+          var layout = AudioChannelLayout()
+          layout.mChannelLayoutTag = kAudioChannelLayoutTag_UseChannelBitmap
           layout.mChannelBitmap = items.reduce(AudioChannelBitmap()) { partialResult, item in
             if channelLayout.u.mask & (1 << item.channel.rawValue) == 0 {
               return partialResult
@@ -694,77 +439,74 @@ struct LibraryView: View {
             return partialResult.union(item.bitmap)
           }
 
-          var audioBufferList = AudioBufferList()
-          audioBufferList.mNumberBuffers = UInt32(buffers.count)
+          let stride = MemoryLayout<Float>.stride
+          let frameCount = AVAudioFrameCount(buffers[0].count / stride)
 
-          let audioBufferListPointer = UnsafeMutableAudioBufferListPointer(&audioBufferList)
-
-          for bufferi in buffers.indices {
-            let buffer: UnsafeMutableBufferPointer<UInt8> = .allocate(capacity: buffers[bufferi].count)
-            // I really with Swift supported long-lived pointers to Data. Because the pointer cannot be accessed outside
-            // the closure, we must perform an allocation to move (or copy) the data from the source. As a consequence,
-            // memory usage is twice as high.
-            //
-            // We may be able to alleviate this by using AVAudioSourceNode.
-            _ = buffers[bufferi].withUnsafeMutableBytes { pointer in
-              buffer.moveInitialize(fromContentsOf: pointer.bindMemory(to: UInt8.self))
-            }
-
-            audioBufferListPointer[bufferi] = AudioBuffer(buffer, numberOfChannels: 1)
-          }
-
-          let audioBuffer = AVAudioPCMBuffer(
+          guard let audioBuffer = AVAudioPCMBuffer(
             pcmFormat: AVAudioFormat(
               standardFormatWithSampleRate: Double(sampleRate),
               channelLayout: AVAudioChannelLayout(layout: &layout)
             ),
-            bufferListNoCopy: &audioBufferList
-          ) { buffers in
-            Logger.ffmpeg.info("Deallocated!")
+            frameCapacity: frameCount
+          ) else {
+            return nil
+          }
 
-            UnsafeMutableAudioBufferListPointer(UnsafeMutablePointer(mutating: buffers)).forEach { buffer in
-              buffer.mData?.deallocate()
+          for bufferi in buffers.indices {
+            buffers[bufferi].withUnsafeMutableBytes { pointer in
+              let count = pointer.count / stride
+              let pointer = pointer.baseAddress!.bindMemory(to: Float.self, capacity: count)
+
+              audioBuffer.floatChannelData![bufferi].moveUpdate(from: pointer, count: count)
             }
-          }!
+          }
 
-//          let url = URL.applicationSupportDirectory.appending(
-//            components: Bundle.appID, "audio.raw",
-//            directoryHint: .notDirectory
-//          )
-//
-//          do {
-//            try FileManager.default.createDirectory(at: url.deletingLastPathComponent(), withIntermediateDirectories: true)
-//
-//            let buffers = UnsafeMutableAudioBufferListPointer(UnsafeMutablePointer(mutating: audioBuffer.audioBufferList))
-//            let buffer = buffers.reduce(into: Data()) { partialResult, buffer in
-//              let count = Int(buffer.mDataByteSize)
-//
-//              partialResult.append(UnsafePointer(buffer.mData!.bindMemory(to: UInt8.self, capacity: count)), count: count)
-//            }
-//
-//            try buffer.write(to: url)
-//          } catch {
-//            Logger.ui.error("\(error)")
-//
-//            return
-//          }
+          audioBuffer.frameLength = frameCount
+
+          #if DEBUG
+          let url = URL.applicationSupportDirectory.appending(
+            components: Bundle.appID, "audio.raw",
+            directoryHint: .notDirectory
+          )
 
           do {
-            audioPlayer.scheduleBuffer(audioBuffer)
+            try FileManager.default.createDirectory(at: url.deletingLastPathComponent(), withIntermediateDirectories: true)
 
-            try audioEngine.start()
-            audioPlayer.play()
+            let buffers = UnsafeMutableAudioBufferListPointer(UnsafeMutablePointer(mutating: audioBuffer.audioBufferList))
+            let buffer = buffers.reduce(into: Data()) { partialResult, buffer in
+              let count = Int(buffer.mDataByteSize)
+
+              partialResult.append(UnsafePointer(buffer.mData!.bindMemory(to: UInt8.self, capacity: count)), count: count)
+            }
+
+            try buffer.write(to: url)
           } catch {
-            Logger.model.info("\(error)")
+            Logger.ui.error("\(error)")
 
-            return
+            return nil
           }
+
+          #endif
+
+          return audioBuffer
         }
       } catch {
         Logger.ffmpeg.error("\(error)")
 
-        return
+        return nil
       }
+    }
+
+    guard let buffer else {
+      return
+    }
+
+    do {
+      try await player.play(buffer: buffer)
+    } catch {
+      Logger.model.error("\(error)")
+
+      return
     }
   }
 }
