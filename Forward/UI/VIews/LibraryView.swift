@@ -274,7 +274,7 @@ struct LibraryView: View {
           let streami: Int32
 
           do {
-            streami = try findBestStream(formatContext, ofType: .audio, decoder: &decoder)
+            streami = try findBestStream(formatContext, type: .audio, stream: -1, decoder: &decoder)
           } catch {
             Logger.ffmpeg.error("\(error)")
 
@@ -321,16 +321,24 @@ struct LibraryView: View {
 
               av_frame_unref(resampled.frame)
 
-              // I *believe* this is how you retrieve the remaining samples in the FIFO buffer.
-              try resampleFrame(
-                resampleContext.context,
-                source: nil,
-                destination: resampled.frame,
-                channelLayout: channelLayout,
-                sampleRate: sampleRate,
-                sampleFormat: sampleFormat,
-                buffers: &buffers
-              )
+              do {
+                // I *believe* this is how you retrieve the remaining samples in the FIFO buffer.
+                try resampleFrame(
+                  resampleContext.context,
+                  source: nil,
+                  destination: resampled.frame,
+                  channelLayout: channelLayout,
+                  sampleRate: sampleRate,
+                  sampleFormat: sampleFormat,
+                  buffers: &buffers
+                )
+              } catch let error where error.code == .outputChanged {
+                // Fallthough
+                //
+                // Resampling WAVE seems to always produce this error. I assume no data is in the FIFO buffer, and
+                // therefore it appears the output has (somehow) changed. I'm not exactly sure, but I am sure that this
+                // fallthrough produces no known issues.
+              }
             }
 
             loop:
@@ -429,10 +437,16 @@ struct LibraryView: View {
             S(channel: AV_CHAN_TOP_BACK_RIGHT, bitmap: .bit_TopBackRight)
           ]
 
+          let chLayout = if channelLayout.order == AV_CHANNEL_ORDER_UNSPEC {
+            channelLayout.default
+          } else {
+            channelLayout
+          }
+
           var layout = AudioChannelLayout()
           layout.mChannelLayoutTag = kAudioChannelLayoutTag_UseChannelBitmap
           layout.mChannelBitmap = items.reduce(AudioChannelBitmap()) { partialResult, item in
-            if channelLayout.u.mask & (1 << item.channel.rawValue) == 0 {
+            if chLayout.u.mask & (1 << item.channel.rawValue) == 0 {
               return partialResult
             }
 

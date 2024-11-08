@@ -53,6 +53,7 @@ final class LibraryModel {
 
   static func read(
     _ context: UnsafeMutablePointer<AVFormatContext>!,
+    coverImageStream: Int32,
     frame: UnsafeMutablePointer<AVFrame>!,
     scaleFrame: UnsafeMutablePointer<AVFrame>!
   ) throws(FFError) -> CGImage? {
@@ -63,7 +64,14 @@ final class LibraryModel {
     }
 
     var decoder: UnsafePointer<AVCodec>!
-    let coverImageStreami = try findBestStream(context, ofType: .video, decoder: &decoder)
+    let coverImageStreami: Int32
+
+    do {
+      coverImageStreami = try findBestStream(context, type: .video, stream: coverImageStream, decoder: &decoder)
+    } catch let error where error.code == .streamNotFound {
+      return nil
+    }
+
     let coverImageStream = context!.pointee.streams[Int(coverImageStreami)]!
 
     let codecContext = FFCodecContext(codec: decoder)
@@ -129,7 +137,7 @@ final class LibraryModel {
       // Yes, we need this for formats like FLAC.
       try findStreamInfo(formatContext)
 
-      let streami = try findBestStream(formatContext, ofType: .audio, decoder: nil)
+      let streami = try findBestStream(formatContext, type: .audio, stream: -1, decoder: nil)
       let stream = formatContext!.pointee.streams[Int(streami)]!
       let titleKey = "title"
       let artistKey = "artist"
@@ -219,7 +227,13 @@ final class LibraryModel {
         return nil
       }
 
-      let coverImage = try Self.read(formatContext, frame: frame.frame, scaleFrame: scaleFrame.frame)
+      let coverImage = try Self.read(
+        formatContext,
+        coverImageStream: stream.pointee.attached_pic.stream_index,
+        frame: frame.frame,
+        scaleFrame: scaleFrame.frame
+      )
+
       let artist = metadata[artistKey] as? String
 
       return LibraryTrack(

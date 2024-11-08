@@ -12,6 +12,8 @@ import Foundation
 
 public let FFSTATUS_OK: Int32 = 0
 public let FFSTATUS_EOF = FFAVERROR_EOF
+public let FFSTATUS_STREAM_NOT_FOUND = FFAVERROR_STREAM_NOT_FOUND
+public let FFSTATUS_OUTPUT_CHANGED = FFAVERROR_OUTPUT_CHANGED
 public let FFSTATUS_ENOMEM = FFAVERROR_ENOMEM
 public let FFSTATUS_EAGAIN = FFAVERROR_EAGAIN
 
@@ -82,10 +84,11 @@ public func findStreamInfo(_ context: UnsafeMutablePointer<AVFormatContext>!) th
 
 public func findBestStream(
   _ context: UnsafeMutablePointer<AVFormatContext>!,
-  ofType type: CFFmpeg.AVMediaType,
+  type: CFFmpeg.AVMediaType,
+  stream: Int32,
   decoder: UnsafeMutablePointer<UnsafePointer<AVCodec>?>!
 ) throws(FFError) -> Int32 {
-  let result = av_find_best_stream(context, type, -1, -1, decoder, 0)
+  let result = av_find_best_stream(context, type, stream, -1, decoder, 0)
 
   guard result >= 0 else {
     throw FFError(code: FFError.Code(rawValue: result))
@@ -260,6 +263,15 @@ public func resampleFrame(
   try resampleFrame(context, source: source, destination: destination)
 }
 
+extension AVChannelLayout {
+  public var `default`: Self {
+    var channelLayout = Self()
+    av_channel_layout_default(&channelLayout, self.nb_channels)
+
+    return channelLayout
+  }
+}
+
 extension AVFrame {
   static public let unknownFormat = -1
 
@@ -296,6 +308,8 @@ public struct FFError: Error {
 
     public static let unknown = Self(rawValue: -1)
     public static let endOfFile = Self(rawValue: FFSTATUS_EOF)
+    public static let streamNotFound = Self(rawValue: FFSTATUS_STREAM_NOT_FOUND)
+    public static let outputChanged = Self(rawValue: FFSTATUS_OUTPUT_CHANGED)
     public static let resourceTemporarilyUnavailable = Self(rawValue: FFSTATUS_EAGAIN)
 
     public init(rawValue: Int32) {

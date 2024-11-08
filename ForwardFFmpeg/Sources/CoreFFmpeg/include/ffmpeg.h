@@ -11,6 +11,8 @@
 #include <stdio.h>
 
 const int FFAVERROR_EOF;
+const int FFAVERROR_STREAM_NOT_FOUND;
+const int FFAVERROR_OUTPUT_CHANGED;
 const int FFAVERROR_EAGAIN;
 const int FFAVERROR_ENOMEM;
 const int64_t FFAV_NOPTS_VALUE;
