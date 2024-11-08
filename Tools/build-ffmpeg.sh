@@ -64,7 +64,7 @@ build () {
     --disable-network --disable-everything \
     --enable-libopus \
     --enable-demuxer='aac,ac3,aiff,flac,loas,matroska,mov,mp3,ogg,wav' \
-    --enable-decoder='*_at,libopus,mjpeg,png' \
+    --enable-decoder='*_at,flac,libopus,mjpeg,png' \
     --enable-protocol='file' \
     --enable-cross-compile \
     --sysroot="$(xcrun --sdk macosx --show-sdk-path)" \
