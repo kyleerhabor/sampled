@@ -1,7 +1,7 @@
 #!/bin/sh
 
 #  core.sh
-#  Forward
+#  Sampled
 #
 #  Created by Kyle Erhabor on 10/9/24.
 #

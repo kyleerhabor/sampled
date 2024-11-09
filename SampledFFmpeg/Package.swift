@@ -4,11 +4,11 @@
 import PackageDescription
 
 let package = Package(
-  name: "ForwardFFmpeg",
+  name: "SampledFFmpeg",
   platforms: [.macOS(.v15)],
-  products: [.library(name: "ForwardFFmpeg", targets: ["ForwardFFmpeg"])],
+  products: [.library(name: "SampledFFmpeg", targets: ["SampledFFmpeg"])],
   targets: [
-    .target(name: "ForwardFFmpeg", dependencies: ["CoreFFmpeg"]),
+    .target(name: "SampledFFmpeg", dependencies: ["CoreFFmpeg"]),
     .target(name: "CoreFFmpeg", dependencies: ["CFFmpeg"]),
     .target(
       name: "CFFmpeg",

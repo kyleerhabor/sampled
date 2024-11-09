@@ -16,9 +16,9 @@
             <BuildableReference
                BuildableIdentifier = "primary"
                BlueprintIdentifier = "0017ED232BF17A38008B3D76"
-               BuildableName = "Forward.app"
-               BlueprintName = "Forward"
-               ReferencedContainer = "container:Forward.xcodeproj">
+               BuildableName = "Sampled.app"
+               BlueprintName = "Sampled"
+               ReferencedContainer = "container:Sampled.xcodeproj">
             </BuildableReference>
          </BuildActionEntry>
       </BuildActionEntries>
@@ -45,11 +45,18 @@
          <BuildableReference
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "0017ED232BF17A38008B3D76"
-            BuildableName = "Forward.app"
-            BlueprintName = "Forward"
-            ReferencedContainer = "container:Forward.xcodeproj">
+            BuildableName = "Sampled.app"
+            BlueprintName = "Sampled"
+            ReferencedContainer = "container:Sampled.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>
+      <EnvironmentVariables>
+         <EnvironmentVariable
+            key = "AV_LOG_FORCE_NOCOLOR"
+            value = "1"
+            isEnabled = "YES">
+         </EnvironmentVariable>
+      </EnvironmentVariables>
    </LaunchAction>
    <ProfileAction
       buildConfiguration = "Release"
@@ -62,9 +69,9 @@
          <BuildableReference
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "0017ED232BF17A38008B3D76"
-            BuildableName = "Forward.app"
-            BlueprintName = "Forward"
-            ReferencedContainer = "container:Forward.xcodeproj">
+            BuildableName = "Sampled.app"
+            BlueprintName = "Sampled"
+            ReferencedContainer = "container:Sampled.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>
    </ProfileAction>

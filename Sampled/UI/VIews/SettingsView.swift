@@ -1,6 +1,6 @@
 //
 //  SettingsView.swift
-//  Forward
+//  Sampled
 //
 //  Created by Kyle Erhabor on 10/18/24.
 //

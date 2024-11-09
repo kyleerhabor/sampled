@@ -1,6 +1,6 @@
 //
 //  LibraryInfoView.swift
-//  Forward
+//  Sampled
 //
 //  Created by Kyle Erhabor on 10/12/24.
 //

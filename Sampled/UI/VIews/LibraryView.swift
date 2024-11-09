@@ -1,13 +1,13 @@
 //
 //  LibraryView.swift
-//  Forward
+//  Sampled
 //
 //  Created by Kyle Erhabor on 10/7/24.
 //
 
 import CFFmpeg
 import CoreFFmpeg
-import ForwardFFmpeg
+import SampledFFmpeg
 import Algorithms
 import AVFoundation
 import MediaPlayer
@@ -237,7 +237,7 @@ struct LibraryView: View {
     sampleFormat: AVSampleFormat,
     buffers: inout [Data]
   ) throws(FFError) {
-    try ForwardFFmpeg.resampleFrame(
+    try SampledFFmpeg.resampleFrame(
       context,
       source: source,
       destination: destination,

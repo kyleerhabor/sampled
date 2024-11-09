@@ -1,14 +1,14 @@
 #!/bin/sh
 
 #  build.sh
-#  Forward
+#  Sampled
 #
 #  Created by Kyle Erhabor on 10/9/24.
 #
 
 . "$(dirname "$0")/scripts/core.sh"
 
-PREFIX=ForwardFFmpeg/Sources/CFFmpeg
+PREFIX=SampledFFmpeg/Sources/CFFmpeg
 DEPSDIR=deps
 export OPUSDIR="$DEPSDIR/opus"
 export VORBISDIR="$DEPSDIR/vorbis"

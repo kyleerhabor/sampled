@@ -1,13 +1,13 @@
 //
 //  LibraryModel.swift
-//  Forward
+//  Sampled
 //
 //  Created by Kyle Erhabor on 11/6/24.
 //
 
 import CFFmpeg
 import CoreFFmpeg
-import ForwardFFmpeg
+import SampledFFmpeg
 import Algorithms
 import AppKit
 import CoreGraphics
@@ -40,11 +40,11 @@ final class LibraryModel {
     // Some formats (like Matroska) have the stream duration set to AV_NOPTS_VALUE, while exposing the real
     // value in the format context.
 
-    if let duration = ForwardFFmpeg.duration(stream.pointee.duration) {
+    if let duration = SampledFFmpeg.duration(stream.pointee.duration) {
       return Double(duration) * av_q2d(stream.pointee.time_base)
     }
 
-    if let duration = ForwardFFmpeg.duration(context.pointee.duration) {
+    if let duration = SampledFFmpeg.duration(context.pointee.duration) {
       return Double(duration * FFAV_TIME_BASE)
     }
 
@@ -115,7 +115,7 @@ final class LibraryModel {
       return nil
     }
 
-    try ForwardFFmpeg.scaleFrame(scaleContext.context, source: frame, destination: scaleFrame)
+    try SampledFFmpeg.scaleFrame(scaleContext.context, source: frame, destination: scaleFrame)
 
     // TODO: Figure out how to use a stride instead of read the buffer directly.
     let buffer = scaleFrame.pointee.buf.0!

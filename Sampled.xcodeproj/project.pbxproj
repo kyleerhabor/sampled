@@ -8,16 +8,13 @@
 
 /* Begin PBXBuildFile section */
 		00BDFB332CB42B7C009D66A8 /* Localizable.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = 00BDFB322CB42B7C009D66A8 /* Localizable.xcstrings */; };
-		00C46BB02CB0540200CDFD4D /* ForwardFFmpeg in Frameworks */ = {isa = PBXBuildFile; productRef = 00D8C0592BFA82E300F4F953 /* ForwardFFmpeg */; };
-		00C46BB12CB0540200CDFD4D /* ForwardFFmpeg in Frameworks */ = {isa = PBXBuildFile; productRef = 00D98C3D2CAE5AEC0008E0F1 /* ForwardFFmpeg */; };
-		00C46BB22CB0540200CDFD4D /* ForwardFFmpeg in Frameworks */ = {isa = PBXBuildFile; productRef = 00D98E412CAF33070008E0F1 /* ForwardFFmpeg */; };
-		00D98E452CAF33740008E0F1 /* Algorithms in Frameworks */ = {isa = PBXBuildFile; productRef = 00D98C402CAE5B180008E0F1 /* Algorithms */; };
+		00C7BCCC2CE003730094F057 /* Algorithms in Frameworks */ = {isa = PBXBuildFile; productRef = 00C7BCCB2CE003730094F057 /* Algorithms */; };
+		00C7BCFA2CE006310094F057 /* SampledFFmpeg in Frameworks */ = {isa = PBXBuildFile; productRef = 00C7BCF92CE006310094F057 /* SampledFFmpeg */; };
 		00D98E5D2CAF3D060008E0F1 /* Preview Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 00D98E552CAF3D050008E0F1 /* Preview Assets.xcassets */; };
 		00D98E5E2CAF3D060008E0F1 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 00D98E572CAF3D050008E0F1 /* Assets.xcassets */; };
-		00D98E602CAF3D060008E0F1 /* ForwardApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 00D98E5A2CAF3D050008E0F1 /* ForwardApp.swift */; };
+		00D98E602CAF3D060008E0F1 /* SampledApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 00D98E5A2CAF3D050008E0F1 /* SampledApp.swift */; };
 		00D98E612CAF3D060008E0F1 /* Standard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 00D98E5B2CAF3D050008E0F1 /* Standard.swift */; };
 		00D98EC72CAF47690008E0F1 /* LICENSE in Resources */ = {isa = PBXBuildFile; fileRef = 00D98EC62CAF47690008E0F1 /* LICENSE */; };
-		00D98ECA2CAF48B50008E0F1 /* ForwardFFmpeg in Frameworks */ = {isa = PBXBuildFile; productRef = 00D98EC92CAF48B50008E0F1 /* ForwardFFmpeg */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -34,7 +31,7 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
-		0017ED242BF17A38008B3D76 /* Forward.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Forward.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		0017ED242BF17A38008B3D76 /* Sampled.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Sampled.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		005810632BF40688009CB589 /* .gitignore */ = {isa = PBXFileReference; lastKnownFileType = text; path = .gitignore; sourceTree = "<group>"; };
 		009526B02BF7C6C6006CB1D1 /* libm.tbd */ = {isa = PBXFileReference; lastKnownFileType = "sourcecode.text-based-dylib-definition"; name = libm.tbd; path = usr/lib/libm.tbd; sourceTree = SDKROOT; };
 		00B5C7432BF973B500212E92 /* libavcodec.pc */ = {isa = PBXFileReference; lastKnownFileType = text; name = libavcodec.pc; path = ForwardFFmpeg/Sources/CFFmpeg/x86_64/lib/pkgconfig/libavcodec.pc; sourceTree = "<group>"; };
@@ -361,7 +358,6 @@
 		00B5C8A02BF976C900212E92 /* ffmpeg.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = ffmpeg.c; sourceTree = "<group>"; };
 		00B5C8A12BF976C900212E92 /* ffmpeg.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = ffmpeg.h; sourceTree = "<group>"; };
 		00B5C8A32BF976C900212E92 /* Core.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Core.swift; sourceTree = "<group>"; };
-		00BAFB422BF9347E009B84D5 /* ForwardFFmpeg */ = {isa = PBXFileReference; lastKnownFileType = wrapper; path = ForwardFFmpeg; sourceTree = "<group>"; };
 		00BDFB322CB42B7C009D66A8 /* Localizable.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; path = Localizable.xcstrings; sourceTree = "<group>"; };
 		00D98C4C2CAF05BA0008E0F1 /* ffmpeg */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.executable"; path = ffmpeg; sourceTree = "<group>"; };
 		00D98C4D2CAF05BA0008E0F1 /* ffprobe */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.executable"; path = ffprobe; sourceTree = "<group>"; };
@@ -798,8 +794,8 @@
 		00D98E542CAF3C060008E0F1 /* README.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = README.md; sourceTree = "<group>"; };
 		00D98E552CAF3D050008E0F1 /* Preview Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = "Preview Assets.xcassets"; sourceTree = "<group>"; };
 		00D98E572CAF3D050008E0F1 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
-		00D98E592CAF3D050008E0F1 /* Forward.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Forward.entitlements; sourceTree = "<group>"; };
-		00D98E5A2CAF3D050008E0F1 /* ForwardApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ForwardApp.swift; sourceTree = "<group>"; };
+		00D98E592CAF3D050008E0F1 /* Sampled.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Sampled.entitlements; sourceTree = "<group>"; };
+		00D98E5A2CAF3D050008E0F1 /* SampledApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SampledApp.swift; sourceTree = "<group>"; };
 		00D98E5B2CAF3D050008E0F1 /* Standard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Standard.swift; sourceTree = "<group>"; };
 		00D98EC62CAF47690008E0F1 /* LICENSE */ = {isa = PBXFileReference; lastKnownFileType = text; path = LICENSE; sourceTree = "<group>"; };
 		00EF01A32BF32AAF008BF17B /* libz.tbd */ = {isa = PBXFileReference; lastKnownFileType = "sourcecode.text-based-dylib-definition"; name = libz.tbd; path = usr/lib/libz.tbd; sourceTree = SDKROOT; };
@@ -825,11 +821,8 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				00C46BB22CB0540200CDFD4D /* ForwardFFmpeg in Frameworks */,
-				00C46BB12CB0540200CDFD4D /* ForwardFFmpeg in Frameworks */,
-				00C46BB02CB0540200CDFD4D /* ForwardFFmpeg in Frameworks */,
-				00D98E452CAF33740008E0F1 /* Algorithms in Frameworks */,
-				00D98ECA2CAF48B50008E0F1 /* ForwardFFmpeg in Frameworks */,
+				00C7BCFA2CE006310094F057 /* SampledFFmpeg in Frameworks */,
+				00C7BCCC2CE003730094F057 /* Algorithms in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -842,8 +835,7 @@
 				00D98E542CAF3C060008E0F1 /* README.md */,
 				00D98EC62CAF47690008E0F1 /* LICENSE */,
 				005810632BF40688009CB589 /* .gitignore */,
-				00D98E5C2CAF3D050008E0F1 /* Forward */,
-				00BAFB422BF9347E009B84D5 /* ForwardFFmpeg */,
+				00D98E5C2CAF3D050008E0F1 /* Sampled */,
 				00D98C492CAEE7050008E0F1 /* Tools */,
 				0030BAB82CD17B8C0053BB6E /* Documentation */,
 				0017ED252BF17A38008B3D76 /* Products */,
@@ -854,7 +846,7 @@
 		0017ED252BF17A38008B3D76 /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				0017ED242BF17A38008B3D76 /* Forward.app */,
+				0017ED242BF17A38008B3D76 /* Sampled.app */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -2270,18 +2262,18 @@
 			path = "Preview Content";
 			sourceTree = "<group>";
 		};
-		00D98E5C2CAF3D050008E0F1 /* Forward */ = {
+		00D98E5C2CAF3D050008E0F1 /* Sampled */ = {
 			isa = PBXGroup;
 			children = (
-				00D98E5A2CAF3D050008E0F1 /* ForwardApp.swift */,
+				00D98E5A2CAF3D050008E0F1 /* SampledApp.swift */,
 				00D98E5B2CAF3D050008E0F1 /* Standard.swift */,
 				00D98EB82CAF3D3C0008E0F1 /* UI */,
 				00D98E562CAF3D050008E0F1 /* Preview Content */,
 				00D98E572CAF3D050008E0F1 /* Assets.xcassets */,
-				00D98E592CAF3D050008E0F1 /* Forward.entitlements */,
+				00D98E592CAF3D050008E0F1 /* Sampled.entitlements */,
 				00BDFB322CB42B7C009D66A8 /* Localizable.xcstrings */,
 			);
-			path = Forward;
+			path = Sampled;
 			sourceTree = "<group>";
 		};
 		00EF01A22BF32AAF008BF17B /* Frameworks */ = {
@@ -2309,9 +2301,9 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
-		0017ED232BF17A38008B3D76 /* Forward */ = {
+		0017ED232BF17A38008B3D76 /* Sampled */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = 0017ED332BF17A3D008B3D76 /* Build configuration list for PBXNativeTarget "Forward" */;
+			buildConfigurationList = 0017ED332BF17A3D008B3D76 /* Build configuration list for PBXNativeTarget "Sampled" */;
 			buildPhases = (
 				00672AF72CB764F400948CAB /* C: Download Dependencies */,
 				00C7BC742CDF22FD0094F057 /* C: Build Vorbis */,
@@ -2329,16 +2321,13 @@
 			fileSystemSynchronizedGroups = (
 				00D98EB82CAF3D3C0008E0F1 /* UI */,
 			);
-			name = Forward;
+			name = Sampled;
 			packageProductDependencies = (
-				00D8C0592BFA82E300F4F953 /* ForwardFFmpeg */,
-				00D98C3D2CAE5AEC0008E0F1 /* ForwardFFmpeg */,
-				00D98C402CAE5B180008E0F1 /* Algorithms */,
-				00D98E412CAF33070008E0F1 /* ForwardFFmpeg */,
-				00D98EC92CAF48B50008E0F1 /* ForwardFFmpeg */,
+				00C7BCCB2CE003730094F057 /* Algorithms */,
+				00C7BCF92CE006310094F057 /* SampledFFmpeg */,
 			);
 			productName = Forward;
-			productReference = 0017ED242BF17A38008B3D76 /* Forward.app */;
+			productReference = 0017ED242BF17A38008B3D76 /* Sampled.app */;
 			productType = "com.apple.product-type.application";
 		};
 /* End PBXNativeTarget section */
@@ -2356,7 +2345,7 @@
 					};
 				};
 			};
-			buildConfigurationList = 0017ED1F2BF17A38008B3D76 /* Build configuration list for PBXProject "Forward" */;
+			buildConfigurationList = 0017ED1F2BF17A38008B3D76 /* Build configuration list for PBXProject "Sampled" */;
 			compatibilityVersion = "Xcode 14.0";
 			developmentRegion = en;
 			hasScannedForEncodings = 0;
@@ -2366,14 +2355,14 @@
 			);
 			mainGroup = 0017ED1B2BF17A38008B3D76;
 			packageReferences = (
-				00D98C3C2CAE5AEC0008E0F1 /* XCLocalSwiftPackageReference "ForwardFFmpeg" */,
 				00D98C3F2CAE5B180008E0F1 /* XCRemoteSwiftPackageReference "swift-algorithms" */,
+				00C7BCF82CE006310094F057 /* XCLocalSwiftPackageReference "SampledFFmpeg" */,
 			);
 			productRefGroup = 0017ED252BF17A38008B3D76 /* Products */;
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
-				0017ED232BF17A38008B3D76 /* Forward */,
+				0017ED232BF17A38008B3D76 /* Sampled */,
 			);
 		};
 /* End PBXProject section */
@@ -2499,7 +2488,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				00D98E602CAF3D060008E0F1 /* ForwardApp.swift in Sources */,
+				00D98E602CAF3D060008E0F1 /* SampledApp.swift in Sources */,
 				00D98E612CAF3D060008E0F1 /* Standard.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -2636,11 +2625,12 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
-				CODE_SIGN_ENTITLEMENTS = Forward/Forward.entitlements;
+				CODE_SIGN_ENTITLEMENTS = Sampled/Sampled.entitlements;
+				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_ASSET_PATHS = "\"Forward/Preview Content\"";
+				DEVELOPMENT_ASSET_PATHS = "$(PROJECT_NAME)/$(PROJECT_NAME).entitlements";
 				DEVELOPMENT_TEAM = UYJ357XWK6;
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_PREVIEWS = YES;
@@ -2651,10 +2641,10 @@
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
-				LIBRARY_SEARCH_PATHS = "$(PROJECT_DIR)/ForwardFFmpeg/Sources/CFFmpeg/lib";
+				LIBRARY_SEARCH_PATHS = "$(PROJECT_DIR)/SampledFFmpeg/Sources/CFFmpeg/lib";
 				MACOSX_DEPLOYMENT_TARGET = 15.0;
 				MARKETING_VERSION = 0.1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.kyleerhabor.Forward;
+				PRODUCT_BUNDLE_IDENTIFIER = com.kyleerhabor.Sampled;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = YES;
 			};
@@ -2665,11 +2655,12 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
-				CODE_SIGN_ENTITLEMENTS = Forward/Forward.entitlements;
+				CODE_SIGN_ENTITLEMENTS = Sampled/Sampled.entitlements;
+				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_ASSET_PATHS = "\"Forward/Preview Content\"";
+				DEVELOPMENT_ASSET_PATHS = "$(PROJECT_NAME)/$(PROJECT_NAME).entitlements";
 				DEVELOPMENT_TEAM = UYJ357XWK6;
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_PREVIEWS = YES;
@@ -2680,10 +2671,10 @@
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
-				LIBRARY_SEARCH_PATHS = "$(PROJECT_DIR)/ForwardFFmpeg/Sources/CFFmpeg/lib";
+				LIBRARY_SEARCH_PATHS = "$(PROJECT_DIR)/SampledFFmpeg/Sources/CFFmpeg/lib";
 				MACOSX_DEPLOYMENT_TARGET = 15.0;
 				MARKETING_VERSION = 0.1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.kyleerhabor.Forward;
+				PRODUCT_BUNDLE_IDENTIFIER = com.kyleerhabor.Sampled;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = YES;
 			};
@@ -2692,7 +2683,7 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
-		0017ED1F2BF17A38008B3D76 /* Build configuration list for PBXProject "Forward" */ = {
+		0017ED1F2BF17A38008B3D76 /* Build configuration list for PBXProject "Sampled" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				0017ED312BF17A3D008B3D76 /* Debug */,
@@ -2701,7 +2692,7 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		0017ED332BF17A3D008B3D76 /* Build configuration list for PBXNativeTarget "Forward" */ = {
+		0017ED332BF17A3D008B3D76 /* Build configuration list for PBXNativeTarget "Sampled" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				0017ED342BF17A3D008B3D76 /* Debug */,
@@ -2713,9 +2704,9 @@
 /* End XCConfigurationList section */
 
 /* Begin XCLocalSwiftPackageReference section */
-		00D98C3C2CAE5AEC0008E0F1 /* XCLocalSwiftPackageReference "ForwardFFmpeg" */ = {
+		00C7BCF82CE006310094F057 /* XCLocalSwiftPackageReference "SampledFFmpeg" */ = {
 			isa = XCLocalSwiftPackageReference;
-			relativePath = ForwardFFmpeg;
+			relativePath = SampledFFmpeg;
 		};
 /* End XCLocalSwiftPackageReference section */
 
@@ -2731,26 +2722,14 @@
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
-		00D8C0592BFA82E300F4F953 /* ForwardFFmpeg */ = {
-			isa = XCSwiftPackageProductDependency;
-			productName = ForwardFFmpeg;
-		};
-		00D98C3D2CAE5AEC0008E0F1 /* ForwardFFmpeg */ = {
-			isa = XCSwiftPackageProductDependency;
-			productName = ForwardFFmpeg;
-		};
-		00D98C402CAE5B180008E0F1 /* Algorithms */ = {
+		00C7BCCB2CE003730094F057 /* Algorithms */ = {
 			isa = XCSwiftPackageProductDependency;
 			package = 00D98C3F2CAE5B180008E0F1 /* XCRemoteSwiftPackageReference "swift-algorithms" */;
 			productName = Algorithms;
 		};
-		00D98E412CAF33070008E0F1 /* ForwardFFmpeg */ = {
+		00C7BCF92CE006310094F057 /* SampledFFmpeg */ = {
 			isa = XCSwiftPackageProductDependency;
-			productName = ForwardFFmpeg;
-		};
-		00D98EC92CAF48B50008E0F1 /* ForwardFFmpeg */ = {
-			isa = XCSwiftPackageProductDependency;
-			productName = ForwardFFmpeg;
+			productName = SampledFFmpeg;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};

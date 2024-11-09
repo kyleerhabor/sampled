@@ -1,6 +1,6 @@
 //
-//  ForwardApp.swift
-//  Forward
+//  SampledApp.swift
+//  Sampled
 //
 //  Created by Kyle Erhabor on 5/12/24.
 //
@@ -8,7 +8,7 @@
 import SwiftUI
 
 @main
-struct ForwardApp: App {
+struct SampledApp: App {
   @NSApplicationDelegateAdaptor private var delegate: AppDelegate
   @Environment(\.locale) private var locale
 

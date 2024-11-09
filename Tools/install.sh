@@ -1,7 +1,7 @@
 #!/bin/sh
 
 #  install.sh
-#  Forward
+#  Sampled
 #
 #  Created by Kyle Erhabor on 10/10/24.
 #  

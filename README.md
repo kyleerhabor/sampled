@@ -1,4 +1,4 @@
-# Forward
+# Sampled
 
 The universal music player.
 
@@ -6,17 +6,17 @@ The universal music player.
 
 Coming soon...
 
-Forward is highly inspired by the [Meta music tag editor][meta] and [Doppler music player][doppler].
+Sampled is highly inspired by the [Meta music tag editor][meta] and [Doppler music player][doppler].
 
 ## Use
 
 > [!NOTE]
 >
-> Forward is in development and has limited feature support.
+> Sampled is in development and has limited feature support.
 
 > [!IMPORTANT]
 >
-> Forward has not been notarized by Apple. To run the app, open the app and [follow these instructions][apple-notarization-bypass].
+> Sampled has not been notarized by Apple. To run the app, open the app and [follow these instructions][apple-notarization-bypass].
 
 You can either download a release of the app from the [Releases][releases] page or build the project from source in Xcode.
 
@@ -28,8 +28,8 @@ The first time you build the project (as well as make changes to configuration, 
 a significant amount of time to complete.[^1] This is due to the project depending on FFmpeg and libopus. Subsequent
 builds should perform much better.
 
-1. Clone the Git repository (e.g. `git clone https://github.com/kyleerhabor/forward Forward`)
-2. Open the Xcode project (e.g. `open Forward/Forward.xcodeproj`)
+1. Clone the Git repository (e.g. `git clone https://github.com/kyleerhabor/sampled Sampled`)
+2. Open the Xcode project (e.g. `open Sampled/Sampled.xcodeproj`)
 3. Select `Product > Archive` to build the project for release
 4. From the Organizer, select `Distribute App > Custom > Copy App` to export the app
 5. Open the app
@@ -49,4 +49,4 @@ If you encounter an error like `'libavutil/avutil.h' file not found`, you may ne
 [meta]: https://www.nightbirdsevolve.com/meta
 [doppler]: https://brushedtype.co/doppler
 [apple-notarization-bypass]: https://support.apple.com/en-us/102445#openanyway
-[releases]: https://github.com/kyleerhabor/forward/releases
+[releases]: https://github.com/kyleerhabor/sampled/releases

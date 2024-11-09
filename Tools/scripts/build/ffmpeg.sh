@@ -1,7 +1,7 @@
 #!/bin/sh
 
 #  ffmpeg.sh
-#  Forward
+#  Sampled
 #
 #  Created by Kyle Erhabor on 11/8/24.
 #  
