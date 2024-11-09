@@ -85,10 +85,9 @@ public func findStreamInfo(_ context: UnsafeMutablePointer<AVFormatContext>!) th
 public func findBestStream(
   _ context: UnsafeMutablePointer<AVFormatContext>!,
   type: CFFmpeg.AVMediaType,
-  stream: Int32,
   decoder: UnsafeMutablePointer<UnsafePointer<AVCodec>?>!
 ) throws(FFError) -> Int32 {
-  let result = av_find_best_stream(context, type, stream, -1, decoder, 0)
+  let result = av_find_best_stream(context, type, -1, -1, decoder, 0)
 
   guard result >= 0 else {
     throw FFError(code: FFError.Code(rawValue: result))

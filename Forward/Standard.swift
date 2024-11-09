@@ -140,18 +140,3 @@ extension URLSource: SecurityScopedResource {
     url.endSecurityScope(scope)
   }
 }
-
-extension Actor {
-  public func isolated<T, E>(
-    _ body: @Sendable (isolated Self) throws(E) -> T
-  ) throws(E) -> T {
-    try body(self)
-  }
-
-  public func isolated<T, E, each Argument>(
-    _ args: repeat each Argument,
-    body: (isolated Self, repeat each Argument) throws(E) -> T
-  ) throws(E) -> T {
-    try body(self, repeat each args)
-  }
-}

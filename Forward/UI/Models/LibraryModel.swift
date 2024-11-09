@@ -53,7 +53,25 @@ final class LibraryModel {
 
   static func read(
     _ context: UnsafeMutablePointer<AVFormatContext>!,
-    coverImageStream: Int32,
+    stream: UnsafePointer<AVStream>,
+    packet: UnsafeMutablePointer<AVPacket>!
+  ) throws(FFError) -> UnsafePointer<AVPacket> {
+    if stream.pointee.disposition & AV_DISPOSITION_ATTACHED_PIC == 0 {
+      while true {
+        try readFrame(context, into: packet)
+
+        if packet.pointee.stream_index == stream.pointee.index {
+          return UnsafePointer(packet)
+        }
+      }
+    }
+
+    return stream.pointer(to: \.attached_pic)!
+  }
+
+  static func read(
+    _ context: UnsafeMutablePointer<AVFormatContext>!,
+    packet: UnsafeMutablePointer<AVPacket>!,
     frame: UnsafeMutablePointer<AVFrame>!,
     scaleFrame: UnsafeMutablePointer<AVFrame>!
   ) throws(FFError) -> CGImage? {
@@ -63,28 +81,23 @@ final class LibraryModel {
       return nil
     }
 
+    let streami: Int32
     var decoder: UnsafePointer<AVCodec>!
-    let coverImageStreami: Int32
 
     do {
-      coverImageStreami = try findBestStream(context, type: .video, stream: coverImageStream, decoder: &decoder)
+      streami = try findBestStream(context, type: .video, decoder: &decoder)
     } catch let error where error.code == .streamNotFound {
       return nil
     }
 
-    let coverImageStream = context!.pointee.streams[Int(coverImageStreami)]!
-
+    let stream = context.pointee.streams[Int(streami)]!
     let codecContext = FFCodecContext(codec: decoder)
-    try copyCodecParameters(codecContext.context, params: coverImageStream.pointee.codecpar)
+    try copyCodecParameters(codecContext.context, params: stream.pointee.codecpar)
     try openCodec(codecContext.context, codec: decoder)
 
-    guard try iterateSendPacket(codecContext.context, packet: coverImageStream.pointer(to: \.attached_pic)) == .ok else {
-      return nil
-    }
-
-    guard try iterateReceiveFrame(codecContext.context, frame: frame) == .ok else {
-      return nil
-    }
+    let packet = try Self.read(context, stream: stream, packet: packet)
+    try sendPacket(codecContext.context, packet: packet)
+    try receiveFrame(codecContext.context, frame: frame)
 
     let width = frame.pointee.width
     let height = frame.pointee.height
@@ -104,9 +117,9 @@ final class LibraryModel {
 
     try ForwardFFmpeg.scaleFrame(scaleContext.context, source: frame, destination: scaleFrame)
 
+    // TODO: Figure out how to use a stride instead of read the buffer directly.
     let buffer = scaleFrame.pointee.buf.0!
     let data = Data(bytes: buffer.pointee.data, count: buffer.pointee.size)
-
     let bitsPerPixel = Int(av_get_bits_per_pixel(pixelFormatDescription))
 
     guard let provider = CGDataProvider(data: data as CFData) else {
@@ -130,14 +143,12 @@ final class LibraryModel {
 
   static func read(source: URLSource) throws -> LibraryTrack? {
     let formatContext = FFFormatContext()
-    let frame = FFFrame()
-    let scaleFrame = FFFrame()
 
     return try openingInput(&formatContext.context, at: source.url.pathString) { formatContext -> LibraryTrack? in
       // Yes, we need this for formats like FLAC.
       try findStreamInfo(formatContext)
 
-      let streami = try findBestStream(formatContext, type: .audio, stream: -1, decoder: nil)
+      let streami = try findBestStream(formatContext, type: .audio, decoder: nil)
       let stream = formatContext!.pointee.streams[Int(streami)]!
       let titleKey = "title"
       let artistKey = "artist"
@@ -201,7 +212,7 @@ final class LibraryModel {
               do {
                 date = try Date(value, strategy: .iso8601.year())
               } catch {
-                Logger.ui.error("\(error)")
+                Logger.model.error("\(error)")
 
                 return
               }
@@ -227,21 +238,22 @@ final class LibraryModel {
         return nil
       }
 
+      let packet = FFPacket()
+      let frame = FFFrame()
+      let scaleFrame = FFFrame()
       let coverImage = try Self.read(
         formatContext,
-        coverImageStream: stream.pointee.attached_pic.stream_index,
+        packet: packet.packet,
         frame: frame.frame,
         scaleFrame: scaleFrame.frame
       )
-
-      let artist = metadata[artistKey] as? String
 
       return LibraryTrack(
         source: source,
         title: metadata[titleKey] as? String ?? source.url.lastPath,
         duration: Duration.seconds(duration),
         artist: metadata[artistKey] as? String,
-        artists: metadata[artistsKey] as? [String] ?? artist.map { [$0] } ?? [],
+        artists: metadata[artistsKey] as? [String] ?? (metadata[artistKey] as? String).map { [$0] } ?? [],
         album: metadata[albumKey] as? String,
         albumArtist: metadata[albumArtistKey] as? String,
         date: metadata[dateKey] as? Date,

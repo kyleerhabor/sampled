@@ -274,7 +274,7 @@ struct LibraryView: View {
           let streami: Int32
 
           do {
-            streami = try findBestStream(formatContext, type: .audio, stream: -1, decoder: &decoder)
+            streami = try findBestStream(formatContext, type: .audio, decoder: &decoder)
           } catch {
             Logger.ffmpeg.error("\(error)")
 
@@ -495,7 +495,7 @@ struct LibraryView: View {
 
             try buffer.write(to: url)
           } catch {
-            Logger.ui.error("\(error)")
+            Logger.model.error("\(error)")
 
             return nil
           }

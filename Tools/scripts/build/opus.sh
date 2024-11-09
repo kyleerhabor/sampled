@@ -15,10 +15,6 @@ build () {
   local PATH="$CWD/$PREFIX/bin:$PATH"
   pushd "$CWD/$OPUSDIR"
   ./autogen.sh
-
-  # We can configure libopus to build for multiple architectures, but it requires manual code signing to launch the app.
-  #
-  # TODO: Add note about host-build confusion.
   ./configure --prefix="$CWD/$PREFIX" \
     --with-sysroot="$(xcrun --sdk macosx --show-sdk-path)" \
     --disable-intrinsics --disable-shared \
