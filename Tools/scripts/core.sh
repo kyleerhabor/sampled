@@ -7,15 +7,20 @@
 #
 
 export CWD="$(pwd)"
-export EXTRA_CFLAGS=""
-
-if [ "$CONFIGURATION" != "Debug" ]; then
-  export EXTRA_CFLAGS="-O3"
-fi
 
 max () {
   local a="$1"
   local b="$2"
 
   echo "$((a > b ? a : b))"
+}
+
+prefix () {
+  local prefix="$1"
+  local coll="$2"
+  read -ra archs <<< "$coll"
+
+  for item in "${archs[@]}"; do
+    echo "$prefix $item \c"
+  done
 }

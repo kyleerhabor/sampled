@@ -2314,6 +2314,7 @@
 			buildConfigurationList = 0017ED332BF17A3D008B3D76 /* Build configuration list for PBXNativeTarget "Forward" */;
 			buildPhases = (
 				00672AF72CB764F400948CAB /* C: Download Dependencies */,
+				00C7BC742CDF22FD0094F057 /* C: Build Vorbis */,
 				00672AF82CB7657500948CAB /* C: Build Opus */,
 				00672AF92CB7658A00948CAB /* C: Build FFmpeg */,
 				0017ED202BF17A38008B3D76 /* Sources */,
@@ -2394,7 +2395,7 @@
 /* Begin PBXShellScriptBuildPhase section */
 		00672AF72CB764F400948CAB /* C: Download Dependencies */ = {
 			isa = PBXShellScriptBuildPhase;
-			buildActionMask = 8;
+			buildActionMask = 12;
 			files = (
 			);
 			inputFileListPaths = (
@@ -2406,9 +2407,9 @@
 			outputFileListPaths = (
 			);
 			outputPaths = (
-				"$(DERIVED_FILE_DIR)/build/deps",
+				"$(DERIVED_FILE_DIR)/deps",
 			);
-			runOnlyForDeploymentPostprocessing = 1;
+			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
 			shellScript = "# Type a script or drag a script file from your workspace to insert its path.\n\n./Tools/download-deps.sh\n";
 		};
@@ -2421,19 +2422,20 @@
 			);
 			inputPaths = (
 				"$(SRCROOT)/Tools/build-opus.sh",
+				"$(SRCROOT)/Tools/scripts/build/opus.sh",
 			);
 			name = "C: Build Opus";
 			outputFileListPaths = (
 			);
 			outputPaths = (
-				"$(DERIVED_FILE_DIR)/ForwardFFmpeg/Sources/CFFmpeg/$(ARCH)/include/opus",
-				"$(DERIVED_FILE_DIR)/ForwardFFmpeg/Sources/CFFmpeg/$(ARCH)/lib/libopus.*",
-				"$(DERIVED_FILE_DIR)/ForwardFFmpeg/Sources/CFFmpeg/$(ARCH)/include/pkgconfig/opus.pc",
-				"$(DERIVED_FILE_DIR)/ForwardFFmpeg/Sources/CFFmpeg/$(ARCH)/share/aclocal/opus.m4",
+				"$(DERIVED_FILE_DIR)/ForwardFFmpeg/Sources/CFFmpeg/include/opus",
+				"$(DERIVED_FILE_DIR)/ForwardFFmpeg/Sources/CFFmpeg/lib/libopus.*",
+				"$(DERIVED_FILE_DIR)/ForwardFFmpeg/Sources/CFFmpeg/include/pkgconfig/opus.pc",
+				"$(DERIVED_FILE_DIR)/ForwardFFmpeg/Sources/CFFmpeg/share/aclocal/opus.m4",
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "# Type a script or drag a script file from your workspace to insert its path.\n./Tools/build-opus.sh\n";
+			shellScript = "./Tools/build-opus.sh\n";
 		};
 		00672AF92CB7658A00948CAB /* C: Build FFmpeg */ = {
 			isa = PBXShellScriptBuildPhase;
@@ -2444,26 +2446,51 @@
 			);
 			inputPaths = (
 				"$(SRCROOT)/Tools/build-ffmpeg.sh",
+				"$(SRCROOT)/Tools/scripts/build/ffmpeg.sh",
 			);
 			name = "C: Build FFmpeg";
 			outputFileListPaths = (
 			);
 			outputPaths = (
-				"$(DERIVED_FILE_DIR)/ForwardFFmpeg/Sources/CFFmpeg/$(ARCH)/bin/ff*",
-				"$(DERIVED_FILE_DIR)/ForwardFFmpeg/Sources/CFFmpeg/$(ARCH)/include/libav*",
-				"$(DERIVED_FILE_DIR)/ForwardFFmpeg/Sources/CFFmpeg/$(ARCH)/include/libsw*",
-				"$(DERIVED_FILE_DIR)/ForwardFFmpeg/Sources/CFFmpeg/$(ARCH)/lib/libav*.a",
-				"$(DERIVED_FILE_DIR)/ForwardFFmpeg/Sources/CFFmpeg/$(ARCH)/lib/libsw*.a",
-				"$(DERIVED_FILE_DIR)/ForwardFFmpeg/Sources/CFFmpeg/$(ARCH)/lib/pkgconfig/libav*.pc",
-				"$(DERIVED_FILE_DIR)/ForwardFFmpeg/Sources/CFFmpeg/$(ARCH)/lib/pkgconfig/libsw*.pc",
-				"$(DERIVED_FILE_DIR)/ForwardFFmpeg/Sources/CFFmpeg/$(ARCH)/share/ffmpeg",
-				"$(DERIVED_FILE_DIR)/ForwardFFmpeg/Sources/CFFmpeg/$(ARCH)/share/man1/ff*.1",
-				"$(DERIVED_FILE_DIR)/ForwardFFmpeg/Sources/CFFmpeg/$(ARCH)/share/man3/libav*.3",
-				"$(DERIVED_FILE_DIR)/ForwardFFmpeg/Sources/CFFmpeg/$(ARCH)/share/man3/libsw*.3",
+				"$(DERIVED_FILE_DIR)/ForwardFFmpeg/Sources/CFFmpeg/bin/ff*",
+				"$(DERIVED_FILE_DIR)/ForwardFFmpeg/Sources/CFFmpeg/include/libav*",
+				"$(DERIVED_FILE_DIR)/ForwardFFmpeg/Sources/CFFmpeg/include/libsw*",
+				"$(DERIVED_FILE_DIR)/ForwardFFmpeg/Sources/CFFmpeg/lib/libav*.a",
+				"$(DERIVED_FILE_DIR)/ForwardFFmpeg/Sources/CFFmpeg/lib/libsw*.a",
+				"$(DERIVED_FILE_DIR)/ForwardFFmpeg/Sources/CFFmpeg/lib/pkgconfig/libav*.pc",
+				"$(DERIVED_FILE_DIR)/ForwardFFmpeg/Sources/CFFmpeg/lib/pkgconfig/libsw*.pc",
+				"$(DERIVED_FILE_DIR)/ForwardFFmpeg/Sources/CFFmpeg/share/ffmpeg",
+				"$(DERIVED_FILE_DIR)/ForwardFFmpeg/Sources/CFFmpeg/share/man1/ff*.1",
+				"$(DERIVED_FILE_DIR)/ForwardFFmpeg/Sources/CFFmpeg/share/man3/libav*.3",
+				"$(DERIVED_FILE_DIR)/ForwardFFmpeg/Sources/CFFmpeg/share/man3/libsw*.3",
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "# Type a script or drag a script file from your workspace to insert its path.\n./Tools/build-ffmpeg.sh\n";
+			shellScript = "./Tools/build-ffmpeg.sh\n";
+		};
+		00C7BC742CDF22FD0094F057 /* C: Build Vorbis */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+				"$(SRCROOT)/Tools/build-vorbis.sh",
+				"$(SRCROOT)/Tools/scripts/build/vorbis.sh",
+			);
+			name = "C: Build Vorbis";
+			outputFileListPaths = (
+			);
+			outputPaths = (
+				"$(DERIVED_FILE_DIR)/ForwardFFmpeg/Sources/CFFmpeg/include/vorbis",
+				"$(DERIVED_FILE_DIR)/ForwardFFmpeg/Sources/CFFmpeg/lib/libvorbis*.*",
+				"$(DERIVED_FILE_DIR)/ForwardFFmpeg/Sources/CFFmpeg/lib/pkgconfig/vorbis*.pc",
+				"$(DERIVED_FILE_DIR)/ForwardFFmpeg/Sources/CFFmpeg/doc/libvorbis*",
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "./Tools/build-vorbis.sh\n";
 		};
 /* End PBXShellScriptBuildPhase section */
 
@@ -2624,10 +2651,7 @@
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
-				LIBRARY_SEARCH_PATHS = (
-					"$(inherited)",
-					"$(PROJECT_DIR)/ForwardFFmpeg/Sources/CFFmpeg/$(CURRENT_ARCH)/lib",
-				);
+				LIBRARY_SEARCH_PATHS = "$(PROJECT_DIR)/ForwardFFmpeg/Sources/CFFmpeg/lib";
 				MACOSX_DEPLOYMENT_TARGET = 15.0;
 				MARKETING_VERSION = 0.1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.kyleerhabor.Forward;
@@ -2656,10 +2680,7 @@
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
-				LIBRARY_SEARCH_PATHS = (
-					"$(inherited)",
-					"$(PROJECT_DIR)/ForwardFFmpeg/Sources/CFFmpeg/$(CURRENT_ARCH)/lib",
-				);
+				LIBRARY_SEARCH_PATHS = "$(PROJECT_DIR)/ForwardFFmpeg/Sources/CFFmpeg/lib";
 				MACOSX_DEPLOYMENT_TARGET = 15.0;
 				MARKETING_VERSION = 0.1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.kyleerhabor.Forward;
