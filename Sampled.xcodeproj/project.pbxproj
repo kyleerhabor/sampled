@@ -17,19 +17,6 @@
 		00D98EC72CAF47690008E0F1 /* LICENSE in Resources */ = {isa = PBXBuildFile; fileRef = 00D98EC62CAF47690008E0F1 /* LICENSE */; };
 /* End PBXBuildFile section */
 
-/* Begin PBXCopyFilesBuildPhase section */
-		009528372BF88142006CB1D1 /* Embed Frameworks */ = {
-			isa = PBXCopyFilesBuildPhase;
-			buildActionMask = 2147483647;
-			dstPath = "";
-			dstSubfolderSpec = 10;
-			files = (
-			);
-			name = "Embed Frameworks";
-			runOnlyForDeploymentPostprocessing = 0;
-		};
-/* End PBXCopyFilesBuildPhase section */
-
 /* Begin PBXFileReference section */
 		0017ED242BF17A38008B3D76 /* Sampled.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Sampled.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		005810632BF40688009CB589 /* .gitignore */ = {isa = PBXFileReference; lastKnownFileType = text; path = .gitignore; sourceTree = "<group>"; };
@@ -2306,13 +2293,13 @@
 			buildConfigurationList = 0017ED332BF17A3D008B3D76 /* Build configuration list for PBXNativeTarget "Sampled" */;
 			buildPhases = (
 				00672AF72CB764F400948CAB /* C: Download Dependencies */,
+				0031693C2CE0587800541C0D /* C: Build Ogg */,
 				00C7BC742CDF22FD0094F057 /* C: Build Vorbis */,
 				00672AF82CB7657500948CAB /* C: Build Opus */,
 				00672AF92CB7658A00948CAB /* C: Build FFmpeg */,
 				0017ED202BF17A38008B3D76 /* Sources */,
 				0017ED212BF17A38008B3D76 /* Frameworks */,
 				0017ED222BF17A38008B3D76 /* Resources */,
-				009528372BF88142006CB1D1 /* Embed Frameworks */,
 			);
 			buildRules = (
 			);
@@ -2382,6 +2369,31 @@
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXShellScriptBuildPhase section */
+		0031693C2CE0587800541C0D /* C: Build Ogg */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+				"$(SRCROOT)/Tools/build-ogg.sh",
+				"$(SRCROOT)/Tools/scripts/build/ogg.sh",
+			);
+			name = "C: Build Ogg";
+			outputFileListPaths = (
+			);
+			outputPaths = (
+				"$(DERIVED_FILE_DIR)/SampledFFmpeg/Sources/CFFmpeg/$(CURRENT_ARCH)/include/ogg",
+				"$(DERIVED_FILE_DIR)/SampledFFmpeg/Sources/CFFmpeg/$(CURRENT_ARCH)/lib/libogg.*",
+				"$(DERIVED_FILE_DIR)/SampledFFmpeg/Sources/CFFmpeg/$(CURRENT_ARCH)/lib/pkgconfig/ogg.pc",
+				"$(DERIVED_FILE_DIR)/SampledFFmpeg/Sources/CFFmpeg/$(CURRENT_ARCH)/share/aclocal/ogg.m4",
+				"$(DERIVED_FILE_DIR)/SampledFFmpeg/Sources/CFFmpeg/$(CURRENT_ARCH)/share/doc/libogg",
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "./Tools/build-ogg.sh\n";
+		};
 		00672AF72CB764F400948CAB /* C: Download Dependencies */ = {
 			isa = PBXShellScriptBuildPhase;
 			buildActionMask = 12;
@@ -2400,7 +2412,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "# Type a script or drag a script file from your workspace to insert its path.\n\n./Tools/download-deps.sh\n";
+			shellScript = "./Tools/download-deps.sh\n";
 		};
 		00672AF82CB7657500948CAB /* C: Build Opus */ = {
 			isa = PBXShellScriptBuildPhase;
@@ -2417,10 +2429,10 @@
 			outputFileListPaths = (
 			);
 			outputPaths = (
-				"$(DERIVED_FILE_DIR)/ForwardFFmpeg/Sources/CFFmpeg/include/opus",
-				"$(DERIVED_FILE_DIR)/ForwardFFmpeg/Sources/CFFmpeg/lib/libopus.*",
-				"$(DERIVED_FILE_DIR)/ForwardFFmpeg/Sources/CFFmpeg/include/pkgconfig/opus.pc",
-				"$(DERIVED_FILE_DIR)/ForwardFFmpeg/Sources/CFFmpeg/share/aclocal/opus.m4",
+				"$(DERIVED_FILE_DIR)/SampledFFmpeg/Sources/CFFmpeg/$(CURRENT_ARCH)/include/opus",
+				"$(DERIVED_FILE_DIR)/SampledFFmpeg/Sources/CFFmpeg/$(CURRENT_ARCH)/lib/libopus.*",
+				"$(DERIVED_FILE_DIR)/SampledFFmpeg/Sources/CFFmpeg/$(CURRENT_ARCH)/include/pkgconfig/opus.pc",
+				"$(DERIVED_FILE_DIR)/SampledFFmpeg/Sources/CFFmpeg/$(CURRENT_ARCH)/share/aclocal/opus.m4",
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
@@ -2441,17 +2453,17 @@
 			outputFileListPaths = (
 			);
 			outputPaths = (
-				"$(DERIVED_FILE_DIR)/ForwardFFmpeg/Sources/CFFmpeg/bin/ff*",
-				"$(DERIVED_FILE_DIR)/ForwardFFmpeg/Sources/CFFmpeg/include/libav*",
-				"$(DERIVED_FILE_DIR)/ForwardFFmpeg/Sources/CFFmpeg/include/libsw*",
-				"$(DERIVED_FILE_DIR)/ForwardFFmpeg/Sources/CFFmpeg/lib/libav*.a",
-				"$(DERIVED_FILE_DIR)/ForwardFFmpeg/Sources/CFFmpeg/lib/libsw*.a",
-				"$(DERIVED_FILE_DIR)/ForwardFFmpeg/Sources/CFFmpeg/lib/pkgconfig/libav*.pc",
-				"$(DERIVED_FILE_DIR)/ForwardFFmpeg/Sources/CFFmpeg/lib/pkgconfig/libsw*.pc",
-				"$(DERIVED_FILE_DIR)/ForwardFFmpeg/Sources/CFFmpeg/share/ffmpeg",
-				"$(DERIVED_FILE_DIR)/ForwardFFmpeg/Sources/CFFmpeg/share/man1/ff*.1",
-				"$(DERIVED_FILE_DIR)/ForwardFFmpeg/Sources/CFFmpeg/share/man3/libav*.3",
-				"$(DERIVED_FILE_DIR)/ForwardFFmpeg/Sources/CFFmpeg/share/man3/libsw*.3",
+				"$(DERIVED_FILE_DIR)/SampledFFmpeg/Sources/CFFmpeg/$(CURRENT_ARCH)/bin/ff*",
+				"$(DERIVED_FILE_DIR)/SampledFFmpeg/Sources/CFFmpeg/$(CURRENT_ARCH)/include/libav*",
+				"$(DERIVED_FILE_DIR)/SampledFFmpeg/Sources/CFFmpeg/$(CURRENT_ARCH)/include/libsw*",
+				"$(DERIVED_FILE_DIR)/SampledFFmpeg/Sources/CFFmpeg/$(CURRENT_ARCH)/lib/libav*.a",
+				"$(DERIVED_FILE_DIR)/SampledFFmpeg/Sources/CFFmpeg/$(CURRENT_ARCH)/lib/libsw*.a",
+				"$(DERIVED_FILE_DIR)/SampledFFmpeg/Sources/CFFmpeg/$(CURRENT_ARCH)/lib/pkgconfig/libav*.pc",
+				"$(DERIVED_FILE_DIR)/SampledFFmpeg/Sources/CFFmpeg/$(CURRENT_ARCH)/lib/pkgconfig/libsw*.pc",
+				"$(DERIVED_FILE_DIR)/SampledFFmpeg/Sources/CFFmpeg/$(CURRENT_ARCH)/share/ffmpeg",
+				"$(DERIVED_FILE_DIR)/SampledFFmpeg/Sources/CFFmpeg/$(CURRENT_ARCH)/share/man1/ff*.1",
+				"$(DERIVED_FILE_DIR)/SampledFFmpeg/Sources/CFFmpeg/$(CURRENT_ARCH)/share/man3/libav*.3",
+				"$(DERIVED_FILE_DIR)/SampledFFmpeg/Sources/CFFmpeg/$(CURRENT_ARCH)/share/man3/libsw*.3",
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
@@ -2472,10 +2484,10 @@
 			outputFileListPaths = (
 			);
 			outputPaths = (
-				"$(DERIVED_FILE_DIR)/ForwardFFmpeg/Sources/CFFmpeg/include/vorbis",
-				"$(DERIVED_FILE_DIR)/ForwardFFmpeg/Sources/CFFmpeg/lib/libvorbis*.*",
-				"$(DERIVED_FILE_DIR)/ForwardFFmpeg/Sources/CFFmpeg/lib/pkgconfig/vorbis*.pc",
-				"$(DERIVED_FILE_DIR)/ForwardFFmpeg/Sources/CFFmpeg/doc/libvorbis*",
+				"$(DERIVED_FILE_DIR)/SampledFFmpeg/Sources/CFFmpeg/$(CURRENT_ARCH)/include/vorbis",
+				"$(DERIVED_FILE_DIR)/SampledFFmpeg/Sources/CFFmpeg/$(CURRENT_ARCH)/lib/libvorbis*.*",
+				"$(DERIVED_FILE_DIR)/SampledFFmpeg/Sources/CFFmpeg/$(CURRENT_ARCH)/lib/pkgconfig/vorbis*.pc",
+				"$(DERIVED_FILE_DIR)/SampledFFmpeg/Sources/CFFmpeg/$(CURRENT_ARCH)/doc/libvorbis*",
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
@@ -2641,7 +2653,10 @@
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
-				LIBRARY_SEARCH_PATHS = "$(PROJECT_DIR)/SampledFFmpeg/Sources/CFFmpeg/lib";
+				LIBRARY_SEARCH_PATHS = (
+					"$(inherited)",
+					"$(PROJECT_DIR)/SampledFFmpeg/Sources/CFFmpeg/$(CURRENT_ARCH)/lib",
+				);
 				MACOSX_DEPLOYMENT_TARGET = 15.0;
 				MARKETING_VERSION = 0.1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.kyleerhabor.Sampled;
@@ -2671,7 +2686,10 @@
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
-				LIBRARY_SEARCH_PATHS = "$(PROJECT_DIR)/SampledFFmpeg/Sources/CFFmpeg/lib";
+				LIBRARY_SEARCH_PATHS = (
+					"$(inherited)",
+					"$(PROJECT_DIR)/SampledFFmpeg/Sources/CFFmpeg/$(CURRENT_ARCH)/lib",
+				);
 				MACOSX_DEPLOYMENT_TARGET = 15.0;
 				MARKETING_VERSION = 0.1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.kyleerhabor.Sampled;

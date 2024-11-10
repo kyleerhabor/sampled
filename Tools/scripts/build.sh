@@ -10,9 +10,16 @@
 
 PREFIX=SampledFFmpeg/Sources/CFFmpeg
 DEPSDIR=deps
-export OPUSDIR="$DEPSDIR/opus"
+export OGGDIR="$DEPSDIR/ogg"
 export VORBISDIR="$DEPSDIR/vorbis"
+export OPUSDIR="$DEPSDIR/opus"
 export FFMPEGDIR="$DEPSDIR/ffmpeg"
+
+prefixarch () {
+  local arch="$1"
+
+  echo "$PREFIX/$arch"
+}
 
 NCPU="$(sysctl -n hw.ncpu)"
 NJOB="$(max 1 "$(($NCPU / 2))")"
@@ -20,5 +27,5 @@ NJOB="$(max 1 "$(($NCPU / 2))")"
 runmake () {
   make -j"$NJOB"
   make install
-  make distclean
+  make clean
 }

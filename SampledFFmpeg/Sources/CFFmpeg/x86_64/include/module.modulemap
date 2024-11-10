@@ -1,0 +1,12 @@
+module CFFmpeg {
+  header "libav.h"
+  export *
+
+  link "avcodec"
+  link "avdevice"
+  link "avfilter"
+  link "avformat"
+  link "avutil"
+  link "swresample"
+  link "swscale"
+}

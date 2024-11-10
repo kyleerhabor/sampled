@@ -9,4 +9,6 @@
 . "$(dirname "$0")/scripts/build/ffmpeg.sh"
 . "$(dirname "$0")/scripts/xcode.sh"
 
-build
+for arch in $ARCHS; do
+  build "$arch"
+done

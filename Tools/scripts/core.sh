@@ -18,9 +18,9 @@ max () {
 prefix () {
   local prefix="$1"
   local coll="$2"
-  read -ra archs <<< "$coll"
+  read -ra items <<< "$coll"
 
-  for item in "${archs[@]}"; do
+  for item in "${items[@]}"; do
     echo "$prefix $item \c"
   done
 }

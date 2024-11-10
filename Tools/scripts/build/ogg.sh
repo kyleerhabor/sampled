@@ -1,10 +1,10 @@
 #!/bin/sh
 
-#  opus.sh
+#  ogg.sh
 #  Sampled
 #
-#  Created by Kyle Erhabor on 11/8/24.
-#
+#  Created by Kyle Erhabor on 11/9/24.
+#  
 
 . "$(dirname "$0")/scripts/core.sh"
 . "$(dirname "$0")/scripts/build.sh"
@@ -12,16 +12,16 @@
 build () {
   local arch="$1"
 
-  echo "Building Opus for $arch"
+  echo "Building Ogg for $arch"
 
   local prefix="$(prefixarch "$arch")"
   local PKG_CONFIG_PATH="$CWD/$prefix/lib/pkgconfig:$PKG_CONFIG_PATH"
-  pushd "$CWD/$OPUSDIR"
+  pushd "$CWD/$OGGDIR"
   ./autogen.sh
   ./configure --prefix="$CWD/$prefix" \
     --host="$arch-apple-darwin" \
     --build="$(uname -m)-apple-darwin" \
-    --disable-intrinsics --disable-shared \
+    --disable-shared \
     --with-sysroot="$(xcrun --sdk macosx --show-sdk-path)" \
     CC=clang \
     CFLAGS="-arch $arch $EXTRA_CFLAGS"

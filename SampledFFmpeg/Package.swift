@@ -3,6 +3,17 @@
 
 import PackageDescription
 
+#if arch(arm64)
+let arch = "arm64"
+
+#elseif arch(x86_64)
+let arch = "x86_64"
+
+#else
+fatalError("unknown architecture")
+
+#endif
+
 let package = Package(
   name: "SampledFFmpeg",
   platforms: [.macOS(.v15)],
@@ -12,7 +23,7 @@ let package = Package(
     .target(name: "CoreFFmpeg", dependencies: ["CFFmpeg"]),
     .target(
       name: "CFFmpeg",
-      path: "Sources/CFFmpeg",
+      path: "Sources/CFFmpeg/\(arch)",
       exclude: ["share"],
       linkerSettings: [
         .linkedLibrary("bz2"),

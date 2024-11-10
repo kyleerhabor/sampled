@@ -9,6 +9,8 @@
 . "$(dirname "$0")/scripts/core.sh"
 . "$(dirname "$0")/scripts/build.sh"
 
+OGG_GIT_COMMIT=7cf42ea17aef7bc1b7b21af70724840a96c2e7d0
+OGG_GIT_URL=https://gitlab.xiph.org/xiph/ogg.git
 VORBIS_GIT_COMMIT=bb4047de4c05712bf1fd49b9584c360b8e4e0adf
 VORBIS_GIT_URL=https://gitlab.xiph.org/xiph/vorbis.git
 OPUS_GIT_TAG=v1.5.2
@@ -27,6 +29,11 @@ downloadbrew () {
   brew install autoconf automake libtool nasm
 }
 
+downloadogg () {
+  gitdownload "$OGG_GIT_URL" "$CWD/$OGGDIR"
+  git -C "$CWD/$OGGDIR" checkout "$OGG_GIT_COMMIT"
+}
+
 downloadvorbis () {
   gitdownload "$VORBIS_GIT_URL" "$CWD/$VORBISDIR"
   git -C "$CWD/$VORBISDIR" checkout "$VORBIS_GIT_COMMIT"
@@ -42,6 +49,7 @@ downloadffmpeg () {
 }
 
 downloadbrew
+downloadogg
 downloadvorbis
 downloadopus
 downloadffmpeg

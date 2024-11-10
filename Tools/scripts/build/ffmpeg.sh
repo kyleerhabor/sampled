@@ -10,9 +10,12 @@
 . "$(dirname "$0")/scripts/build.sh"
 
 build () {
-  echo 'Building FFmpeg'
+  local arch="$1"
 
-  local PATH="$CWD/$PREFIX/bin:$PATH"
+  echo "Building FFmpeg for $arch"
+
+  local prefix="$(prefixarch "$arch")"
+  local PKG_CONFIG_PATH="$CWD/$prefix/lib/pkgconfig:$PKG_CONFIG_PATH"
   pushd "$CWD/$FFMPEGDIR"
 
   # As of 358fdf3, FFmpeg's C compiler test does not consider sysroot with spaces, and we can't escape it ourselves via
@@ -74,16 +77,20 @@ build () {
   #   vorbis:     Vorbis                                     / Vorbis
   #   wavpack:    WavPack                                    / WavPack
   #   wmav2:      Windows Media Audio 2                      / Windows Media Audio
-  ./configure --prefix="$CWD/$PREFIX" \
+  ./configure --prefix="$CWD/$prefix" \
     --disable-network --disable-everything \
     --enable-libopus --enable-libvorbis \
     --enable-demuxer=aac,ac3,aiff,asf,flac,loas,matroska,mov,mp3,ogg,w64,wav,wv \
     --enable-decoder=*_at,flac,libopus,mjpeg,msmpeg4v3,pcm_f32le,pcm_f32be,pcm_s8,pcm_s16le,pcm_s16be,pcm_s24le,pcm_s24be,pcm_s32le,pcm_s32be,png,vorbis,wavpack,wmav2 \
     --enable-protocol=file \
+    --disable-shared --enable-static \
+    --arch="$arch" \
+    --enable-cross-compile \
     --sysroot="$(xcrun --sdk macosx --show-sdk-path)" \
     --target-os=darwin \
-    --cc=clang \
-    --extra-cflags="$EXTRA_CFLAGS $(prefix -arch "$ARCHS")"
+    --cc="clang -arch $arch $EXTRA_CFLAGS" \
+    --extra-cflags="-I$CWD/$prefix/include" \
+    --extra-ldflags="-L$CWD/$prefix/lib"
 
   runmake
   popd
