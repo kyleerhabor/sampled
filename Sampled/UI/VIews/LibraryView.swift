@@ -6,11 +6,9 @@
 //
 
 import CFFmpeg
-import CoreFFmpeg
 import SampledFFmpeg
 import Algorithms
 import AVFoundation
-import MediaPlayer
 import OSLog
 import SwiftUI
 
@@ -26,10 +24,10 @@ struct LibraryTrack {
 
   let title: String
   let duration: Duration
-  let artist: String?
-  let artists: [String]
-  let album: String?
-  let albumArtist: String?
+  let artistName: String?
+  let artistNames: [String]
+  let albumTitle: String?
+  let albumArtistName: String?
   let date: Date?
   let coverImage: CGImage?
   let track: LibraryTrackPosition?
@@ -37,7 +35,9 @@ struct LibraryTrack {
 }
 
 extension LibraryTrack: Identifiable {
-  var id: URL { source.url }
+  var id: URL {
+    source.url
+  }
 }
 
 struct LibraryTrackPositionView: View {
@@ -89,39 +89,397 @@ struct LibraryTrackDurationView: View {
   }
 }
 
+// TODO: Replace with dispatch queue or some other lock
+//
+// Actors are just not it.
+actor AudioPlayerItem {
+  private let url: URL
+  private let formatContext: FFFormatContext
+  private var codecContext: FFCodecContext?
+  private let resampleContext: FFResampleContext
+  private let packet: FFPacket
+  private let frame: FFFrame
+  private let resampleFrame: FFFrame
+  private var streami: Int32?
+
+  init(url: URL) {
+    self.url = url
+    self.formatContext = FFFormatContext()
+    self.resampleContext = FFResampleContext()
+    self.packet = FFPacket()
+    self.frame = FFFrame()
+    self.resampleFrame = FFFrame()
+  }
+
+  var info: Info {
+    let context = codecContext!.context!
+    let channelLayout = context.pointee.ch_layout
+    let sampleRate = context.pointee.sample_rate
+
+    return Info(channelLayout: Self.channelLayout(from: channelLayout), sampleRate: Double(sampleRate))
+  }
+
+  nonisolated static func channelLayout(from channelLayout: AVChannelLayout) -> AudioChannelLayout {
+    struct Item {
+      let channel: AVChannel
+      let bitmap: AudioChannelBitmap
+    }
+
+    let items = [
+      Item(channel: AV_CHAN_FRONT_LEFT, bitmap: .bit_Left),
+      Item(channel: AV_CHAN_FRONT_RIGHT, bitmap: .bit_Right),
+      Item(channel: AV_CHAN_FRONT_CENTER, bitmap: .bit_Center),
+    ]
+
+    let chLayout = if channelLayout.order == AV_CHANNEL_ORDER_UNSPEC {
+      channelLayout.default
+    } else {
+      channelLayout
+    }
+
+    var layout = AudioChannelLayout()
+    layout.mChannelLayoutTag = kAudioChannelLayoutTag_UseChannelBitmap
+    layout.mChannelBitmap = items.reduce(AudioChannelBitmap()) { partialResult, item in
+      if chLayout.u.mask & (1 << item.channel.rawValue) == 0 {
+        return partialResult
+      }
+
+      return partialResult.union(item.bitmap)
+    }
+
+    return layout
+  }
+
+  func install() {
+    do {
+      try openInput(&formatContext.context, at: url.pathString)
+    } catch {
+      Logger.ffmpeg.error("\(error)")
+
+      return
+    }
+
+    do {
+      try findStreamInfo(formatContext.context)
+    } catch {
+      Logger.ffmpeg.error("\(error)")
+
+      return
+    }
+
+    var decoder: UnsafePointer<AVCodec>!
+    let streami: Int32
+
+    do {
+      streami = try findBestStream(formatContext.context, type: .audio, decoder: &decoder)
+    } catch {
+      Logger.ffmpeg.error("\(error)")
+
+      return
+    }
+
+    self.streami = streami
+
+    let stream = formatContext.context.pointee.streams[Int(streami)]!
+    let codecContext = FFCodecContext(codec: decoder)
+    codecContext.context.pointee.pkt_timebase = stream.pointee.time_base
+
+    self.codecContext = codecContext
+
+    do {
+      try copyCodecParameters(codecContext.context, params: stream.pointee.codecpar)
+    } catch {
+      Logger.ffmpeg.error("\(error)")
+
+      return
+    }
+
+    do {
+      try openCodec(codecContext.context, codec: decoder)
+    } catch {
+      Logger.ffmpeg.error("\(error)")
+
+      return
+    }
+
+    streams(formatContext.context).forEach { $0!.pointee.discard = AVDISCARD_ALL }
+
+    stream.pointee.discard = AVDISCARD_NONE
+  }
+
+  func resampleReadFrame(
+    source frame: UnsafePointer<AVFrame>!,
+    channelLayout: AVChannelLayout,
+    sampleRate: Int32,
+    format: AVSampleFormat,
+    buffers: inout [Data]
+  ) throws(FFError) {
+    try SampledFFmpeg.resampleFrame(
+      resampleContext.context,
+      source: frame,
+      destination: resampleFrame.frame,
+      channelLayout: channelLayout,
+      sampleRate: sampleRate,
+      sampleFormat: format.rawValue
+    )
+
+    let stride = resampleFrame.frame.pointee.nb_samples * av_get_bytes_per_sample(format)
+    let bufferCount = bufferCount(sampleFormat: format, channelCount: channelLayout.nb_channels)
+    let range = 0..<Int(bufferCount)
+
+    range.forEach { i in
+      buffers[i].append(resampleFrame.frame.pointee.extended_data[i]!, count: Int(stride))
+    }
+  }
+
+  func readFrame(
+    channelLayout: AVChannelLayout,
+    sampleRate: Int32,
+    format: AVSampleFormat,
+    buffers: inout [Data]
+  ) throws(FFError) {
+    try configureResampler(resampleContext.context, source: frame.frame, destination: resampleFrame.frame)
+    try resampleReadFrame(
+      source: frame.frame,
+      channelLayout: channelLayout,
+      sampleRate: sampleRate,
+      format: format,
+      buffers: &buffers
+    )
+
+    av_frame_unref(resampleFrame.frame)
+
+    do {
+      // I *believe* this is how you retrieve the remaining samples in the FIFO buffer.
+      try resampleReadFrame(
+        source: nil,
+        channelLayout: channelLayout,
+        sampleRate: sampleRate,
+        format: format,
+        buffers: &buffers
+      )
+    } catch let error where error.code == .outputChanged {
+      Logger.ffmpeg.info("Dropped.")
+      // Fallthough
+      //
+      // Resampling WAVE seems to always produce this error. I assume no data is in the FIFO buffer, and therefore it
+      // appears the output has (somehow) changed. I'm not exactly sure why, but I am sure this fallthrough produces no
+      // known issues.
+    }
+  }
+
+  func read() throws(FFError) -> [Data] {
+    let format = AV_SAMPLE_FMT_FLTP
+    let bytesPerSample = av_get_bytes_per_sample(format)
+    let context = codecContext!.context!
+    let channelLayout = context.pointee.ch_layout
+    let sampleRate = context.pointee.sample_rate
+    let channelCount = channelLayout.nb_channels
+    // Longer is better for energy impact
+    let seconds = 4
+    let capacity = Int(context.pointee.sample_rate * bytesPerSample * channelCount) * seconds
+    let bufferCount = bufferCount(sampleFormat: format, channelCount: channelCount)
+    var buffers = [Data](
+      repeating: Data(capacity: capacity / Int(bufferCount)),
+      count: Int(bufferCount)
+    )
+
+    while true {
+      do {
+        try SampledFFmpeg.readFrame(formatContext.context, into: packet.packet)
+      } catch let error where error.code == .endOfFile {
+        break
+      }
+
+      defer {
+        av_packet_unref(packet.packet)
+      }
+
+      guard packet.packet.pointee.stream_index == streami else {
+        continue
+      }
+
+      try sendPacket(context, packet: packet.packet)
+
+      while true {
+        do {
+          try receiveFrame(context, frame: frame.frame)
+        } catch let error where error.code == .resourceTemporarilyUnavailable {
+          break
+        }
+
+        try readFrame(channelLayout: channelLayout, sampleRate: sampleRate, format: format, buffers: &buffers)
+      }
+
+      if buffers.map(\.count).sum() >= capacity {
+        return buffers
+      }
+    }
+
+    // This is likely to eventually throw an end of file error.
+    try sendPacket(context, packet: nil)
+
+    while true {
+      do {
+        try receiveFrame(context, frame: frame.frame)
+      } catch let error where error.code == .endOfFile {
+        return buffers
+      }
+
+      try readFrame(channelLayout: channelLayout, sampleRate: sampleRate, format: format, buffers: &buffers)
+    }
+  }
+
+  struct Info {
+    let channelLayout: AudioChannelLayout
+    let sampleRate: Double
+
+    var format: AVAudioFormat {
+      AVAudioFormat(
+        standardFormatWithSampleRate: Double(sampleRate),
+        channelLayout: withUnsafePointer(to: channelLayout) { pointer in
+          AVAudioChannelLayout(layout: pointer)
+        }
+      )
+    }
+  }
+}
+
+func race(_ this: @escaping () async -> Void, other: @escaping () async -> Void) async -> Void {
+  await withTaskGroup(of: Void.self) { group in
+    await withCheckedContinuation { continuation in
+      group.addTask {
+        continuation.resume()
+        await this()
+      }
+    }
+
+    group.addTask {
+      await Task.yield()
+      await other()
+    }
+
+    await group.waitForAll()
+  }
+}
+
 actor AudioPlayer {
   private let engine: AVAudioEngine
   private var players: Set<AVAudioPlayerNode>
 
-  init(engine: AVAudioEngine) {
-    self.engine = engine
+  init() {
+    self.engine = AVAudioEngine()
     self.players = []
   }
 
-  func play(buffer: AVAudioPCMBuffer) throws {
-    let player = AVAudioPlayerNode()
-    engine.attach(player)
-    engine.connect(player, to: engine.mainMixerNode, format: buffer.format)
+  static private func read(info: AudioPlayerItem.Info, buffers: inout [Data]) -> AVAudioPCMBuffer? {
+    let stride = MemoryLayout<Float>.stride
+    let frameCount = AVAudioFrameCount(buffers[0].count / stride)
 
-    Task {
-      await player.scheduleBuffer(buffer)
+    guard let buffer = AVAudioPCMBuffer(pcmFormat: info.format, frameCapacity: frameCount) else {
+      return nil
+    }
 
-      players.remove(player)
-
-      if players.isEmpty {
-        engine.stop()
+    for bufferi in buffers.indices {
+      buffers[bufferi].withUnsafeMutableBytes { pointer in
+        pointer.withMemoryRebound(to: Float.self) { pointer in
+          buffer.floatChannelData![bufferi].moveUpdate(from: pointer.baseAddress!, count: pointer.count)
+        }
       }
     }
 
-    try engine.start()
-    players.forEach { $0.stop() }
-    players.insert(player)
+    buffer.frameLength = frameCount
+
+    return buffer
+  }
+
+  nonisolated static private func read(item: AudioPlayerItem, info: AudioPlayerItem.Info) async -> AVAudioPCMBuffer? {
+    var buffers: [Data]
+
+    do {
+      buffers = try await item.read()
+    } catch {
+      Logger.ffmpeg.error("\(error)")
+
+      return nil
+    }
+
+    guard let buffer = Self.read(info: info, buffers: &buffers) else {
+      return nil
+    }
+
+    #if DEBUG
+    let url = URL.applicationSupportDirectory.appending(
+      components: Bundle.appID, "audio.raw",
+      directoryHint: .notDirectory
+    )
+
+    do {
+      try FileManager.default.createDirectory(at: url.deletingLastPathComponent(), withIntermediateDirectories: true)
+
+      let buffers = UnsafeMutableAudioBufferListPointer(UnsafeMutablePointer(mutating: buffer.audioBufferList))
+      let buffer = buffers.reduce(into: Data()) { partialResult, buffer in
+        let count = Int(buffer.mDataByteSize)
+
+        partialResult.append(UnsafePointer(buffer.mData!.bindMemory(to: UInt8.self, capacity: count)), count: count)
+      }
+
+      try buffer.write(to: url)
+    } catch {
+      Logger.model.error("\(error)")
+    }
+
+    #endif
+
+    return buffer
+  }
+
+  nonisolated private func playItem(
+    player: AVAudioPlayerNode,
+    item: AudioPlayerItem,
+    info: AudioPlayerItem.Info
+  ) async {
+    while let buffer = await Self.read(item: item, info: info) {
+      await player.scheduleBuffer(buffer)
+    }
+  }
+
+  nonisolated private func play(
+    player: AVAudioPlayerNode,
+    item: AudioPlayerItem,
+    info: AudioPlayerItem.Info
+  ) async {
+    // Yeah, we probably shouldn't implement a literal race condition as our algorithm for queueless playback.
+    await race { [weak self] in
+      await self?.playItem(player: player, item: item, info: info)
+    } other: { [weak self] in
+      await self?.playItem(player: player, item: item, info: info)
+    }
+  }
+
+  func play(item: AudioPlayerItem) async {
+    let info = await item.info
+    let player = AVAudioPlayerNode()
+    engine.attach(player)
+    engine.connect(player, to: engine.mainMixerNode, format: info.format)
+
+    Task {
+      await play(player: player, item: item, info: info)
+    }
+
+    do {
+      try engine.start()
+    } catch {
+      Logger.model.error("\(error)")
+
+      return
+    }
 
     player.play()
   }
 }
 
-let player = AudioPlayer(engine: AVAudioEngine())
+let player = AudioPlayer()
 
 struct LibraryView: View {
   @AppStorage(StorageKeys.preferArtistsDisplay.name) private var preferArtistsDisplay = StorageKeys.preferArtistsDisplay.defaultValue
@@ -143,15 +501,15 @@ struct LibraryView: View {
 
       TableColumn("Track.Column.Title", value: \.title)
       TableColumn(preferArtistsDisplay ? "Track.Column.Artists" : "Track.Column.Artist") { track in
-        LibraryTrackArtistContentView(artists: track.artists, artist: track.artist)
+        LibraryTrackArtistContentView(artists: track.artistNames, artist: track.artistName)
       }
 
       TableColumn("Track.Column.Album") { track in
-        Text(track.album ?? "")
+        Text(track.albumTitle ?? "")
       }
 
       TableColumn("Track.Column.AlbumArtist") { track in
-        Text(track.albumArtist ?? "")
+        Text(track.albumArtistName ?? "")
       }
 
       TableColumn("Track.Column.Duration") { track in
@@ -212,7 +570,7 @@ struct LibraryView: View {
     .focusedSceneValue(\.tracks, library.tracks.filter(in: selection, by: \.id))
   }
 
-  static private func load(urls: [URL]) async -> [LibraryTrack] {
+  nonisolated static private func load(urls: [URL]) async -> [LibraryTrack] {
     urls.compactMap { url in
       let source = URLSource(url: url, options: [.withReadOnlySecurityScope, .withoutImplicitSecurityScope])
 
@@ -228,299 +586,13 @@ struct LibraryView: View {
     }
   }
 
-  nonisolated static private func resampleFrame(
-    _ context: OpaquePointer!,
-    source: UnsafePointer<AVFrame>!,
-    destination: UnsafeMutablePointer<AVFrame>!,
-    channelLayout: AVChannelLayout,
-    sampleRate: Int32,
-    sampleFormat: AVSampleFormat,
-    buffers: inout [Data]
-  ) throws(FFError) {
-    try SampledFFmpeg.resampleFrame(
-      context,
-      source: source,
-      destination: destination,
-      channelLayout: channelLayout,
-      sampleRate: sampleRate,
-      sampleFormat: sampleFormat.rawValue
-    )
-
-    let stride = destination.pointee.nb_samples * av_get_bytes_per_sample(AVSampleFormat(rawValue: destination.pointee.format))
-    let bufferCount = bufferCount(sampleFormat: sampleFormat, channelCount: channelLayout.nb_channels)
-
-    for channeli in 0..<Int(bufferCount) {
-      buffers[channeli].append(destination.pointee.extended_data[channeli]!, count: Int(stride))
-    }
-  }
-
   nonisolated static private func play(track: LibraryTrack) async {
     let source = track.source
-    let buffer: AVAudioPCMBuffer? = source.accessingSecurityScopedResource {
-      let pathString = source.url.pathString
-      let formatContext = FFFormatContext()
+    let item = AudioPlayerItem(url: source.url)
 
-      do {
-        return try openingInput(&formatContext.context, at: pathString) { formatContext in
-          do {
-            try findStreamInfo(formatContext)
-          } catch {
-            Logger.ffmpeg.error("\(error)")
-
-            return nil
-          }
-
-          var decoder: UnsafePointer<AVCodec>!
-          let streami: Int32
-
-          do {
-            streami = try findBestStream(formatContext, type: .audio, decoder: &decoder)
-          } catch {
-            Logger.ffmpeg.error("\(error)")
-
-            return nil
-          }
-
-          let stream = formatContext!.pointee.streams[Int(streami)]!
-          let codecContext = FFCodecContext(codec: decoder)
-
-          do {
-            try copyCodecParameters(codecContext.context, params: stream.pointee.codecpar)
-            try openCodec(codecContext.context, codec: decoder)
-          } catch {
-            Logger.ffmpeg.error("\(error)")
-
-            return nil
-          }
-
-          let packet = FFPacket()
-          let frame = FFFrame()
-          let resampleContext = FFResampleContext()
-          let resampled = FFFrame()
-          let channelLayout = codecContext.context.pointee.ch_layout
-          let sampleRate = codecContext.context.pointee.sample_rate
-          let sampleFormat = AV_SAMPLE_FMT_FLTP
-          let bufferCount = bufferCount(sampleFormat: sampleFormat, channelCount: channelLayout.nb_channels)
-          var buffers = [Data](
-            repeating: Data(),
-            count: Int(bufferCount)
-          )
-
-          do {
-            func action() throws(FFError) {
-              try configureResampler(resampleContext.context, source: frame.frame, destination: resampled.frame)
-              try resampleFrame(
-                resampleContext.context,
-                source: frame.frame,
-                destination: resampled.frame,
-                channelLayout: channelLayout,
-                sampleRate: sampleRate,
-                sampleFormat: sampleFormat,
-                buffers: &buffers
-              )
-
-              av_frame_unref(resampled.frame)
-
-              do {
-                // I *believe* this is how you retrieve the remaining samples in the FIFO buffer.
-                try resampleFrame(
-                  resampleContext.context,
-                  source: nil,
-                  destination: resampled.frame,
-                  channelLayout: channelLayout,
-                  sampleRate: sampleRate,
-                  sampleFormat: sampleFormat,
-                  buffers: &buffers
-                )
-              } catch let error where error.code == .outputChanged {
-                // Fallthough
-                //
-                // Resampling WAVE seems to always produce this error. I assume no data is in the FIFO buffer, and
-                // therefore it appears the output has (somehow) changed. I'm not exactly sure, but I am sure that this
-                // fallthrough produces no known issues.
-              }
-            }
-
-            loop:
-            while true {
-              switch try iterateReadFrame(formatContext, into: packet.packet) {
-                case .ok:
-                  break
-                case .endOfFile:
-                  break loop
-              }
-
-              guard packet.packet.pointee.stream_index == streami else {
-                continue
-              }
-
-              switch try iterateSendPacket(codecContext.context, packet: packet.packet) {
-                case .ok:
-                  break
-                default:
-                  return nil
-              }
-
-              loop:
-              while true {
-                switch try iterateReceiveFrame(codecContext.context, frame: frame.frame) {
-                  case .ok:
-                    break
-                  case .resourceTemporarilyUnavailable:
-                    break loop
-                  default:
-                    return nil
-                }
-
-                do {
-                  try action()
-                } catch {
-                  Logger.ffmpeg.error("\(error)")
-
-                  return nil
-                }
-              }
-            }
-
-            switch try iterateSendPacket(codecContext.context, packet: nil) {
-              case .ok:
-                break
-              default:
-                return nil
-            }
-
-            loop:
-            while true {
-              switch try iterateReceiveFrame(codecContext.context, frame: frame.frame) {
-                case .ok:
-                  break
-                case .endOfFile:
-                  break loop
-                default:
-                  return nil
-              }
-
-              do {
-                try action()
-              } catch {
-                Logger.ffmpeg.error("\(error)")
-
-                return nil
-              }
-            }
-          } catch {
-            Logger.ffmpeg.error("\(error)")
-
-            return nil
-          }
-
-          struct S {
-            let channel: AVChannel
-            let bitmap: AudioChannelBitmap
-          }
-
-          let items = [
-            S(channel: AV_CHAN_FRONT_LEFT, bitmap: .bit_Left),
-            S(channel: AV_CHAN_FRONT_RIGHT, bitmap: .bit_Right),
-            S(channel: AV_CHAN_FRONT_CENTER, bitmap: .bit_Center),
-//            S(channel: AV_CHAN_LOW_FREQUENCY, bitmap: .bit_LFEScreen),
-//            S(channel: AV_CHAN_BACK_LEFT, bitmap: .bit_TopBackLeft),
-//            S(channel: AV_CHAN_BACK_RIGHT, bitmap: .bit_TopBackRight),
-            S(channel: AV_CHAN_FRONT_LEFT_OF_CENTER, bitmap: .bit_LeftCenter),
-            S(channel: AV_CHAN_FRONT_RIGHT_OF_CENTER, bitmap: .bit_RightCenter),
-//            S(channel: AV_CHAN_BACK_CENTER, bitmap: .bit_TopBackCenter),
-            S(channel: AV_CHAN_TOP_FRONT_LEFT, bitmap: .bit_LeftTopFront),
-            S(channel: AV_CHAN_TOP_FRONT_CENTER, bitmap: .bit_CenterTopFront),
-            S(channel: AV_CHAN_TOP_FRONT_RIGHT, bitmap: .bit_RightTopFront),
-            S(channel: AV_CHAN_TOP_BACK_LEFT, bitmap: .bit_TopBackLeft),
-            S(channel: AV_CHAN_TOP_BACK_CENTER, bitmap: .bit_TopBackCenter),
-            S(channel: AV_CHAN_TOP_BACK_RIGHT, bitmap: .bit_TopBackRight)
-          ]
-
-          let chLayout = if channelLayout.order == AV_CHANNEL_ORDER_UNSPEC {
-            channelLayout.default
-          } else {
-            channelLayout
-          }
-
-          var layout = AudioChannelLayout()
-          layout.mChannelLayoutTag = kAudioChannelLayoutTag_UseChannelBitmap
-          layout.mChannelBitmap = items.reduce(AudioChannelBitmap()) { partialResult, item in
-            if chLayout.u.mask & (1 << item.channel.rawValue) == 0 {
-              return partialResult
-            }
-
-            return partialResult.union(item.bitmap)
-          }
-
-          let stride = MemoryLayout<Float>.stride
-          let frameCount = AVAudioFrameCount(buffers[0].count / stride)
-
-          guard let audioBuffer = AVAudioPCMBuffer(
-            pcmFormat: AVAudioFormat(
-              standardFormatWithSampleRate: Double(sampleRate),
-              channelLayout: AVAudioChannelLayout(layout: &layout)
-            ),
-            frameCapacity: frameCount
-          ) else {
-            return nil
-          }
-
-          for bufferi in buffers.indices {
-            buffers[bufferi].withUnsafeMutableBytes { pointer in
-              let count = pointer.count / stride
-              let pointer = pointer.baseAddress!.bindMemory(to: Float.self, capacity: count)
-
-              audioBuffer.floatChannelData![bufferi].moveUpdate(from: pointer, count: count)
-            }
-          }
-
-          audioBuffer.frameLength = frameCount
-
-          #if DEBUG
-          let url = URL.applicationSupportDirectory.appending(
-            components: Bundle.appID, "audio.raw",
-            directoryHint: .notDirectory
-          )
-
-          do {
-            try FileManager.default.createDirectory(at: url.deletingLastPathComponent(), withIntermediateDirectories: true)
-
-            let buffers = UnsafeMutableAudioBufferListPointer(UnsafeMutablePointer(mutating: audioBuffer.audioBufferList))
-            let buffer = buffers.reduce(into: Data()) { partialResult, buffer in
-              let count = Int(buffer.mDataByteSize)
-
-              partialResult.append(UnsafePointer(buffer.mData!.bindMemory(to: UInt8.self, capacity: count)), count: count)
-            }
-
-            try buffer.write(to: url)
-          } catch {
-            Logger.model.error("\(error)")
-
-            return nil
-          }
-
-          #endif
-
-          return audioBuffer
-        }
-      } catch {
-        Logger.ffmpeg.error("\(error)")
-
-        return nil
-      }
-    }
-
-    guard let buffer else {
-      return
-    }
-
-    do {
-      try await player.play(buffer: buffer)
-    } catch {
-      Logger.model.error("\(error)")
-
-      return
+    await source.accessingSecurityScopedResource {
+      await item.install()
+      await player.play(item: item)
     }
   }
 }

@@ -45,7 +45,7 @@ final class LibraryModel {
     }
 
     if let duration = SampledFFmpeg.duration(context.pointee.duration) {
-      return Double(duration * FFAV_TIME_BASE)
+      return Double(duration * Int64(AV_TIME_BASE))
     }
 
     return nil
@@ -53,20 +53,26 @@ final class LibraryModel {
 
   static func read(
     _ context: UnsafeMutablePointer<AVFormatContext>!,
-    stream: UnsafePointer<AVStream>,
+    stream: UnsafeMutablePointer<AVStream>,
     packet: UnsafeMutablePointer<AVPacket>!
   ) throws(FFError) -> UnsafePointer<AVPacket> {
-    if stream.pointee.disposition & AV_DISPOSITION_ATTACHED_PIC == 0 {
-      while true {
-        try readFrame(context, into: packet)
+    if stream.pointee.disposition & AV_DISPOSITION_ATTACHED_PIC != 0 {
+      return stream.pointer(to: \.attached_pic)!
+    }
 
-        if packet.pointee.stream_index == stream.pointee.index {
-          return UnsafePointer(packet)
-        }
+    streams(context).forEach { $0!.pointee.discard = AVDISCARD_ALL }
+
+    stream.pointee.discard = AVDISCARD_NONE
+
+    while true {
+      try readFrame(context, into: packet)
+
+      if packet.pointee.stream_index == stream.pointee.index {
+        break
       }
     }
 
-    return stream.pointer(to: \.attached_pic)!
+    return UnsafePointer(packet)
   }
 
   static func read(
@@ -81,8 +87,8 @@ final class LibraryModel {
       return nil
     }
 
-    let streami: Int32
     var decoder: UnsafePointer<AVCodec>!
+    let streami: Int32
 
     do {
       streami = try findBestStream(context, type: .video, decoder: &decoder)
@@ -151,10 +157,10 @@ final class LibraryModel {
       let streami = try findBestStream(formatContext, type: .audio, decoder: nil)
       let stream = formatContext!.pointee.streams[Int(streami)]!
       let titleKey = "title"
-      let artistKey = "artist"
-      let artistsKey = "artists"
-      let albumKey = "album"
-      let albumArtistKey = "album-artist"
+      let artistNameKey = "artist-name"
+      let artistNamesKey = "artist-names"
+      let albumTitleKey = "album-title"
+      let albumArtistNameKey = "album-artist-name"
       let dateKey = "date"
       let trackNumberKey = "track-number"
       let trackTotalKey = "track-total"
@@ -197,15 +203,15 @@ final class LibraryModel {
             case "title", "TITLE":
               partialResult[titleKey] = value
             case "artist", "ARTIST":
-              partialResult[artistKey] = value
+              partialResult[artistNameKey] = value
             case "ARTISTS": // This may be specific to MusicBrainz.
-              partialResult[artistsKey] = value
+              partialResult[artistNamesKey] = value
                 .split(separator: ";")
                 .map { $0.trimmingCharacters(in: .whitespaces) }
             case "album", "ALBUM":
-              partialResult[albumKey] = value
+              partialResult[albumTitleKey] = value
             case "album_artist", "ALBUM_ARTIST":
-              partialResult[albumArtistKey] = value
+              partialResult[albumArtistNameKey] = value
             case "date", "DATE": // ORIGINALDATE and ORIGINALYEAR exist, but seem specific to MusicBrainz.
               let date: Date
 
@@ -252,10 +258,10 @@ final class LibraryModel {
         source: source,
         title: metadata[titleKey] as? String ?? source.url.lastPath,
         duration: Duration.seconds(duration),
-        artist: metadata[artistKey] as? String,
-        artists: metadata[artistsKey] as? [String] ?? (metadata[artistKey] as? String).map { [$0] } ?? [],
-        album: metadata[albumKey] as? String,
-        albumArtist: metadata[albumArtistKey] as? String,
+        artistName: metadata[artistNameKey] as? String,
+        artistNames: metadata[artistNamesKey] as? [String] ?? (metadata[artistNameKey] as? String).map { [$0] } ?? [],
+        albumTitle: metadata[albumTitleKey] as? String,
+        albumArtistName: metadata[albumArtistNameKey] as? String,
         date: metadata[dateKey] as? Date,
         coverImage: coverImage,
         track: LibraryTrackPosition(

@@ -25,6 +25,10 @@ extension Sequence {
   func filter<T>(in set: some SetAlgebra<T>, by transform: (Element) -> T) -> [Element] {
     self.filter { set.contains(transform($0)) }
   }
+
+  func sum() -> Element where Element: AdditiveArithmetic {
+    self.reduce(.zero, +)
+  }
 }
 
 // MARK: - Darwin

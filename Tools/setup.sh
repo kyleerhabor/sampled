@@ -1,10 +1,10 @@
 #!/bin/sh
 
-#  install.sh
+#  setup.sh
 #  Sampled
 #
 #  Created by Kyle Erhabor on 10/10/24.
-#  
+#
 
 export ARCHS="$(uname -m)"
 export CONFIGURATION=Debug

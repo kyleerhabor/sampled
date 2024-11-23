@@ -15,7 +15,6 @@ build () {
   echo "Building FFmpeg for $arch"
 
   local prefix="$(prefixarch "$arch")"
-  local PKG_CONFIG_PATH="$CWD/$prefix/lib/pkgconfig:$PKG_CONFIG_PATH"
   pushd "$CWD/$FFMPEGDIR"
 
   # As of 358fdf3, FFmpeg's C compiler test does not consider sysroot with spaces, and we can't escape it ourselves via
@@ -77,6 +76,12 @@ build () {
   #   vorbis:     Vorbis                                     / Vorbis
   #   wavpack:    WavPack                                    / WavPack
   #   wmav2:      Windows Media Audio 2                      / Windows Media Audio
+  #
+  # FIXME: Don't statically link system libraries
+  #
+  # At least, I *think* --pkg-config-flags is doing that. The flag exists for project dependencies like libogg, but I
+  # hope it's not statically linking e.g. libiconv.
+  PKG_CONFIG_PATH="$CWD/$prefix/lib/pkgconfig:$PKG_CONFIG_PATH" \
   ./configure --prefix="$CWD/$prefix" \
     --disable-network --disable-everything \
     --enable-libopus --enable-libvorbis \
@@ -89,8 +94,10 @@ build () {
     --sysroot="$(xcrun --sdk macosx --show-sdk-path)" \
     --target-os=darwin \
     --cc="clang -arch $arch $EXTRA_CFLAGS" \
+    --pkg-config-flags=--static \
     --extra-cflags="-I$CWD/$prefix/include" \
-    --extra-ldflags="-L$CWD/$prefix/lib"
+    --extra-ldflags="-L$CWD/$prefix/lib" \
+    "${EXTRA_FFMPEGFLAGS[@]}"
 
   runmake
   popd

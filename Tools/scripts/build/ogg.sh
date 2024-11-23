@@ -15,9 +15,10 @@ build () {
   echo "Building Ogg for $arch"
 
   local prefix="$(prefixarch "$arch")"
-  local PKG_CONFIG_PATH="$CWD/$prefix/lib/pkgconfig:$PKG_CONFIG_PATH"
   pushd "$CWD/$OGGDIR"
   ./autogen.sh
+
+  PKG_CONFIG_PATH="$CWD/$prefix/lib/pkgconfig:$PKG_CONFIG_PATH" \
   ./configure --prefix="$CWD/$prefix" \
     --host="$arch-apple-darwin" \
     --build="$(uname -m)-apple-darwin" \

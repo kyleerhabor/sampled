@@ -34,7 +34,7 @@ builds should perform much better.
 4. From the Organizer, select `Distribute App > Custom > Copy App` to export the app
 5. Open the app
 
-If you encounter an error like `'libavutil/avutil.h' file not found`, you may need to run `Tools/install.sh` first.
+If you encounter an error like `'libavutil/avutil.h' file not found`, you may need to run `Tools/setup.sh` first.
 
 ### Screenshots
 

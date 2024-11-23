@@ -15,12 +15,13 @@ build () {
   echo "Building Vorbis for $arch"
 
   local prefix="$(prefixarch "$arch")"
-  local PKG_CONFIG_PATH="$CWD/$prefix/lib/pkgconfig:$PKG_CONFIG_PATH"
   pushd "$CWD/$VORBISDIR"
   ./autogen.sh
   
   # Remove the obsolete -force_cpusubtype_ALL option from being passed to ld
   sed -i '' 's/-force_cpusubtype_ALL//g' configure
+
+  PKG_CONFIG_PATH="$CWD/$prefix/lib/pkgconfig:$PKG_CONFIG_PATH" \
   ./configure --prefix="$CWD/$prefix" \
     --host="$arch-apple-darwin" \
     --build="$(uname -m)-apple-darwin" \

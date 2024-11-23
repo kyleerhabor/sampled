@@ -13,7 +13,6 @@ import Foundation
 public let FFSTATUS_OK: Int32 = 0
 public let FFSTATUS_EOF = FFAVERROR_EOF
 public let FFSTATUS_STREAM_NOT_FOUND = FFAVERROR_STREAM_NOT_FOUND
-public let FFSTATUS_OUTPUT_CHANGED = FFAVERROR_OUTPUT_CHANGED
 public let FFSTATUS_ENOMEM = FFAVERROR_ENOMEM
 public let FFSTATUS_EAGAIN = FFAVERROR_EAGAIN
 
@@ -31,6 +30,10 @@ public func bufferCount(sampleFormat: AVSampleFormat, channelCount: Int32) -> In
   }
 
   return channelCount
+}
+
+public func streams(_ context: UnsafePointer<AVFormatContext>!) -> UnsafeBufferPointer<UnsafeMutablePointer<AVStream>?> {
+  UnsafeBufferPointer(start: context.pointee.streams, count: Int(context.pointee.nb_streams))
 }
 
 // MARK: -
@@ -75,10 +78,10 @@ public func openingInput<T>(
 }
 
 public func findStreamInfo(_ context: UnsafeMutablePointer<AVFormatContext>!) throws(FFError) {
-  let status = avformat_find_stream_info(context, nil)
+  let result = avformat_find_stream_info(context, nil)
 
-  guard status >= 0 else {
-    throw FFError(code: FFError.Code(rawValue: status))
+  guard result >= 0 else {
+    throw FFError(code: FFError.Code(rawValue: result))
   }
 }
 
@@ -107,23 +110,6 @@ public func readFrame(
   }
 }
 
-public enum ReadFrameState {
-  case ok, endOfFile
-}
-
-public func iterateReadFrame(
-  _ context: UnsafeMutablePointer<AVFormatContext>!,
-  into packet: UnsafeMutablePointer<AVPacket>!
-) throws(FFError) -> ReadFrameState {
-  do {
-    try readFrame(context, into: packet)
-  } catch let error where error.code == .endOfFile {
-    return .endOfFile
-  }
-
-  return .ok
-}
-
 public func copyCodecParameters(
   _ context: UnsafeMutablePointer<AVCodecContext>!,
   params: UnsafePointer<AVCodecParameters>!
@@ -139,10 +125,10 @@ public func openCodec(
   _ context: UnsafeMutablePointer<AVCodecContext>!,
   codec: UnsafePointer<AVCodec>!
 ) throws(FFError) {
-  let openStatus = avcodec_open2(context, codec, nil)
+  let status = avcodec_open2(context, codec, nil)
 
-  guard openStatus == FFSTATUS_OK else {
-    throw FFError(code: FFError.Code(rawValue: openStatus))
+  guard status == FFSTATUS_OK else {
+    throw FFError(code: FFError.Code(rawValue: status))
   }
 }
 
@@ -173,38 +159,6 @@ public func receiveFrame(
   }
 }
 
-public enum SendPacketState {
-  case ok, resourceTemporarilyUnavailable, endOfFile, invalidInput
-}
-
-public func iterateSendPacket(
-  _ context: UnsafeMutablePointer<AVCodecContext>!,
-  packet: UnsafePointer<AVPacket>!
-) throws(FFError) -> SendPacketState {
-  try sendPacket(context, packet: packet)
-
-  return .ok
-}
-
-public enum ReceiveFrameState {
-  case ok, resourceTemporarilyUnavailable, endOfFile, invalidInput
-}
-
-public func iterateReceiveFrame(
-  _ context: UnsafeMutablePointer<AVCodecContext>!,
-  frame: UnsafeMutablePointer<AVFrame>!
-) throws(FFError) -> ReceiveFrameState {
-  do {
-    try receiveFrame(context, frame: frame)
-  } catch let error where error.code == .resourceTemporarilyUnavailable {
-    return .resourceTemporarilyUnavailable
-  } catch let error where error.code == .endOfFile {
-    return .endOfFile
-  }
-
-  return .ok
-}
-
 public func scaleFrame(
   _ context: OpaquePointer!,
   source: UnsafePointer<AVFrame>!,
@@ -214,12 +168,12 @@ public func scaleFrame(
   //
   //   0 on success, a negative AVERROR code on failure
   //
-  // In practice, this returns 0 on success, a negative AVERROR code on failure, *or* a positive integer corresponding
-  // to the slice height.
-  let scaleStatus = sws_scale_frame(context, destination, source)
+  // In practice, this returns a non-negative integer corresponding to the slice height or a negative integer
+  // corresponding to an AVERROR code.
+  let result = sws_scale_frame(context, destination, source)
 
-  guard scaleStatus >= 0 else {
-    throw FFError(code: FFError.Code(rawValue: scaleStatus))
+  guard result >= 0 else {
+    throw FFError(code: FFError.Code(rawValue: result))
   }
 }
 
@@ -306,9 +260,9 @@ public struct FFError: Error {
     public var rawValue: Int32
 
     public static let unknown = Self(rawValue: -1)
+    public static let outputChanged = Self(rawValue: AVERROR_OUTPUT_CHANGED)
     public static let endOfFile = Self(rawValue: FFSTATUS_EOF)
     public static let streamNotFound = Self(rawValue: FFSTATUS_STREAM_NOT_FOUND)
-    public static let outputChanged = Self(rawValue: FFSTATUS_OUTPUT_CHANGED)
     public static let resourceTemporarilyUnavailable = Self(rawValue: FFSTATUS_EAGAIN)
 
     public init(rawValue: Int32) {

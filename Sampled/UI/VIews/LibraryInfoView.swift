@@ -95,7 +95,7 @@ struct LibraryInfoView: View {
           Text(preferArtistsDisplay ? "Track.Column.Artists" : "Track.Column.Artist")
             .foregroundStyle(.secondary)
 
-          LibraryTrackArtistContentView(artists: track?.artists ?? [], artist: track?.artist)
+          LibraryTrackArtistContentView(artists: track?.artistNames ?? [], artist: track?.artistName)
         }
         .font(.caption)
         .lineLimit(1, reservesSpace: true)
@@ -108,7 +108,7 @@ struct LibraryInfoView: View {
           Text("Track.Column.Album")
             .foregroundStyle(.secondary)
 
-          Text(track?.album ?? "")
+          Text(track?.albumTitle ?? "")
         }
         .font(.caption)
         .lineLimit(1, reservesSpace: true)
@@ -121,7 +121,7 @@ struct LibraryInfoView: View {
           Text("Track.Column.AlbumArtist")
             .foregroundStyle(.secondary)
 
-          Text(track?.albumArtist ?? "")
+          Text(track?.albumArtistName ?? "")
         }
         .font(.caption)
         .lineLimit(1, reservesSpace: true)
