@@ -70,7 +70,6 @@ struct LibraryInfoView: View {
         .resizable()
         .aspectRatio(1, contentMode: .fit)
 
-      // FIXME: Field heights slightly shift when selecting item.
       Grid(alignment: .centerFirstTextBaseline, verticalSpacing: 0) {
         Divider()
           .ignoresSafeArea(edges: .horizontal)
@@ -80,7 +79,7 @@ struct LibraryInfoView: View {
             .gridColumnAlignment(.trailing)
             .foregroundStyle(.secondary)
 
-          Text(track?.title ?? "")
+          Text(track?.title ?? " ")
             .gridColumnAlignment(.leading)
             .frame(maxWidth: .infinity, alignment: .leading)
         }
@@ -95,7 +94,7 @@ struct LibraryInfoView: View {
           Text(preferArtistsDisplay ? "Track.Column.Artists" : "Track.Column.Artist")
             .foregroundStyle(.secondary)
 
-          LibraryTrackArtistContentView(artists: track?.artistNames ?? [], artist: track?.artistName)
+          LibraryTrackArtistContentView(artists: track?.artistNames ?? [" "], artist: track?.artistName ?? " ")
         }
         .font(.caption)
         .lineLimit(1, reservesSpace: true)
@@ -108,7 +107,7 @@ struct LibraryInfoView: View {
           Text("Track.Column.Album")
             .foregroundStyle(.secondary)
 
-          Text(track?.albumTitle ?? "")
+          Text(track?.albumTitle ?? " ")
         }
         .font(.caption)
         .lineLimit(1, reservesSpace: true)
@@ -121,7 +120,7 @@ struct LibraryInfoView: View {
           Text("Track.Column.AlbumArtist")
             .foregroundStyle(.secondary)
 
-          Text(track?.albumArtistName ?? "")
+          Text(track?.albumArtistName ?? " ")
         }
         .font(.caption)
         .lineLimit(1, reservesSpace: true)
