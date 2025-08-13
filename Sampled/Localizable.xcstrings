@@ -37,7 +37,118 @@
         }
       }
     },
+    "LibraryInfo.Mixed.Number" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "--"
+          }
+        }
+      }
+    },
+    "LibraryInfo.Mixed.Text" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mixed"
+          }
+        }
+      }
+    },
+    "LibraryInfo.PositionSeparator" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "of"
+          }
+        }
+      }
+    },
+    "LibraryInfo.Tag.Album.Name" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Album"
+          }
+        }
+      }
+    },
+    "LibraryInfo.Tag.AlbumArtist.Name" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Album Artist"
+          }
+        }
+      }
+    },
+    "LibraryInfo.Tag.Artist.Name" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Artist"
+          }
+        }
+      }
+    },
+    "LibraryInfo.Tag.DiscNumber.Name" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Disc №"
+          }
+        }
+      }
+    },
+    "LibraryInfo.Tag.Duration.Name" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Duration"
+          }
+        }
+      }
+    },
+    "LibraryInfo.Tag.Title.Name" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Title"
+          }
+        }
+      }
+    },
+    "LibraryInfo.Tag.TrackNumber.Name" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Track №"
+          }
+        }
+      }
+    },
+    "LibraryInfo.Tag.Year.Name" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Year"
+          }
+        }
+      }
+    },
     "Settings.PreferArtistsDisplay" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -78,6 +189,7 @@
       }
     },
     "Track.Column.Artists" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -123,16 +235,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Track №"
-          }
-        }
-      }
-    },
-    "Track.Column.Track.Year" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Year"
           }
         }
       }

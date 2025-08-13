@@ -20,9 +20,7 @@ extension StorageKey {
 
 extension StorageKey: Sendable where Value: Sendable {}
 
-enum StorageKeys {
-  static let preferArtistsDisplay = StorageKey("\(Bundle.appID).prefersArtistsDisplay", defaultValue: false)
-}
+enum StorageKeys {}
 
 extension AppStorage {
   init(_ key: StorageKey<Value>) where Value == Bool {

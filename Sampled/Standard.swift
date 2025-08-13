@@ -44,10 +44,6 @@ extension Logger {
   static let ffmpeg = Self(subsystem: Bundle.appID, category: "FFmpeg")
 }
 
-extension Date {
-  static let epoch = Date(timeIntervalSinceReferenceDate: 0)
-}
-
 extension URL {
   var pathString: String {
     self.path(percentEncoded: false)

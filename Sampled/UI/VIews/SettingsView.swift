@@ -94,12 +94,8 @@ extension FormStyle {
 struct SettingsView: View {
   static let contentWidth: CGFloat = 448 // 384 - 512
 
-  @AppStorage(StorageKeys.preferArtistsDisplay) private var preferArtistsDisplay
-
   var body: some View {
-    Form {
-      Toggle("Settings.PreferArtistsDisplay", isOn: $preferArtistsDisplay)
-    }
-    .scenePadding()
+    Form {}
+      .scenePadding()
   }
 }

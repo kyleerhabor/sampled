@@ -14,6 +14,7 @@ import CoreGraphics
 import Foundation
 import Observation
 import OSLog
+import CryptoKit
 
 enum LibraryModelID {
   case main, scene(UUID)
@@ -35,7 +36,7 @@ final class LibraryModel {
 
   static func duration(
     _ context: UnsafePointer<AVFormatContext>!,
-    stream: UnsafePointer<AVStream>!
+    stream: UnsafePointer<AVStream>!,
   ) -> Double? {
     // Some formats (like Matroska) have the stream duration set to AV_NOPTS_VALUE, while exposing the real
     // value in the format context.
@@ -56,7 +57,7 @@ final class LibraryModel {
     stream: UnsafeMutablePointer<AVStream>,
     packet: UnsafeMutablePointer<AVPacket>!,
   ) throws(FFError) -> UnsafePointer<AVPacket> {
-    if stream.pointee.disposition & AV_DISPOSITION_ATTACHED_PIC != 0 {
+    if stream.pointee.streamDisposition.contains(.attachedPicture) {
       return stream.pointer(to: \.attached_pic)!
     }
 
@@ -77,59 +78,70 @@ final class LibraryModel {
     return UnsafePointer(packet)
   }
 
+  private static func hash(data: some DataProtocol) -> Data {
+    Data(SHA256.hash(data: data))
+  }
+
   static func read(
-    formatContext: UnsafeMutablePointer<AVFormatContext>!,
-    scaleContext: UnsafeMutablePointer<SwsContext>!,
+    _ context: UnsafeMutablePointer<AVFormatContext>!,
     packet: UnsafeMutablePointer<AVPacket>!,
     frame: UnsafeMutablePointer<AVFrame>!,
-    scaleFrame: UnsafeMutablePointer<AVFrame>!,
-    pixelFormat: AVPixelFormat,
-  ) throws(FFError) -> CGImage? {
-    // TODO: Log failures
-
-    guard let pixelFormatDescription = av_pix_fmt_desc_get(pixelFormat) else {
-      return nil
-    }
-
+  ) throws(FFError) -> UnsafePointer<AVPacket>? {
     var decoder: UnsafePointer<AVCodec>!
     let streami: Int32
 
     do {
-      streami = try findBestStream(formatContext, type: .video, decoder: &decoder)
+      streami = try findBestStream(context, type: .video, decoder: &decoder)
     } catch let error where error.code == .streamNotFound {
+      Logger.ffmpeg.error("Could not find best video stream in format context '\(context.debugDescription)' for attached picture")
+
       return nil
     }
 
-    let stream = formatContext.pointee.streams[Int(streami)]!
+    let stream = context.pointee.streams[Int(streami)]!
     let codecContext = FFCodecContext(codec: decoder)
     try copyCodecParameters(codecContext.context, params: stream.pointee.codecpar)
     try openCodec(codecContext.context, codec: decoder)
 
-    let packet = try Self.read(formatContext, stream: stream, packet: packet)
+    let packet = try Self.read(context, stream: stream, packet: packet)
     try sendPacket(codecContext.context, packet: packet)
     try receiveFrame(codecContext.context, frame: frame)
 
+    return packet
+  }
+
+  static func read(
+    _ context: UnsafeMutablePointer<SwsContext>!,
+    frame: UnsafeMutablePointer<AVFrame>!,
+    scaleFrame: UnsafeMutablePointer<AVFrame>!,
+    pixelFormat: Int32,
+    pixelFormatDesc: UnsafePointer<AVPixFmtDescriptor>!,
+  ) throws(FFError) -> CGImage? {
     let width = frame.pointee.width
     let height = frame.pointee.height
     scaleFrame.pointee.width = width
     scaleFrame.pointee.height = height
-    scaleFrame.pointee.format = pixelFormat.rawValue
+    scaleFrame.pointee.format = pixelFormat
 
-    try SampledFFmpeg.scaleFrame(scaleContext, source: frame, destination: scaleFrame)
+    try SampledFFmpeg.scaleFrame(context, source: frame, destination: scaleFrame)
 
-    // TODO: Figure out how to use a stride instead of reading the buffer directly.
+    // We could read data and memory bound it to AVBufferRef, but this is simpler, assuming it won't explode in our face.
+    // At the same time, it's probably a bad idea to assume all the data's in the first buffer, since that's dependent
+    // on the format.
     let buffer = scaleFrame.pointee.buf.0!
-    let data = Data(bytes: buffer.pointee.data, count: buffer.pointee.size)
-    let bitsPerPixel = Int(av_get_bits_per_pixel(pixelFormatDescription))
+    let data = Data(bytes: buffer.pointee.data, count: Int(scaleFrame.pointee.linesize.0 * height))
+    let bitsPerPixel = Int(av_get_bits_per_pixel(pixelFormatDesc))
 
     guard let provider = CGDataProvider(data: data as CFData) else {
+      Logger.model.error("Could not create data provider from attached picture data '\(data)'")
+
       return nil
     }
 
     return CGImage(
       width: Int(width),
       height: Int(height),
-      bitsPerComponent: Int(bitsPerPixel / Int(pixelFormatDescription.pointee.nb_components)),
+      bitsPerComponent: Int(bitsPerPixel / Int(pixelFormatDesc.pointee.nb_components)),
       bitsPerPixel: bitsPerPixel,
       bytesPerRow: Int(scaleFrame.pointee.linesize.0),
       space: CGColorSpace(name: CGColorSpace.sRGB)!,
@@ -152,7 +164,6 @@ final class LibraryModel {
       let stream = formatContext!.pointee.streams[Int(streami)]!
       let titleKey = "title"
       let artistNameKey = "artist-name"
-      let artistNamesKey = "artist-names"
       let albumTitleKey = "album-title"
       let albumArtistNameKey = "album-artist-name"
       let dateKey = "date"
@@ -163,7 +174,7 @@ final class LibraryModel {
       let metadata = transform(
         chain(
           FFDictionaryIterator(formatContext!.pointee.metadata),
-          FFDictionaryIterator(stream.pointee.metadata)
+          FFDictionaryIterator(stream.pointee.metadata),
         )
         .uniqued(on: \.pointee.key)
       ) { metadata in
@@ -198,10 +209,6 @@ final class LibraryModel {
               partialResult[titleKey] = value
             case "artist", "ARTIST":
               partialResult[artistNameKey] = value
-            case "ARTISTS": // This may be specific to MusicBrainz.
-              partialResult[artistNamesKey] = value
-                .split(separator: ";")
-                .map { $0.trimmingCharacters(in: .whitespaces) }
             case "album", "ALBUM":
               partialResult[albumTitleKey] = value
             case "album_artist", "ALBUM_ARTIST":
@@ -232,8 +239,6 @@ final class LibraryModel {
         }
       }
 
-      // Some formats (like Matroska) have the stream duration set to AV_NOPTS_VALUE, while exposing the real
-      // value in the format context.
       guard let duration = Self.duration(formatContext, stream: stream) else {
         return nil
       }
@@ -242,34 +247,49 @@ final class LibraryModel {
       let frame = FFFrame()
       let scaleFrame = FFFrame()
       let scaleContext = FFScaleContext()
-      let pixelFormat = AV_PIX_FMT_RGBA
-      let coverImage = try Self.read(
-        formatContext: formatContext,
-        scaleContext: scaleContext.context,
-        packet: packet.packet,
-        frame: frame.frame,
-        scaleFrame: scaleFrame.frame,
-        pixelFormat: pixelFormat,
-      )
+      let artwork: LibraryTrackArtwork? = try {
+        guard let packet = try Self.read(formatContext, packet: packet.packet, frame: frame.frame) else {
+          return nil
+        }
+
+        let hash = Self.hash(data: UnsafeBufferPointer(start: packet.pointee.data, count: Int(packet.pointee.size)))
+        let pixelFormat = AV_PIX_FMT_RGBA
+
+        guard let image = try Self.read(
+          scaleContext.context,
+          frame: frame.frame,
+          scaleFrame: scaleFrame.frame,
+          pixelFormat: pixelFormat.rawValue,
+          pixelFormatDesc: av_pix_fmt_desc_get(pixelFormat),
+        ) else {
+          return nil
+        }
+
+        return LibraryTrackArtwork(
+          image: NSImage(cgImage: image, size: .zero),
+          hash: hash,
+        )
+      }()
+
+      let artistName = metadata[artistNameKey] as? String
 
       return LibraryTrack(
         source: source,
         title: metadata[titleKey] as? String ?? source.url.lastPath,
         duration: Duration.seconds(duration),
-        artistName: metadata[artistNameKey] as? String,
-        artistNames: metadata[artistNamesKey] as? [String] ?? (metadata[artistNameKey] as? String).map { [$0] } ?? [],
+        artistName: artistName,
         albumTitle: metadata[albumTitleKey] as? String,
         albumArtistName: metadata[albumArtistNameKey] as? String,
-        date: metadata[dateKey] as? Date,
-        coverImage: coverImage,
+        yearDate: metadata[dateKey] as? Date,
+        artwork: artwork,
         track: LibraryTrackPosition(
           number: metadata[trackNumberKey] as? Int,
-          total: metadata[trackTotalKey] as? Int
+          total: metadata[trackTotalKey] as? Int,
         ),
         disc: LibraryTrackPosition(
           number: metadata[discNumberKey] as? Int,
-          total: metadata[discTotalKey] as? Int
-        )
+          total: metadata[discTotalKey] as? Int,
+        ),
       )
     }
   }

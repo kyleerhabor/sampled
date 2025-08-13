@@ -8,11 +8,13 @@
 import SwiftUI
 
 struct LibraryInfoScene: Scene {
-  @FocusedValue(\.tracks) private var tracks
+  @FocusedValue(LibraryInfoTrackModel.self) private var trackModel
+  @State private var defaultTrackModel = LibraryInfoTrackModel()
 
   var body: some Scene {
     UtilityWindow("Info", id: "info") {
-      LibraryInfoView(tracks: tracks)
+      LibraryInfoView()
+        .environment(trackModel ?? defaultTrackModel)
         .frame(
           width: 224, // 192 - 256
           height: 496, // 480 - 512

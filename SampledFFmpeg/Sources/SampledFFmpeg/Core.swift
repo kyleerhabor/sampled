@@ -219,6 +219,22 @@ extension AVChannelLayout {
   }
 }
 
+public struct StreamDisposition: OptionSet, Sendable {
+  public var rawValue: Int32
+
+  public static let attachedPicture = Self(rawValue: AV_DISPOSITION_ATTACHED_PIC)
+
+  public init(rawValue: Int32) {
+    self.rawValue = rawValue
+  }
+}
+
+extension AVStream {
+  public var streamDisposition: StreamDisposition {
+    StreamDisposition(rawValue: self.disposition)
+  }
+}
+
 extension AVFrame {
   static public let unknownFormat = -1
 

@@ -20,17 +20,27 @@ struct LibraryTrackPosition {
   let total: Int?
 }
 
+struct LibraryTrackArtwork {
+  let image: NSImage
+  let hash: Data
+}
+
+extension LibraryTrackArtwork: Equatable {
+  static func ==(lhs: Self, rhs: Self) -> Bool {
+    return lhs.hash == rhs.hash
+  }
+}
+
 struct LibraryTrack {
   let source: URLSource
-
   let title: String
   let duration: Duration
   let artistName: String?
-  let artistNames: [String]
   let albumTitle: String?
   let albumArtistName: String?
-  let date: Date?
-  let coverImage: CGImage?
+  // When this is inevitably persisted, only the year should be stored since it's the only time information.
+  let yearDate: Date?
+  let artwork: LibraryTrackArtwork?
   let track: LibraryTrackPosition?
   let disc: LibraryTrackPosition?
 }
@@ -41,13 +51,12 @@ extension LibraryTrack: Identifiable {
   }
 }
 
-struct LibraryTrackPositionView: View {
-  let item: Int?
+struct LibraryTrackPositionItemView: View {
+  let item: Int
 
   var body: some View {
-    Text(item ?? 0, format: .number.grouping(.never))
+    Text(item, format: .number.grouping(.never))
       .monospacedDigit()
-      .visible(item != nil)
   }
 }
 
@@ -56,21 +65,6 @@ struct LibraryTrackArtistsView: View {
 
   var body: some View {
     Text(artists, format: .list(type: .and, width: .short))
-  }
-}
-
-struct LibraryTrackArtistContentView: View {
-  @AppStorage(StorageKeys.preferArtistsDisplay) private var preferArtistsDisplay
-
-  let artists: [String]
-  let artist: String?
-
-  var body: some View {
-    if preferArtistsDisplay {
-      LibraryTrackArtistsView(artists: artists)
-    } else {
-      Text(artist ?? "")
-    }
   }
 }
 
@@ -589,26 +583,29 @@ let player = AudioPlayer()
 //}
 
 struct LibraryView: View {
-  @AppStorage(StorageKeys.preferArtistsDisplay) private var preferArtistsDisplay
   @Environment(LibraryModel.self) private var library
   @State private var isFileImporterPresented = false
   @State private var selection = Set<LibraryTrack.ID>()
+  @State private var selectedTracks = [LibraryTrack]()
+  @State private var trackModel = LibraryInfoTrackModel()
 
   var body: some View {
     Table(library.tracks, selection: $selection) {
       TableColumn("Track.Column.Track") { track in
-        LibraryTrackPositionView(item: track.track?.number)
+        LibraryTrackPositionItemView(item: track.track?.number ?? 0)
+          .visible(track.track?.number != nil)
       }
       .alignment(.numeric)
 
       TableColumn("Track.Column.Disc") { track in
-        LibraryTrackPositionView(item: track.disc?.number)
+        LibraryTrackPositionItemView(item: track.disc?.number ?? 0)
+          .visible(track.disc?.number != nil)
       }
       .alignment(.numeric)
 
       TableColumn("Track.Column.Title", value: \.title)
-      TableColumn(preferArtistsDisplay ? "Track.Column.Artists" : "Track.Column.Artist") { track in
-        LibraryTrackArtistContentView(artists: track.artistNames, artist: track.artistName)
+      TableColumn("Track.Column.Artist") { track in
+        Text(track.artistName ?? "")
       }
 
       TableColumn("Track.Column.Album") { track in
@@ -673,8 +670,33 @@ struct LibraryView: View {
     .focusedSceneValue(\.importTracks, AppMenuActionItem(identity: library.id, isEnabled: true) {
       isFileImporterPresented = true
     })
-    // TODO: Replace.
-    .focusedSceneValue(\.tracks, library.tracks.filter(in: selection, by: \.id))
+    .focusedSceneValue(trackModel)
+    .onChange(of: selection) {
+      trackModel.title = .empty
+      trackModel.artistName = .empty
+      trackModel.albumName = .empty
+      trackModel.albumArtistName = .empty
+      trackModel.yearDate = .empty
+      trackModel.trackNumber = .empty
+      trackModel.trackTotal = .empty
+      trackModel.discNumber = .empty
+      trackModel.discTotal = .empty
+      trackModel.artwork = .empty
+
+      let tracks = library.tracks.filter(in: selection, by: \.id)
+      // Would reducing optimize the performance?
+      trackModel.title = LibraryInfoTrackProperty(values: tracks.map(\.title))
+      trackModel.artistName = LibraryInfoTrackProperty(values: tracks.map(\.artistName))
+      trackModel.albumName = LibraryInfoTrackProperty(values: tracks.map(\.albumTitle))
+      trackModel.albumArtistName = LibraryInfoTrackProperty(values: tracks.map(\.albumArtistName))
+      trackModel.yearDate = LibraryInfoTrackProperty(values: tracks.map(\.yearDate))
+      trackModel.trackNumber = LibraryInfoTrackProperty(values: tracks.map(\.track?.number))
+      trackModel.trackTotal = LibraryInfoTrackProperty(values: tracks.map(\.track?.total))
+      trackModel.discNumber = LibraryInfoTrackProperty(values: tracks.map(\.disc?.number))
+      trackModel.discTotal = LibraryInfoTrackProperty(values: tracks.map(\.disc?.total))
+      trackModel.duration = LibraryInfoTrackProperty(values: tracks.map(\.duration))
+      trackModel.artwork = LibraryInfoTrackProperty(values: tracks.map(\.artwork))
+    }
   }
 
   nonisolated static private func load(urls: [URL]) async -> [LibraryTrack] {
