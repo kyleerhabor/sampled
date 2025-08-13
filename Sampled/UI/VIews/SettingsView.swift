@@ -94,7 +94,7 @@ extension FormStyle {
 struct SettingsView: View {
   static let contentWidth: CGFloat = 448 // 384 - 512
 
-  @AppStorage(StorageKeys.preferArtistsDisplay.name) private var preferArtistsDisplay = StorageKeys.preferArtistsDisplay.defaultValue
+  @AppStorage(StorageKeys.preferArtistsDisplay) private var preferArtistsDisplay
 
   var body: some View {
     Form {

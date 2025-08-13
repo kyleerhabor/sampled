@@ -23,7 +23,7 @@ export FFMPEGDIR="$DEPSDIR/ffmpeg"
 
 prefixarch () {
   local arch="$1"
-
+  
   echo "$PREFIX/$arch"
 }
 
@@ -33,5 +33,5 @@ NJOB="$(max 1 "$(($NCPU / 2))")"
 runmake () {
   make -j"$NJOB"
   make install
-  make clean
+  # make clean
 }

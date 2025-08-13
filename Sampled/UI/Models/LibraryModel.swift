@@ -54,13 +54,15 @@ final class LibraryModel {
   static func read(
     _ context: UnsafeMutablePointer<AVFormatContext>!,
     stream: UnsafeMutablePointer<AVStream>,
-    packet: UnsafeMutablePointer<AVPacket>!
+    packet: UnsafeMutablePointer<AVPacket>!,
   ) throws(FFError) -> UnsafePointer<AVPacket> {
     if stream.pointee.disposition & AV_DISPOSITION_ATTACHED_PIC != 0 {
       return stream.pointer(to: \.attached_pic)!
     }
 
-    streams(context).forEach { $0!.pointee.discard = AVDISCARD_ALL }
+    streams(context).forEach { stream in
+      stream!.pointee.discard = AVDISCARD_ALL
+    }
 
     stream.pointee.discard = AVDISCARD_NONE
 
@@ -76,12 +78,14 @@ final class LibraryModel {
   }
 
   static func read(
-    _ context: UnsafeMutablePointer<AVFormatContext>!,
+    formatContext: UnsafeMutablePointer<AVFormatContext>!,
+    scaleContext: UnsafeMutablePointer<SwsContext>!,
     packet: UnsafeMutablePointer<AVPacket>!,
     frame: UnsafeMutablePointer<AVFrame>!,
-    scaleFrame: UnsafeMutablePointer<AVFrame>!
+    scaleFrame: UnsafeMutablePointer<AVFrame>!,
+    pixelFormat: AVPixelFormat,
   ) throws(FFError) -> CGImage? {
-    let pixelFormat = AV_PIX_FMT_RGBA
+    // TODO: Log failures
 
     guard let pixelFormatDescription = av_pix_fmt_desc_get(pixelFormat) else {
       return nil
@@ -91,39 +95,29 @@ final class LibraryModel {
     let streami: Int32
 
     do {
-      streami = try findBestStream(context, type: .video, decoder: &decoder)
+      streami = try findBestStream(formatContext, type: .video, decoder: &decoder)
     } catch let error where error.code == .streamNotFound {
       return nil
     }
 
-    let stream = context.pointee.streams[Int(streami)]!
+    let stream = formatContext.pointee.streams[Int(streami)]!
     let codecContext = FFCodecContext(codec: decoder)
     try copyCodecParameters(codecContext.context, params: stream.pointee.codecpar)
     try openCodec(codecContext.context, codec: decoder)
 
-    let packet = try Self.read(context, stream: stream, packet: packet)
+    let packet = try Self.read(formatContext, stream: stream, packet: packet)
     try sendPacket(codecContext.context, packet: packet)
     try receiveFrame(codecContext.context, frame: frame)
 
     let width = frame.pointee.width
     let height = frame.pointee.height
+    scaleFrame.pointee.width = width
+    scaleFrame.pointee.height = height
+    scaleFrame.pointee.format = pixelFormat.rawValue
 
-    guard let scaleContext = FFScaleContext(
-      srcWidth: width,
-      srcHeight: height,
-      srcFormat: frame.pointee.pixelFormat!,
-      dstWidth: width,
-      dstHeight: height,
-      dstFormat: pixelFormat
-    ) else {
-      Logger.ffmpeg.error("Could not create swscale context")
+    try SampledFFmpeg.scaleFrame(scaleContext, source: frame, destination: scaleFrame)
 
-      return nil
-    }
-
-    try SampledFFmpeg.scaleFrame(scaleContext.context, source: frame, destination: scaleFrame)
-
-    // TODO: Figure out how to use a stride instead of read the buffer directly.
+    // TODO: Figure out how to use a stride instead of reading the buffer directly.
     let buffer = scaleFrame.pointee.buf.0!
     let data = Data(bytes: buffer.pointee.data, count: buffer.pointee.size)
     let bitsPerPixel = Int(av_get_bits_per_pixel(pixelFormatDescription))
@@ -143,7 +137,7 @@ final class LibraryModel {
       provider: provider,
       decode: nil,
       shouldInterpolate: true,
-      intent: .defaultIntent
+      intent: .defaultIntent,
     )
   }
 
@@ -151,7 +145,7 @@ final class LibraryModel {
     let formatContext = FFFormatContext()
 
     return try openingInput(&formatContext.context, at: source.url.pathString) { formatContext -> LibraryTrack? in
-      // Yes, we need this for formats like FLAC.
+      // We need this for formats like FLAC.
       try findStreamInfo(formatContext)
 
       let streami = try findBestStream(formatContext, type: .audio, decoder: nil)
@@ -247,11 +241,15 @@ final class LibraryModel {
       let packet = FFPacket()
       let frame = FFFrame()
       let scaleFrame = FFFrame()
+      let scaleContext = FFScaleContext()
+      let pixelFormat = AV_PIX_FMT_RGBA
       let coverImage = try Self.read(
-        formatContext,
+        formatContext: formatContext,
+        scaleContext: scaleContext.context,
         packet: packet.packet,
         frame: frame.frame,
-        scaleFrame: scaleFrame.frame
+        scaleFrame: scaleFrame.frame,
+        pixelFormat: pixelFormat,
       )
 
       return LibraryTrack(

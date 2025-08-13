@@ -6,7 +6,10 @@
 #  Created by Kyle Erhabor on 10/10/24.
 #
 
+set -e
+
 export ARCHS="$(uname -m)"
+# TODO: Abstract away Xcode
 export CONFIGURATION=Debug
 
 . "$(dirname "$0")/download-deps.sh"

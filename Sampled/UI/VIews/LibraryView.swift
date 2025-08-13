@@ -11,6 +11,7 @@ import Algorithms
 import AVFoundation
 import OSLog
 import SwiftUI
+import Synchronization
 
 let libraryContentTypes: [UTType] = [.item]
 
@@ -59,7 +60,7 @@ struct LibraryTrackArtistsView: View {
 }
 
 struct LibraryTrackArtistContentView: View {
-  @AppStorage(StorageKeys.preferArtistsDisplay.name) private var preferArtistsDisplay = StorageKeys.preferArtistsDisplay.defaultValue
+  @AppStorage(StorageKeys.preferArtistsDisplay) private var preferArtistsDisplay
 
   let artists: [String]
   let artist: String?
@@ -109,45 +110,6 @@ actor AudioPlayerItem {
     self.packet = FFPacket()
     self.frame = FFFrame()
     self.resampleFrame = FFFrame()
-  }
-
-  var info: Info {
-    let context = codecContext!.context!
-    let channelLayout = context.pointee.ch_layout
-    let sampleRate = context.pointee.sample_rate
-
-    return Info(channelLayout: Self.channelLayout(from: channelLayout), sampleRate: Double(sampleRate))
-  }
-
-  nonisolated static func channelLayout(from channelLayout: AVChannelLayout) -> AudioChannelLayout {
-    struct Item {
-      let channel: AVChannel
-      let bitmap: AudioChannelBitmap
-    }
-
-    let items = [
-      Item(channel: AV_CHAN_FRONT_LEFT, bitmap: .bit_Left),
-      Item(channel: AV_CHAN_FRONT_RIGHT, bitmap: .bit_Right),
-      Item(channel: AV_CHAN_FRONT_CENTER, bitmap: .bit_Center),
-    ]
-
-    let chLayout = if channelLayout.order == AV_CHANNEL_ORDER_UNSPEC {
-      channelLayout.default
-    } else {
-      channelLayout
-    }
-
-    var layout = AudioChannelLayout()
-    layout.mChannelLayoutTag = kAudioChannelLayoutTag_UseChannelBitmap
-    layout.mChannelBitmap = items.reduce(AudioChannelBitmap()) { partialResult, item in
-      if chLayout.u.mask & (1 << item.channel.rawValue) == 0 {
-        return partialResult
-      }
-
-      return partialResult.union(item.bitmap)
-    }
-
-    return layout
   }
 
   func install() {
@@ -205,6 +167,45 @@ actor AudioPlayerItem {
     streams(formatContext.context).forEach { $0!.pointee.discard = AVDISCARD_ALL }
 
     stream.pointee.discard = AVDISCARD_NONE
+  }
+
+  var info: Info {
+    let context = codecContext!.context!
+    let channelLayout = context.pointee.ch_layout
+    let sampleRate = context.pointee.sample_rate
+
+    return Info(channelLayout: Self.channelLayout(from: channelLayout), sampleRate: Double(sampleRate))
+  }
+
+  nonisolated static func channelLayout(from channelLayout: AVChannelLayout) -> AudioChannelLayout {
+    struct Item {
+      let channel: AVChannel
+      let bitmap: AudioChannelBitmap
+    }
+
+    let items = [
+      Item(channel: AV_CHAN_FRONT_LEFT, bitmap: .bit_Left),
+      Item(channel: AV_CHAN_FRONT_RIGHT, bitmap: .bit_Right),
+      Item(channel: AV_CHAN_FRONT_CENTER, bitmap: .bit_Center),
+    ]
+
+    let chLayout = if channelLayout.order == AV_CHANNEL_ORDER_UNSPEC {
+      channelLayout.default
+    } else {
+      channelLayout
+    }
+
+    var layout = AudioChannelLayout()
+    layout.mChannelLayoutTag = kAudioChannelLayoutTag_UseChannelBitmap
+    layout.mChannelBitmap = items.reduce(AudioChannelBitmap()) { partialResult, item in
+      if chLayout.u.mask & (1 << item.channel.rawValue) == 0 {
+        return partialResult
+      }
+
+      return partialResult.union(item.bitmap)
+    }
+
+    return layout
   }
 
   func resampleReadFrame(
@@ -481,8 +482,114 @@ actor AudioPlayer {
 
 let player = AudioPlayer()
 
+//extension Mutex where Value == Void {
+//  init() {
+//    self.init(())
+//  }
+//
+//  borrowing func withLock<Result, E>(
+//    _ body: () throws(E) -> sending Result
+//  ) throws(E) -> sending Result where E: Error, Result: ~Copyable {
+//    try self.withLock(body)
+//  }
+//}
+//
+//struct MusicPlayerItem {
+//  private let url: URL
+//
+//  private let formatContext: FFFormatContext
+//  private var codecContext: FFCodecContext?
+//  private let resampleContext: FFResampleContext
+//  private let packet: FFPacket
+//  private let frame: FFFrame
+//  private let resampleFrame: FFFrame
+//  private var streami: Int32?
+//
+//  init(url: URL) {
+//    self.url = url
+//    self.formatContext = FFFormatContext()
+//    self.resampleContext = FFResampleContext()
+//    self.packet = FFPacket()
+//    self.frame = FFFrame()
+//    self.resampleFrame = FFFrame()
+//  }
+//
+//  func open() {
+//    do {
+//      try openInput(&formatContext.context, at: url.pathString)
+//    } catch {
+//      Logger.ffmpeg.error("\(error)")
+//
+//      return
+//    }
+//
+//    do {
+//      try findStreamInfo(formatContext.context)
+//    } catch {
+//      Logger.ffmpeg.error("\(error)")
+//
+//      return
+//    }
+//
+//    var decoder: UnsafePointer<AVCodec>!
+//    let streami: Int32
+//
+//    do {
+//      streami = try findBestStream(formatContext.context, type: .audio, decoder: &decoder)
+//    } catch {
+//      Logger.ffmpeg.error("\(error)")
+//
+//      return
+//    }
+//
+//    self.streami = streami
+//
+//    let stream = formatContext.context.pointee.streams[Int(streami)]!
+//    let codecContext = FFCodecContext(codec: decoder)
+//    codecContext.context.pointee.pkt_timebase = stream.pointee.time_base
+//
+//    self.codecContext = codecContext
+//
+//    do {
+//      try copyCodecParameters(codecContext.context, params: stream.pointee.codecpar)
+//    } catch {
+//      Logger.ffmpeg.error("\(error)")
+//
+//      return
+//    }
+//
+//    do {
+//      try openCodec(codecContext.context, codec: decoder)
+//    } catch {
+//      Logger.ffmpeg.error("\(error)")
+//
+//      return
+//    }
+//
+//    streams(formatContext.context).forEach { $0!.pointee.discard = AVDISCARD_ALL }
+//
+//    stream.pointee.discard = AVDISCARD_NONE
+//  }
+//
+//  func close() {
+//    avformat_close_input(&formatContext.context)
+//  }
+//}
+
+//struct MusicPlayer {
+//  static private let lock = Mutex()
+//  static private let engine = AVAudioEngine()
+//  static private let player = AVAudioPlayerNode()
+//
+//  static func play() {
+//    lock.withLock {
+//
+//    }
+//  }
+//}
+
 struct LibraryView: View {
-  @AppStorage(StorageKeys.preferArtistsDisplay.name) private var preferArtistsDisplay = StorageKeys.preferArtistsDisplay.defaultValue
+  @AppStorage(StorageKeys.preferArtistsDisplay) private var preferArtistsDisplay
   @Environment(LibraryModel.self) private var library
   @State private var isFileImporterPresented = false
   @State private var selection = Set<LibraryTrack.ID>()
@@ -534,15 +641,15 @@ struct LibraryView: View {
         await Self.play(track: track)
       }
     }
-//    .safeAreaInset(edge: .bottom, spacing: 0) {
-//      VStack(spacing: 0) {
-//        Divider()
-//
-//        Text("...")
-//          .padding()
-//      }
-//      .background(in: .rect)
-//    }
+    .safeAreaInset(edge: .bottom, spacing: 0) {
+      VStack(spacing: 0) {
+        Divider()
+
+        Text("...")
+          .padding()
+      }
+      .background(in: .rect)
+    }
     .fileImporter(
       isPresented: $isFileImporterPresented,
       allowedContentTypes: libraryContentTypes,

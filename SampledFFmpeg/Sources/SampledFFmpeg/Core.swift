@@ -160,16 +160,10 @@ public func receiveFrame(
 }
 
 public func scaleFrame(
-  _ context: OpaquePointer!,
+  _ context: UnsafeMutablePointer<SwsContext>!,
   source: UnsafePointer<AVFrame>!,
-  destination: UnsafeMutablePointer<AVFrame>!
+  destination: UnsafeMutablePointer<AVFrame>!,
 ) throws(FFError) {
-  // The documented return value:
-  //
-  //   0 on success, a negative AVERROR code on failure
-  //
-  // In practice, this returns a non-negative integer corresponding to the slice height or a negative integer
-  // corresponding to an AVERROR code.
   let result = sws_scale_frame(context, destination, source)
 
   guard result >= 0 else {
@@ -180,7 +174,7 @@ public func scaleFrame(
 public func configureResampler(
   _ context: OpaquePointer!,
   source: UnsafePointer<AVFrame>!,
-  destination: UnsafePointer<AVFrame>!
+  destination: UnsafePointer<AVFrame>!,
 ) throws(FFError) {
   let status = swr_config_frame(context, destination, source)
 
@@ -271,6 +265,9 @@ public struct FFError: Error {
   }
 }
 
+// These wrappers are flawed in that the pointer can be used past the class's lifetime, causing the class to free the
+// underlying type while in use.
+
 public class FFFormatContext {
   public var context: UnsafeMutablePointer<AVFormatContext>!
 
@@ -358,36 +355,18 @@ extension AVSampleFormat {
 }
 
 public class FFScaleContext {
-  public var context: OpaquePointer!
+  public var context: UnsafeMutablePointer<SwsContext>!
 
-  public init(context: OpaquePointer!) {
+  public init(context: UnsafeMutablePointer<SwsContext>!) {
     self.context = context
   }
 
-  public convenience init?(
-    srcWidth: Int32,
-    srcHeight: Int32,
-    srcFormat: AVPixelFormat,
-    dstWidth: Int32,
-    dstHeight: Int32,
-    dstFormat: AVPixelFormat
-  ) {
-    guard let context = sws_getContext(
-      srcWidth, srcHeight, srcFormat,
-      dstWidth, dstHeight, dstFormat,
-      0, // Will we need to fill this?
-      nil,
-      nil,
-      nil
-    ) else {
-      return nil
-    }
-
-    self.init(context: context)
+  public convenience init() {
+    self.init(context: sws_alloc_context())
   }
 
   deinit {
-    sws_freeContext(context)
+    sws_free_context(&context)
   }
 }
 

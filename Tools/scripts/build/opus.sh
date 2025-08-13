@@ -11,7 +11,6 @@
 
 build () {
   local arch="$1"
-
   echo "Building Opus for $arch"
 
   local prefix="$(prefixarch "$arch")"

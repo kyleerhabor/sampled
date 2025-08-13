@@ -11,14 +11,15 @@
 
 build () {
   local arch="$1"
-
   echo "Building Vorbis for $arch"
 
   local prefix="$(prefixarch "$arch")"
   pushd "$CWD/$VORBISDIR"
   ./autogen.sh
-  
-  # Remove the obsolete -force_cpusubtype_ALL option from being passed to ld
+
+  # Remove obsolete -force_cpusubtype_ALL option so it's not passed to ld
+  #
+  # https://github.com/Homebrew/homebrew-core/blob/35ebe9ef7f7f78c7e5ca425b6c90415c608788ab/Formula/lib/libvorbis.rb#L49
   sed -i '' 's/-force_cpusubtype_ALL//g' configure
 
   PKG_CONFIG_PATH="$CWD/$prefix/lib/pkgconfig:$PKG_CONFIG_PATH" \

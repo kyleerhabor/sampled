@@ -6,16 +6,18 @@
 #  Created by Kyle Erhabor on 10/9/24.
 #
 
+set -e
+
 . "$(dirname "$0")/scripts/core.sh"
 . "$(dirname "$0")/scripts/build.sh"
 
-OGG_GIT_COMMIT=7cf42ea17aef7bc1b7b21af70724840a96c2e7d0 # v1.3.5+
+OGG_GIT_COMMIT=0288fadac3ac62d453409dfc83e9c4ab617d2472 # v1.3.6+
 OGG_GIT_URL=https://gitlab.xiph.org/xiph/ogg.git
-VORBIS_GIT_COMMIT=bb4047de4c05712bf1fd49b9584c360b8e4e0adf # v1.3.7+
+VORBIS_GIT_COMMIT=43bbff0141028e58d476c1d5fd45dd5573db576d # v1.3.7+
 VORBIS_GIT_URL=https://gitlab.xiph.org/xiph/vorbis.git
-OPUS_GIT_COMMIT=7db26934e4156597cb0586bb4d2e44dccdde1a59 # v1.5.2+
+OPUS_GIT_COMMIT=f92fdda4f9b75ecb5f0f38b86c991195585579ea # v1.5.2+
 OPUS_GIT_URL=https://gitlab.xiph.org/xiph/opus.git
-FFMPEG_GIT_COMMIT=e35587250c3e036261ea9cfc266e74730b6f60ae # v7.1+
+FFMPEG_GIT_COMMIT=b61e510e7500c27c7dee2b9c8cfa77689195f2a0 # v7.1.1+
 FFMPEG_GIT_URL=https://git.ffmpeg.org/ffmpeg.git
 
 gitdownload () {
@@ -23,12 +25,12 @@ gitdownload () {
   local branch="$2"
   local path="$3"
 
-  git -C "$path" fetch "$remote" || git clone "$remote" "$path"
+  git -C "$path" fetch "$remote" || git clone "$remote" "$path" || true
   git -C "$path" checkout "$branch"
 }
 
 downloadbrew () {
-  brew install autoconf automake libtool nasm
+  brew install autoconf automake libtool nasm wget
 }
 
 downloadogg () {

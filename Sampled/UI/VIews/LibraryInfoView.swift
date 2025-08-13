@@ -52,7 +52,7 @@ struct LibraryInfoPositionView: View {
 }
 
 struct LibraryInfoView: View {
-  @AppStorage(StorageKeys.preferArtistsDisplay.name) private var preferArtistsDisplay = StorageKeys.preferArtistsDisplay.defaultValue
+  @AppStorage(StorageKeys.preferArtistsDisplay) private var preferArtistsDisplay
 
   let tracks: [LibraryTrack]?
 
@@ -109,6 +109,7 @@ struct LibraryInfoView: View {
             .foregroundStyle(.secondary)
 
           Text(track?.albumTitle ?? "")
+            .lineLimit(1, reservesSpace: true)
         }
         .font(.caption)
         .lineLimit(1, reservesSpace: true)
