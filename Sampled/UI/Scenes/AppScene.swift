@@ -8,23 +8,16 @@
 import SwiftUI
 
 struct AppScene: Scene {
+  @State private var library = LibraryModel()
+  @State private var settings = SettingsModel()
+
   var body: some Scene {
-    WindowGroup { $library in
-      LibraryView()
-        .environment(library)
-    } defaultValue: {
-      LibraryModel(id: .main)
-    }
-    .commands {
-      LibraryCommands()
-    }
+    LibraryScene()
+      .environment(library)
 
     LibraryInfoScene()
 
-    Settings {
-      SettingsView()
-        .frame(width: 384) // 256 - 512
-    }
-    .windowResizability(.contentSize)
+    SettingsScene()
+      .environment(settings)
   }
 }

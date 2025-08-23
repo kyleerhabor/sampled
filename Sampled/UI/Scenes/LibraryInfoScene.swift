@@ -8,20 +8,21 @@
 import SwiftUI
 
 struct LibraryInfoScene: Scene {
-  @FocusedValue(LibraryInfoTrackModel.self) private var trackModel
-  @State private var defaultTrackModel = LibraryInfoTrackModel()
+  @FocusedValue(LibraryInfoTrackModel.self) private var libraryInfoTrack
+  @State private var defaultLibraryInfoTrack = LibraryInfoTrackModel()
 
   var body: some Scene {
-    UtilityWindow("Info", id: "info") {
+    // TODO: Size to content size.
+    UtilityWindow("LibraryInfo.Window.Title", id: "library-info") {
       LibraryInfoView()
-        .environment(trackModel ?? defaultTrackModel)
+        .environment(libraryInfoTrack ?? defaultLibraryInfoTrack)
         .frame(
           width: 224, // 192 - 256
           height: 496, // 480 - 512
           alignment: .top
         )
     }
-    .keyboardShortcut("i", modifiers: .command)
+    .keyboardShortcut(.libraryInfo)
     .windowResizability(.contentSize)
     .restorationBehavior(.disabled)
   }

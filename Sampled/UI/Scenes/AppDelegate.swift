@@ -10,7 +10,11 @@ import AppKit
 @MainActor
 class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
   func applicationWillFinishLaunching(_ notification: Notification) {
-    // I'd prefer to keep this enabled, but don't want the user creating multiple instances of the main library.
+    // We don't want the user creating multiple instances of the library.
     NSWindow.allowsAutomaticWindowTabbing = false
+  }
+
+  func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {
+    false
   }
 }

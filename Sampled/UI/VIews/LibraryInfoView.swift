@@ -7,75 +7,6 @@
 
 import SwiftUI
 
-enum LibraryInfoTrackProperty<Value> {
-  case empty
-  case value(Value)
-  case mixed
-}
-
-extension LibraryInfoTrackProperty: Equatable where Value: Equatable {
-  init(values: some Sequence<Value>) {
-    self = .empty
-
-    values.forEach { value in
-      switch self {
-        case .empty:
-          self = .value(value)
-        case .value(let val):
-          if val != value {
-            self = .mixed
-          }
-        case .mixed:
-          break
-      }
-    }
-  }
-}
-
-@Observable
-class LibraryInfoTrackModel {
-  var title: LibraryInfoTrackProperty<String>
-  var artistName: LibraryInfoTrackProperty<String?>
-  var albumName: LibraryInfoTrackProperty<String?>
-  var albumArtistName: LibraryInfoTrackProperty<String?>
-  var yearDate: LibraryInfoTrackProperty<Date?>
-  var trackNumber: LibraryInfoTrackProperty<Int?>
-  var trackTotal: LibraryInfoTrackProperty<Int?>
-  var discNumber: LibraryInfoTrackProperty<Int?>
-  var discTotal: LibraryInfoTrackProperty<Int?>
-  var duration: LibraryInfoTrackProperty<Duration>
-  // TODO: Refactor.
-  //
-  // We only need the image.
-  var artwork: LibraryInfoTrackProperty<LibraryTrackArtwork?>
-
-  init(
-    title: LibraryInfoTrackProperty<String> = .empty,
-    artistName: LibraryInfoTrackProperty<String?> = .empty,
-    albumName: LibraryInfoTrackProperty<String?> = .empty,
-    albumArtistName: LibraryInfoTrackProperty<String?> = .empty,
-    yearDate: LibraryInfoTrackProperty<Date?> = .empty,
-    trackNumber: LibraryInfoTrackProperty<Int?> = .empty,
-    trackTotal: LibraryInfoTrackProperty<Int?> = .empty,
-    discNumber: LibraryInfoTrackProperty<Int?> = .empty,
-    discTotal: LibraryInfoTrackProperty<Int?> = .empty,
-    duration: LibraryInfoTrackProperty<Duration> = .empty,
-    artwork: LibraryInfoTrackProperty<LibraryTrackArtwork?> = .empty,
-  ) {
-    self.title = title
-    self.artistName = artistName
-    self.albumName = albumName
-    self.albumArtistName = albumArtistName
-    self.yearDate = yearDate
-    self.trackNumber = trackNumber
-    self.trackTotal = trackTotal
-    self.discNumber = discNumber
-    self.discTotal = discTotal
-    self.duration = duration
-    self.artwork = artwork
-  }
-}
-
 struct LibraryInfoTagSeparatorView: View {
   var body: some View {
     Line()
@@ -98,7 +29,7 @@ struct LibraryInfoTagValueMixedNumberView: View {
 }
 
 struct LibraryInfoPositionTagItemView: View {
-  let item: LibraryInfoTrackProperty<Int?>
+  let item: LibraryInfoTrackModelProperty<Int?>
 
   var body: some View {
     VStack {
@@ -117,8 +48,8 @@ struct LibraryInfoPositionTagItemView: View {
 }
 
 struct LibraryInfoPositionTagView: View {
-  let number: LibraryInfoTrackProperty<Int?>
-  let total: LibraryInfoTrackProperty<Int?>
+  let number: LibraryInfoTrackModelProperty<Int?>
+  let total: LibraryInfoTrackModelProperty<Int?>
 
   var body: some View {
     HStack(alignment: .firstTextBaseline) {
@@ -151,7 +82,7 @@ struct LibraryInfoTagValueContentView<Value, EmptyView, ValueView, MixedView>: V
                                                                                           MixedView: View {
   typealias ValueViewBuilder = (Value) -> ValueView
 
-  let property: LibraryInfoTrackProperty<Value>
+  let property: LibraryInfoTrackModelProperty<Value>
   let emptyView: EmptyView
   let valueView: ValueViewBuilder
   let mixedView: MixedView
@@ -169,7 +100,7 @@ struct LibraryInfoTagValueContentView<Value, EmptyView, ValueView, MixedView>: V
   }
 
   init(
-    property: LibraryInfoTrackProperty<Value>,
+    property: LibraryInfoTrackModelProperty<Value>,
     @ViewBuilder value valueView: @escaping ValueViewBuilder,
     @ViewBuilder empty emptyView: () -> EmptyView,
     @ViewBuilder mixed mixedView: () -> MixedView,
@@ -183,7 +114,7 @@ struct LibraryInfoTagValueContentView<Value, EmptyView, ValueView, MixedView>: V
 
 extension LibraryInfoTagValueContentView where EmptyView == SwiftUI.EmptyView {
   init(
-    property: LibraryInfoTrackProperty<Value>,
+    property: LibraryInfoTrackModelProperty<Value>,
     @ViewBuilder value valueView: @escaping ValueViewBuilder,
     @ViewBuilder mixed mixedView: () -> MixedView,
   ) {
@@ -238,7 +169,7 @@ struct LibraryInfoTagView<Content>: View where Content: View {
 }
 
 struct LibraryInfoView: View {
-  @Environment(LibraryInfoTrackModel.self) private var track
+  @Environment(LibraryInfoTrackModel.self) private var libraryInfoTrack
 
   var body: some View {
     VStack(spacing: 0) {
@@ -246,7 +177,7 @@ struct LibraryInfoView: View {
       //
       // For some reason, setting contentMode to .fill causes square images to extend past the bounds. This doesn't
       // occur for .fit, but won't act appropriately at different dimensions (or if space is reduced).
-      let image = switch track.artwork {
+      let image = switch libraryInfoTrack.albumArtwork {
         case .empty, .mixed: NSImage()
         case let .value(artwork): artwork?.image ?? NSImage()
       }
@@ -266,8 +197,8 @@ struct LibraryInfoView: View {
           }
 
           LibraryInfoTagValueView {
-            LibraryInfoTagValueContentView(property: track.title) { title in
-              Text(verbatim: title)
+            LibraryInfoTagValueContentView(property: libraryInfoTrack.title) { title in
+              Text(title ?? "")
             } mixed: {
               LibraryInfoTagValueMixedTextView()
             }
@@ -280,8 +211,8 @@ struct LibraryInfoView: View {
           }
 
           LibraryInfoTagValueView {
-            LibraryInfoTagValueContentView(property: track.artistName) { artist in
-              Text(verbatim: artist ?? "")
+            LibraryInfoTagValueContentView(property: libraryInfoTrack.artistName) { artist in
+              Text(artist ?? "")
             } mixed: {
               LibraryInfoTagValueMixedTextView()
             }
@@ -294,8 +225,8 @@ struct LibraryInfoView: View {
           }
 
           LibraryInfoTagValueView {
-            LibraryInfoTagValueContentView(property: track.albumName) { albumName in
-              Text(verbatim: albumName ?? "")
+            LibraryInfoTagValueContentView(property: libraryInfoTrack.albumName) { albumName in
+              Text(albumName ?? "")
             } mixed: {
               LibraryInfoTagValueMixedTextView()
             }
@@ -308,8 +239,8 @@ struct LibraryInfoView: View {
           }
 
           LibraryInfoTagValueView {
-            LibraryInfoTagValueContentView(property: track.albumArtistName) { albumArtistName in
-              Text(verbatim: albumArtistName ?? "")
+            LibraryInfoTagValueContentView(property: libraryInfoTrack.albumArtistName) { albumArtistName in
+              Text(albumArtistName ?? "")
             } mixed: {
               LibraryInfoTagValueMixedTextView()
             }
@@ -322,11 +253,9 @@ struct LibraryInfoView: View {
           }
 
           LibraryInfoTagValueView {
-            LibraryInfoTagValueContentView(property: track.yearDate) { date in
-              Text(date ?? .distantFuture, format: .dateTime.year())
-                .monospacedDigit()
-                .visible(date != nil)
-                .environment(\.timeZone, .gmt)
+            LibraryInfoTagValueContentView(property: libraryInfoTrack.albumDate) { albumDate in
+              LibraryYearView(yearDate: albumDate ?? .distantFuture)
+                .visible(albumDate != nil)
             } mixed: {
               LibraryInfoTagValueMixedNumberView()
             }
@@ -339,7 +268,7 @@ struct LibraryInfoView: View {
           }
 
           LibraryInfoTagValueView {
-            LibraryInfoPositionTagView(number: track.trackNumber, total: track.trackTotal)
+            LibraryInfoPositionTagView(number: libraryInfoTrack.trackNumber, total: libraryInfoTrack.trackTotal)
           }
         }
 
@@ -349,7 +278,7 @@ struct LibraryInfoView: View {
           }
 
           LibraryInfoTagValueView {
-            LibraryInfoPositionTagView(number: track.discNumber, total: track.discTotal)
+            LibraryInfoPositionTagView(number: libraryInfoTrack.discNumber, total: libraryInfoTrack.discTotal)
           }
         }
 
@@ -363,7 +292,7 @@ struct LibraryInfoView: View {
             // compose it (e.g., having another property for mixed data), but I'm not sure if that's the best way to
             // represent this. We could represent it like how Toggle's isMixed property is just an add-on to the general
             // data.
-            LibraryInfoTagValueContentView(property: track.duration) { duration in
+            LibraryInfoTagValueContentView(property: libraryInfoTrack.duration) { duration in
               LibraryTrackDurationView(duration: duration)
             } mixed: {
               LibraryInfoTagValueMixedNumberView()

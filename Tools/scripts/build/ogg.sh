@@ -9,6 +9,7 @@
 . "$(dirname "$0")/scripts/core.sh"
 . "$(dirname "$0")/scripts/build.sh"
 
+# TODO: Silence warnings
 build () {
   local arch="$1"
   echo "Building Ogg for $arch"

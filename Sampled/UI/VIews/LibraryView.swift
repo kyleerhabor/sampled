@@ -8,48 +8,17 @@
 import CFFmpeg
 import SampledFFmpeg
 import Algorithms
-import AVFoundation
+@preconcurrency import AVFoundation
 import OSLog
 import SwiftUI
 import Synchronization
 
-let libraryContentTypes: [UTType] = [.item]
-
-struct LibraryTrackPosition {
-  let number: Int?
-  let total: Int?
-}
-
-struct LibraryTrackArtwork {
-  let image: NSImage
-  let hash: Data
-}
-
-extension LibraryTrackArtwork: Equatable {
-  static func ==(lhs: Self, rhs: Self) -> Bool {
-    return lhs.hash == rhs.hash
-  }
-}
-
-struct LibraryTrack {
-  let source: URLSource
-  let title: String
-  let duration: Duration
-  let artistName: String?
-  let albumTitle: String?
-  let albumArtistName: String?
-  // When this is inevitably persisted, only the year should be stored since it's the only time information.
-  let yearDate: Date?
-  let artwork: LibraryTrackArtwork?
-  let track: LibraryTrackPosition?
-  let disc: LibraryTrackPosition?
-}
-
-extension LibraryTrack: Identifiable {
-  var id: URL {
-    source.url
-  }
-}
+// item is documented as:
+//
+//   A generic base type for most objects, such as files or directories.
+//
+// In spite of this, file importers don't recognize selecting folders. folder works around this by making it explicit.
+let libraryContentTypes: [UTType] = [.item, .folder]
 
 struct LibraryTrackPositionItemView: View {
   let item: Int
@@ -57,14 +26,6 @@ struct LibraryTrackPositionItemView: View {
   var body: some View {
     Text(item, format: .number.grouping(.never))
       .monospacedDigit()
-  }
-}
-
-struct LibraryTrackArtistsView: View {
-  let artists: [String]
-
-  var body: some View {
-    Text(artists, format: .list(type: .and, width: .short))
   }
 }
 
@@ -340,7 +301,10 @@ actor AudioPlayerItem {
   }
 }
 
-func race(_ this: @escaping () async -> Void, other: @escaping () async -> Void) async -> Void {
+func race(
+  _ this: @Sendable @escaping () async -> Void,
+  other: @Sendable @escaping () async -> Void
+) async -> Void {
   await withTaskGroup(of: Void.self) { group in
     await withCheckedContinuation { continuation in
       group.addTask {
@@ -582,146 +546,135 @@ let player = AudioPlayer()
 //  }
 //}
 
-struct LibraryView: View {
-  @Environment(LibraryModel.self) private var library
-  @State private var isFileImporterPresented = false
-  @State private var selection = Set<LibraryTrack.ID>()
-  @State private var selectedTracks = [LibraryTrack]()
-  @State private var trackModel = LibraryInfoTrackModel()
+struct LibraryYearView: View {
+  let yearDate: Date
 
   var body: some View {
-    Table(library.tracks, selection: $selection) {
-      TableColumn("Track.Column.Track") { track in
-        LibraryTrackPositionItemView(item: track.track?.number ?? 0)
-          .visible(track.track?.number != nil)
+    Text(yearDate, format: .dateTime.year())
+      .monospacedDigit()
+      .environment(\.timeZone, .gmt)
+  }
+}
+
+struct LibraryView: View {
+  @Environment(LibraryModel.self) private var library
+  @State private var selection = Set<LibraryTrackModel.ID>()
+  @State private var selectedTracks = [LibraryTrackModel]()
+  @State private var infoTrack = LibraryInfoTrackModel()
+  @State private var sortOrder: [KeyPathComparator<LibraryTrackModel>] = [
+//    KeyPathComparator(\.albumName),
+//    KeyPathComparator(\.discNumber),
+//    KeyPathComparator(\.trackNumber),
+//    KeyPathComparator(\.title),
+  ]
+
+  var body: some View {
+    Table(library.tracks, selection: $selection, sortOrder: $sortOrder) {
+      TableColumn("Library.Column.TrackNumber.Name"/*, sortUsing: KeyPathComparator(\.trackNumber)*/) { track in
+        LibraryTrackPositionItemView(item: track.trackNumber ?? 0)
+          .visible(track.trackNumber != nil)
       }
       .alignment(.numeric)
 
-      TableColumn("Track.Column.Disc") { track in
-        LibraryTrackPositionItemView(item: track.disc?.number ?? 0)
-          .visible(track.disc?.number != nil)
+      TableColumn("Library.Column.DiscNumber.Name"/*, sortUsing: KeyPathComparator(\.discNumber)*/) { track in
+        LibraryTrackPositionItemView(item: track.discNumber ?? 0)
+          .visible(track.discNumber != nil)
       }
       .alignment(.numeric)
 
-      TableColumn("Track.Column.Title", value: \.title)
-      TableColumn("Track.Column.Artist") { track in
+      TableColumn("Library.Column.Title.Name") { track in
+        Text(track.title ?? "")
+      }
+
+      TableColumn("Library.Column.Artist.Name"/*, sortUsing: KeyPathComparator(\.artistName)*/) { track in
         Text(track.artistName ?? "")
       }
 
-      TableColumn("Track.Column.Album") { track in
-        Text(track.albumTitle ?? "")
+      TableColumn("Library.Column.Album.Name"/*, sortUsing: KeyPathComparator(\.albumName)*/) { track in
+        Text(track.albumName ?? "")
       }
 
-      TableColumn("Track.Column.AlbumArtist") { track in
+      TableColumn("Library.Column.AlbumArtist.Name"/*, sortUsing: KeyPathComparator(\.albumArtistName)*/) { track in
         Text(track.albumArtistName ?? "")
       }
 
-      TableColumn("Track.Column.Duration") { track in
+      TableColumn("Library.Column.AlbumYear.Name"/*, sortUsing: KeyPathComparator(\.yearDate)*/) { track in
+        LibraryYearView(yearDate: track.albumDate ?? .distantFuture)
+          .visible(track.albumDate != nil)
+      }
+      .alignment(.numeric)
+
+      TableColumn("Library.Column.Duration.Name"/*, sortUsing: KeyPathComparator(\.duration)*/) { track in
         LibraryTrackDurationView(duration: track.duration)
       }
       .alignment(.numeric)
     }
     .contextMenu { ids in
       Button("Finder.Item.Show") {
-        let urls = library.tracks
-          .filter(in: ids, by: \.id)
-          .map(\.source.url)
+        let urls = library.tracks.filter(ids: ids).map(\.source.url)
 
         NSWorkspace.shared.activateFileViewerSelecting(urls)
       }
     } primaryAction: { ids in
-      guard let track = library.tracks.filter(in: ids, by: \.id).first else {
+      guard let track = library.tracks.filter(ids: ids).first else {
         return
       }
 
-      Task {
-        await Self.play(track: track)
-      }
+//      Task {
+//        await Self.play(track: track)
+//      }
     }
     .safeAreaInset(edge: .bottom, spacing: 0) {
       VStack(spacing: 0) {
         Divider()
 
-        Text("...")
-          .padding()
+        // TODO: Replace with current track
+        let track = library.tracks.first
+
+        VStack {
+          Text(track?.title ?? "")
+          Text(track?.albumName ?? "")
+            .foregroundStyle(.secondary)
+        }
+        .padding()
       }
       .background(in: .rect)
     }
-    .fileImporter(
-      isPresented: $isFileImporterPresented,
-      allowedContentTypes: libraryContentTypes,
-      allowsMultipleSelection: true
-    ) { result in
-      let urls: [URL]
-
-      switch result {
-        case let .success(items):
-          urls = items
-        case let .failure(error):
-          Logger.ui.error("\(error)")
-
-          return
-      }
-
-      Task {
-        library.tracks = await Self.load(urls: urls)
-      }
+    .focusedSceneValue(infoTrack)
+    .task {
+      await library.loadData()
     }
-    .focusedSceneValue(\.importTracks, AppMenuActionItem(identity: library.id, isEnabled: true) {
-      isFileImporterPresented = true
-    })
-    .focusedSceneValue(trackModel)
+    .task {
+      await library.load()
+    }
     .onChange(of: selection) {
-      trackModel.title = .empty
-      trackModel.artistName = .empty
-      trackModel.albumName = .empty
-      trackModel.albumArtistName = .empty
-      trackModel.yearDate = .empty
-      trackModel.trackNumber = .empty
-      trackModel.trackTotal = .empty
-      trackModel.discNumber = .empty
-      trackModel.discTotal = .empty
-      trackModel.artwork = .empty
-
-      let tracks = library.tracks.filter(in: selection, by: \.id)
-      // Would reducing optimize the performance?
-      trackModel.title = LibraryInfoTrackProperty(values: tracks.map(\.title))
-      trackModel.artistName = LibraryInfoTrackProperty(values: tracks.map(\.artistName))
-      trackModel.albumName = LibraryInfoTrackProperty(values: tracks.map(\.albumTitle))
-      trackModel.albumArtistName = LibraryInfoTrackProperty(values: tracks.map(\.albumArtistName))
-      trackModel.yearDate = LibraryInfoTrackProperty(values: tracks.map(\.yearDate))
-      trackModel.trackNumber = LibraryInfoTrackProperty(values: tracks.map(\.track?.number))
-      trackModel.trackTotal = LibraryInfoTrackProperty(values: tracks.map(\.track?.total))
-      trackModel.discNumber = LibraryInfoTrackProperty(values: tracks.map(\.disc?.number))
-      trackModel.discTotal = LibraryInfoTrackProperty(values: tracks.map(\.disc?.total))
-      trackModel.duration = LibraryInfoTrackProperty(values: tracks.map(\.duration))
-      trackModel.artwork = LibraryInfoTrackProperty(values: tracks.map(\.artwork))
+      let tracks = library.tracks.filter(ids: selection)
+      // Would reducing once optimize the performance?
+      //
+      // TODO: Handle infoTrack.albumArtwork.
+      infoTrack.title = tracks.reduce(.empty) { $0.reduce(nextValue: $1.title) }
+      infoTrack.duration = tracks.reduce(.empty) { $0.reduce(nextValue: $1.duration) }
+      infoTrack.artistName = tracks.reduce(.empty) { $0.reduce(nextValue: $1.artistName) }
+      infoTrack.albumName = tracks.reduce(.empty) { $0.reduce(nextValue: $1.albumName) }
+      infoTrack.albumArtistName = tracks.reduce(.empty) { $0.reduce(nextValue: $1.albumArtistName) }
+      infoTrack.albumDate = tracks.reduce(.empty) { $0.reduce(nextValue: $1.albumDate) }
+      infoTrack.trackNumber = tracks.reduce(.empty) { $0.reduce(nextValue: $1.trackNumber) }
+      infoTrack.trackTotal = tracks.reduce(.empty) { $0.reduce(nextValue: $1.trackTotal) }
+      infoTrack.discNumber = tracks.reduce(.empty) { $0.reduce(nextValue: $1.discNumber) }
+      infoTrack.discTotal = tracks.reduce(.empty) { $0.reduce(nextValue: $1.discTotal) }
+    }
+    .onChange(of: sortOrder) {
+//      library.tracks.sort(using: sortOrder)
     }
   }
 
-  nonisolated static private func load(urls: [URL]) async -> [LibraryTrack] {
-    urls.compactMap { url in
-      let source = URLSource(url: url, options: [.withReadOnlySecurityScope, .withoutImplicitSecurityScope])
-
-      return source.accessingSecurityScopedResource {
-        do {
-          return try LibraryModel.read(source: source)
-        } catch {
-          Logger.ffmpeg.error("\(error)")
-
-          return nil
-        }
-      }
-    }
-  }
-
-  nonisolated static private func play(track: LibraryTrack) async {
-    let source = track.source
-    let item = AudioPlayerItem(url: source.url)
-
-    await source.accessingSecurityScopedResource {
-      await item.install()
-      await player.play(item: item)
-    }
-  }
+//  nonisolated static private func play(track: LibraryTrack) async {
+//    let source = track.source
+//    let item = AudioPlayerItem(url: source.url)
+//
+//    await source.accessingSecurityScopedResource {
+//      await item.install()
+//      await player.play(item: item)
+//    }
+//  }
 }

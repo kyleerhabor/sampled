@@ -5,6 +5,8 @@
 //  Created by Kyle Erhabor on 10/18/24.
 //
 
+import Defaults
+import OSLog
 import SwiftUI
 
 extension EnvironmentValues {
@@ -94,8 +96,67 @@ extension FormStyle {
 struct SettingsView: View {
   static let contentWidth: CGFloat = 448 // 384 - 512
 
+  @Environment(SettingsModel.self) private var settings
+  @Default(.libraryFolderURL) private var libraryFolder
+  @State private var isFileImporterPresented = false
+
   var body: some View {
-    Form {}
-      .scenePadding()
+    Form {
+      GroupBox("Settings.Item.LibraryFolder.Title") {
+        VStack(alignment: .leading) {
+          if let libraryFolder {
+            Text(libraryFolder.pathString)
+              .monospaced()
+
+            HStack {
+              Spacer()
+
+              Button("Settings.Item.LibraryFolder.Change") {
+                isFileImporterPresented = true
+              }
+            }
+          } else {
+            ContentUnavailableView {
+              Text("Settings.Item.LibraryFolder.Unavailable")
+            } actions: {
+              Button("Settings.Item.LibraryFolder.Unavailable.Action.Set") {
+                isFileImporterPresented = true
+              }
+            }
+          }
+        }
+        .padding(4)
+        .frame(maxWidth: .infinity)
+        .fileImporter(isPresented: $isFileImporterPresented, allowedContentTypes: [.folder]) { result in
+          let url: URL
+
+          switch result {
+            case let .success(x):
+              url = x
+            case let .failure(error):
+              // TODO: Log.
+              Logger.ui.error("\(error)")
+
+              return
+          }
+
+          Task {
+            await settings.setLibraryFolder(url: url)
+          }
+        }
+      }
+    }
+    .scenePadding()
+    .frame(width: 384) // 256 - 512
+    .task {
+      await settings.load()
+    }
   }
+}
+
+#Preview {
+  @Previewable @State var settings = SettingsModel()
+
+  SettingsView()
+    .environment(settings)
 }

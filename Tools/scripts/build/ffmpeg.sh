@@ -94,8 +94,8 @@ build () {
     --target-os=darwin \
     --cc="clang -arch $arch $EXTRA_CFLAGS" \
     --pkg-config-flags=--static \
-    --extra-cflags="-I$CWD/$prefix/include" \
-    --extra-ldflags="-L$CWD/$prefix/lib" \
+    --extra-cflags="-I$CWD/$prefix/include -w" \
+    --extra-ldflags="-L$CWD/$prefix/lib -w" \
     "${EXTRA_FFMPEGFLAGS[@]}"
 
   runmake

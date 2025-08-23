@@ -1,0 +1,5 @@
+only_rules:
+  - trailing_comma
+trailing_comma:
+  severity: warning
+  mandatory_comma: true

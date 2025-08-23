@@ -1,9 +1,6 @@
 {
   "sourceLanguage" : "en",
   "strings" : {
-    "..." : {
-
-    },
     "Finder.Item.Show" : {
       "localizations" : {
         "en" : {
@@ -14,25 +11,92 @@
         }
       }
     },
-    "Info" : {
-
-    },
-    "Library.Commands.File.Import" : {
+    "Library.Column.Album.Name" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Import…"
+            "value" : "Album"
           }
         }
       }
     },
-    "Library.Commands.File.Open" : {
+    "Library.Column.AlbumArtist.Name" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Open…"
+            "value" : "Album Artist"
+          }
+        }
+      }
+    },
+    "Library.Column.AlbumYear.Name" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Album Year"
+          }
+        }
+      }
+    },
+    "Library.Column.Artist.Name" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Artist"
+          }
+        }
+      }
+    },
+    "Library.Column.DiscNumber.Name" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Disc №"
+          }
+        }
+      }
+    },
+    "Library.Column.Duration.Name" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Duration"
+          }
+        }
+      }
+    },
+    "Library.Column.Title.Name" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Title"
+          }
+        }
+      }
+    },
+    "Library.Column.TrackNumber.Name" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Track №"
+          }
+        }
+      }
+    },
+    "Library.Window.Title" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Library"
           }
         }
       }
@@ -147,94 +211,52 @@
         }
       }
     },
-    "Settings.PreferArtistsDisplay" : {
-      "extractionState" : "stale",
+    "LibraryInfo.Window.Title" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Prefer displaying artists as a list"
+            "value" : "Info"
           }
         }
       }
     },
-    "Track.Column.Album" : {
+    "Settings.Item.LibraryFolder.Change" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Album"
+            "value" : "Change…"
           }
         }
       }
     },
-    "Track.Column.AlbumArtist" : {
+    "Settings.Item.LibraryFolder.Title" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Album Artist"
+            "value" : "Library Folder"
           }
         }
       }
     },
-    "Track.Column.Artist" : {
+    "Settings.Item.LibraryFolder.Unavailable" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Artist"
+            "value" : "No Library Folder Set"
           }
         }
       }
     },
-    "Track.Column.Artists" : {
-      "extractionState" : "stale",
+    "Settings.Item.LibraryFolder.Unavailable.Action.Set" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Artists"
-          }
-        }
-      }
-    },
-    "Track.Column.Disc" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Disc №"
-          }
-        }
-      }
-    },
-    "Track.Column.Duration" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Duration"
-          }
-        }
-      }
-    },
-    "Track.Column.Title" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Title"
-          }
-        }
-      }
-    },
-    "Track.Column.Track" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Track №"
+            "value" : "Set…"
           }
         }
       }

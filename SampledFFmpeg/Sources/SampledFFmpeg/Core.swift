@@ -12,8 +12,10 @@ import Foundation
 
 public let FFSTATUS_OK: Int32 = 0
 public let FFSTATUS_EOF = FFAVERROR_EOF
+public let FFSTATUS_INVALIDDATA = FFAVERROR_INVALIDDATA
 public let FFSTATUS_STREAM_NOT_FOUND = FFAVERROR_STREAM_NOT_FOUND
 public let FFSTATUS_ENOMEM = FFAVERROR_ENOMEM
+public let FFSTATUS_EISDIR = FFAVERROR_EISDIR
 public let FFSTATUS_EAGAIN = FFAVERROR_EAGAIN
 
 public func duration(_ duration: Int64) -> Int64? {
@@ -269,11 +271,12 @@ public struct FFError: Error {
   public struct Code: Sendable, RawRepresentable {
     public var rawValue: Int32
 
-    public static let unknown = Self(rawValue: -1)
-    public static let outputChanged = Self(rawValue: AVERROR_OUTPUT_CHANGED)
-    public static let endOfFile = Self(rawValue: FFSTATUS_EOF)
-    public static let streamNotFound = Self(rawValue: FFSTATUS_STREAM_NOT_FOUND)
-    public static let resourceTemporarilyUnavailable = Self(rawValue: FFSTATUS_EAGAIN)
+    public static let outputChanged = Self(rawValue: AVERROR_OUTPUT_CHANGED) // -1668179714
+    public static let endOfFile = Self(rawValue: FFSTATUS_EOF) // -541478725
+    public static let invalidData = Self(rawValue: FFSTATUS_INVALIDDATA) // -1094995529
+    public static let streamNotFound = Self(rawValue: FFSTATUS_STREAM_NOT_FOUND) // -1381258232
+    public static let isDirectory = Self(rawValue: FFSTATUS_EISDIR) // -21
+    public static let resourceTemporarilyUnavailable = Self(rawValue: FFSTATUS_EAGAIN) // -35
 
     public init(rawValue: Int32) {
       self.rawValue = rawValue

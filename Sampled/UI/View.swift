@@ -54,8 +54,7 @@ extension AppMenuItem where A == AppMenuItemDefaultAction {
 }
 
 extension KeyboardShortcut {
-  static let open = KeyboardShortcut("o", modifiers: .command)
-  static let add = KeyboardShortcut("a", modifiers: [.command, .option])
+  static let libraryInfo = Self("i", modifiers: .command)
 }
 
 extension View {
@@ -67,13 +66,4 @@ extension View {
   }
 }
 
-extension Text {
-  init() {
-    self.init(verbatim: "")
-  }
-}
-
-extension FocusedValues {
-  @Entry var open: AppMenuActionItem<LibraryModelID?>?
-  @Entry var importTracks: AppMenuActionItem<LibraryModelID?>?
-}
+extension FocusedValues {}

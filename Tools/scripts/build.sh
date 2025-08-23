@@ -33,5 +33,4 @@ NJOB="$(max 1 "$(($NCPU / 2))")"
 runmake () {
   make -j"$NJOB"
   make install
-  # make clean
 }

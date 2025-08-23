@@ -14,9 +14,7 @@ struct MenuItemView<I, Label>: View where I: Equatable, Label: View {
   private let label: Label
 
   var body: some View {
-    Button {
-      item()
-    } label: {
+    Button(action: item.action.action) {
       label
     }
     .disabled(!item.isEnabled)
