@@ -161,37 +161,6 @@ extension URLSource: SecurityScopedResource {
   }
 }
 
-struct URLSourceDocument {
-  let source: URLSource
-  let relative: URLSource?
-}
-
-extension URLSourceDocument: Sendable {}
-
-extension URLSourceDocument: SecurityScopedResource {
-  struct Scope {
-    let source: URLSource.Scope
-    let relative: URLSource.Scope?
-  }
-
-  func startSecurityScope() -> Scope {
-    let relative = relative?.startSecurityScope()
-    let source = source.startSecurityScope()
-
-    return Scope(source: source, relative: relative)
-  }
-
-  func endSecurityScope(_ scope: Scope) {
-    source.endSecurityScope(scope.source)
-
-    guard let scope = scope.relative else {
-      return
-    }
-
-    relative?.endSecurityScope(scope)
-  }
-}
-
 extension KeyedEncodingContainer {
   mutating func encode(_ value: URL.BookmarkCreationOptions, forKey key: KeyedEncodingContainer<K>.Key) throws {
     try self.encode(value.rawValue, forKey: key)

@@ -18,13 +18,13 @@ extension URL {
   #if DEBUG
   static let dataDirectory = Self.applicationSupportDirectory.appending(
     components: Bundle.appID, "DebugData",
-    directoryHint: .isDirectory
+    directoryHint: .isDirectory,
   )
 
   #else
   static let dataDirectory = Self.applicationSupportDirectory.appending(
     components: Bundle.appID, "Data",
-    directoryHint: .isDirectory
+    directoryHint: .isDirectory,
   )
 
   #endif

@@ -616,10 +616,10 @@ struct LibraryView: View {
         NSWorkspace.shared.activateFileViewerSelecting(urls)
       }
     } primaryAction: { ids in
-      guard let track = library.tracks.filter(ids: ids).first else {
-        return
-      }
-
+//      guard let track = library.tracks.filter(ids: ids).first else {
+//        return
+//      }
+//
 //      Task {
 //        await Self.play(track: track)
 //      }
