@@ -138,6 +138,7 @@ func read(
   codec: UnsafePointer<AVCodec>!,
   frame: UnsafeMutablePointer<AVFrame>!,
   scaleFrame: UnsafeMutablePointer<AVFrame>!,
+  scaleContext: UnsafeMutablePointer<SwsContext>!,
 ) throws(FFError) -> CGImage? {
   try packetFromData(packet, data: data, size: bytes)
 
@@ -146,14 +147,13 @@ func read(
   try sendPacket(codecContext.context, packet: packet)
   try receiveFrame(codecContext.context, frame: frame)
 
-  let scaleContext = FFScaleContext()
   let pixelFormat = AV_PIX_FMT_RGBA
   let pixelFormatDescriptor = av_pix_fmt_desc_get(pixelFormat)
   scaleFrame.pointee.width = frame.pointee.width
   scaleFrame.pointee.height = frame.pointee.height
   scaleFrame.pointee.format = pixelFormat.rawValue
 
-  try SampledFFmpeg.scaleFrame(scaleContext.context, source: frame, destination: scaleFrame)
+  try SampledFFmpeg.scaleFrame(scaleContext, source: frame, destination: scaleFrame)
 
   return read(frame: scaleFrame, pixelFormatDescriptor: pixelFormatDescriptor)
 }
@@ -649,6 +649,7 @@ final class LibraryModel {
             let packet = FFPacket()
             let frame = FFFrame()
             let scaleFrame = FFFrame()
+            let scaleContext = FFScaleContext()
 
             do {
               image = try read(
@@ -659,6 +660,7 @@ final class LibraryModel {
                 codec: avcodec_find_decoder(albumArtwork.albumArtwork.format!.codecID),
                 frame: frame.frame,
                 scaleFrame: scaleFrame.frame,
+                scaleContext: scaleContext.context,
               )
             } catch {
               // TODO: Elaborate.
