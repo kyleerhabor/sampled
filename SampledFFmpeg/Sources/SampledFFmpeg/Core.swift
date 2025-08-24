@@ -40,6 +40,15 @@ public func streams(_ context: UnsafePointer<AVFormatContext>!) -> UnsafeBufferP
 
 // MARK: -
 
+// I would make this a class, but deinit doesn't seem to play nicely with av_freep(_:).
+public func allocateMemory(bytes: Int) -> UnsafeMutableRawPointer! {
+  guard let allocatedMemory = av_malloc(bytes) else {
+    fatalError()
+  }
+
+  return allocatedMemory
+}
+
 public func openInput(
   _ context: UnsafeMutablePointer<UnsafeMutablePointer<AVFormatContext>?>!,
   at url: UnsafePointer<CChar>!
@@ -90,7 +99,7 @@ public func findStreamInfo(_ context: UnsafeMutablePointer<AVFormatContext>!) th
 public func findBestStream(
   _ context: UnsafeMutablePointer<AVFormatContext>!,
   type: CFFmpeg.AVMediaType,
-  decoder: UnsafeMutablePointer<UnsafePointer<AVCodec>?>!
+  decoder: UnsafeMutablePointer<UnsafePointer<AVCodec>?>!,
 ) throws(FFError) -> Int32 {
   let result = av_find_best_stream(context, type, -1, -1, decoder, 0)
 
@@ -210,6 +219,18 @@ public func resampleFrame(
   destination.pointee.format = sampleFormat
 
   try resampleFrame(context, source: source, destination: destination)
+}
+
+public func packetFromData(
+  _ packet: UnsafeMutablePointer<AVPacket>!,
+  data: UnsafeMutablePointer<UInt8>!,
+  size: Int32,
+) throws(FFError) {
+  let status = av_packet_from_data(packet, data, size)
+
+  guard status == FFSTATUS_OK else {
+    throw FFError(code: FFError.Code(rawValue: status))
+  }
 }
 
 extension AVChannelLayout {
@@ -412,6 +433,11 @@ public class FFResampleContext {
 extension CFFmpeg.AVMediaType {
   public static let audio = AVMEDIA_TYPE_AUDIO
   public static let video = AVMEDIA_TYPE_VIDEO
+}
+
+extension AVCodecID {
+  public static let png = AV_CODEC_ID_PNG
+  public static let mjpeg = AV_CODEC_ID_MJPEG
 }
 
 // I'm not sure if libavutil's AVDictionary keys are unique.

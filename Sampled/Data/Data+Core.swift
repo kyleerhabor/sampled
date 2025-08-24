@@ -100,7 +100,6 @@ let connection = Once {
 
     try db.create(table: LibraryTrackAlbumArtworkRecord.databaseTableName) { table in
       table.primaryKey(Column.rowID.name, .integer)
-
       table
         .column(LibraryTrackAlbumArtworkRecord.Columns.data.name, .blob)
         .notNull()
@@ -110,6 +109,10 @@ let connection = Once {
         .column(LibraryTrackAlbumArtworkRecord.Columns.hash.name, .blob)
         .notNull()
         .unique()
+
+      table
+        .column(LibraryTrackAlbumArtworkRecord.Columns.format.name, .blob)
+        .notNull()
     }
 
     try db.create(table: LibraryTrackRecord.databaseTableName) { table in

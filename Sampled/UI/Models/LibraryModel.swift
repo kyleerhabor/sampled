@@ -61,29 +61,6 @@ private func readAttachedPicturePacket(
   return UnsafePointer(packet)
 }
 
-private func readAttachedPicture(
-  _ context: UnsafeMutablePointer<AVFormatContext>!,
-  packet: UnsafeMutablePointer<AVPacket>!,
-) throws(FFError) -> UnsafePointer<AVPacket>? {
-  var decoder: UnsafePointer<AVCodec>!
-  let streami: Int32
-
-  do {
-    streami = try findBestStream(context, type: .video, decoder: &decoder)
-  } catch let error where error.code == .streamNotFound {
-    Logger.model.error("Could not find best video stream for attached picture")
-
-    return nil
-  }
-
-  let stream = context.pointee.streams[Int(streami)]!
-  let codecContext = FFCodecContext(codec: decoder)
-  try copyCodecParameters(codecContext.context, params: stream.pointee.codecpar)
-  try openCodec(codecContext.context, codec: decoder)
-
-  return try readAttachedPicturePacket(context, stream: stream, packet: packet)
-}
-
 struct LibraryModelTrackInfo {
   let track: LibraryTrackRecord
   let bookmark: BookmarkRecord
@@ -95,14 +72,90 @@ private func read(
   _ formatContext: UnsafeMutablePointer<AVFormatContext>!,
   packet: UnsafeMutablePointer<AVPacket>!,
 ) throws(FFError) -> LibraryTrackAlbumArtworkRecord? {
-  guard let packet = try readAttachedPicture(formatContext, packet: packet) else {
+  var decoder: UnsafePointer<AVCodec>!
+  let streami: Int32
+
+  do {
+    streami = try findBestStream(formatContext, type: .video, decoder: &decoder)
+  } catch let error where error.code == .streamNotFound {
+    Logger.model.error("Could not find best video stream for attached picture")
+
     return nil
   }
 
-  let data = UnsafeBufferPointer(start: packet.pointee.data, count: Int(packet.pointee.size))
+  let stream = formatContext.pointee.streams[Int(streami)]!
+  let codecContext = FFCodecContext(codec: decoder)
+  try copyCodecParameters(codecContext.context, params: stream.pointee.codecpar)
+  try openCodec(codecContext.context, codec: decoder)
+
+  let attachedPicture = try readAttachedPicturePacket(formatContext, stream: stream, packet: packet)
+  let codecID = stream.pointee.codecpar.pointee.codec_id
+
+  guard let format = LibraryTrackAlbumArtworkFormat(codecID: codecID) else {
+    Logger.model.log("Could not create library track album artwork format from codec ID \(codecID.rawValue) (\(String(cString: avcodec_get_name(codecID))))")
+
+    return nil
+  }
+
+  let data = UnsafeBufferPointer(start: attachedPicture.pointee.data, count: Int(attachedPicture.pointee.size))
   let hash = hash(data: data)
 
-  return LibraryTrackAlbumArtworkRecord(data: Data(data), hash: hash)
+  return LibraryTrackAlbumArtworkRecord(data: Data(data), hash: hash, format: format)
+}
+
+// TODO: Rename.
+func read(frame: UnsafePointer<AVFrame>!, pixelFormatDescriptor: UnsafePointer<AVPixFmtDescriptor>!) -> CGImage? {
+  // TODO: Figure out how to use a stride instead of reading the buffer directly.
+  //
+  // This function also carries the assumption that all the data is in the first element (i.e., AV_PIX_FMT_RGBA).
+  let buffer = frame.pointee.buf.0!
+  let data = Data(bytes: buffer.pointee.data, count: buffer.pointee.size)
+  let bitsPerPixel = Int(av_get_bits_per_pixel(pixelFormatDescriptor))
+
+  guard let provider = CGDataProvider(data: data as CFData) else {
+    return nil
+  }
+
+  return CGImage(
+    width: Int(frame.pointee.width),
+    height: Int(frame.pointee.height),
+    bitsPerComponent: Int(bitsPerPixel / Int(pixelFormatDescriptor.pointee.nb_components)),
+    bitsPerPixel: bitsPerPixel,
+    bytesPerRow: Int(frame.pointee.linesize.0),
+    space: CGColorSpace(name: CGColorSpace.sRGB)!,
+    bitmapInfo: CGBitmapInfo(rawValue: CGImageAlphaInfo.premultipliedLast.rawValue),
+    provider: provider,
+    decode: nil,
+    shouldInterpolate: true,
+    intent: .defaultIntent,
+  )
+}
+
+func read(
+  packet: UnsafeMutablePointer<AVPacket>!,
+  data: UnsafeMutablePointer<UInt8>!,
+  bytes: Int32,
+  codec: UnsafePointer<AVCodec>!,
+  frame: UnsafeMutablePointer<AVFrame>!,
+  scaleFrame: UnsafeMutablePointer<AVFrame>!,
+) throws(FFError) -> CGImage? {
+  try packetFromData(packet, data: data, size: bytes)
+
+  let codecContext = FFCodecContext(codec: codec)
+  try openCodec(codecContext.context, codec: codec)
+  try sendPacket(codecContext.context, packet: packet)
+  try receiveFrame(codecContext.context, frame: frame)
+
+  let scaleContext = FFScaleContext()
+  let pixelFormat = AV_PIX_FMT_RGBA
+  let pixelFormatDescriptor = av_pix_fmt_desc_get(pixelFormat)
+  scaleFrame.pointee.width = frame.pointee.width
+  scaleFrame.pointee.height = frame.pointee.height
+  scaleFrame.pointee.format = pixelFormat.rawValue
+
+  try SampledFFmpeg.scaleFrame(scaleContext.context, source: frame, destination: scaleFrame)
+
+  return read(frame: scaleFrame, pixelFormatDescriptor: pixelFormatDescriptor)
 }
 
 struct EventStreamEventFlags: OptionSet {
@@ -230,7 +283,7 @@ final class LibraryTrackModel {
   var albumName: String?
   var albumArtistName: String?
   var albumDate: Date?
-  var albumArtworkData: Data?
+  var albumArtworkImage: NSImage?
   var albumArtworkHash: Data?
   var trackNumber: Int?
   var trackTotal: Int?
@@ -246,7 +299,7 @@ final class LibraryTrackModel {
     albumName: String?,
     albumArtistName: String?,
     albumDate: Date?,
-    albumArtworkData: Data?,
+    albumArtworkImage: NSImage?,
     albumArtworkHash: Data?,
     trackNumber: Int?,
     trackTotal: Int?,
@@ -261,7 +314,7 @@ final class LibraryTrackModel {
     self.albumName = albumName
     self.albumArtistName = albumArtistName
     self.albumDate = albumDate
-    self.albumArtworkData = albumArtworkData
+    self.albumArtworkImage = albumArtworkImage
     self.albumArtworkHash = albumArtworkHash
     self.trackNumber = trackNumber
     self.trackTotal = trackTotal
@@ -412,7 +465,11 @@ final class LibraryModel {
                   .including(
                     optional: LibraryTrackRecord.albumArtworkAssociation
                       .forKey(LibraryModelLoadConfigurationMainLibraryTrackInfo.CodingKeys.albumArtwork)
-                      .select(LibraryTrackAlbumArtworkRecord.Columns.data, LibraryTrackAlbumArtworkRecord.Columns.hash),
+                      .select(
+                        LibraryTrackAlbumArtworkRecord.Columns.data,
+                        LibraryTrackAlbumArtworkRecord.Columns.hash,
+                        LibraryTrackAlbumArtworkRecord.Columns.format,
+                      ),
                   ),
               ),
           )
@@ -567,20 +624,74 @@ final class LibraryModel {
           continue
         }
 
-        self.tracks = tracks.reduce(
+        // TODO: Extract.
+        struct Track2 {
+          let track: LibraryModelLoadConfigurationMainLibraryTrackInfo
+          let source: URLSource
+          let image: NSImage?
+        }
+
+        let tracks2 = tracks.map { track in
+          let image: CGImage?
+
+          if let albumArtwork = track.track.albumArtwork {
+            // If we wanted to optimize this, we could perform memoization.
+            var data = albumArtwork.albumArtwork.data!
+            let allocatedMemory = allocateMemory(bytes: data.count)
+            let allocated = data.withUnsafeMutableBytes { data in
+              allocatedMemory!.initializeMemory(
+                as: UInt8.self,
+                from: data.baseAddress!.assumingMemoryBound(to: UInt8.self),
+                count: data.count,
+              )
+            }
+
+            let packet = FFPacket()
+            let frame = FFFrame()
+            let scaleFrame = FFFrame()
+
+            do {
+              image = try read(
+                packet: packet.packet,
+                data: allocated,
+                // This is safe since it's from AVPacket.size, which is int.
+                bytes: Int32(data.count),
+                codec: avcodec_find_decoder(albumArtwork.albumArtwork.format!.codecID),
+                frame: frame.frame,
+                scaleFrame: scaleFrame.frame,
+              )
+            } catch {
+              // TODO: Elaborate.
+              Logger.model.error("\(error)")
+
+              image = nil
+            }
+          } else {
+            image = nil
+          }
+
+          return Track2(
+            track: track.track,
+            source: track.source,
+            image: image.map { NSImage(cgImage: $0, size: .zero) },
+          )
+        }
+
+        self.tracks = tracks2.reduce(
           into: IdentifiedArrayOf<LibraryTrackModel>(minimumCapacity: tracks.count)
         ) { partialResult, track in
           let rowID = track.track.track.rowID!
           let duration = track.track.track.duration!
           let model = self.tracks[id: rowID].map { model in
             model.title = track.track.track.title
+            model.source = track.source
             model.duration = Duration.seconds(duration)
             model.artistName = track.track.track.artistName
             model.albumName = track.track.track.albumName
             model.albumArtistName = track.track.track.albumArtistName
             model.albumDate = track.track.track.albumDate
-            model.albumArtworkData = track.track.albumArtwork?.albumArtwork.data
-            model.albumArtworkHash = track.track.albumArtwork?.albumArtwork.hash
+            model.albumArtworkImage = track.image
+            model.albumArtworkHash = track.image == nil ? nil : track.track.albumArtwork?.albumArtwork.hash
             model.trackNumber = track.track.track.trackNumber
             model.trackTotal = track.track.track.trackTotal
             model.discNumber = track.track.track.discNumber
@@ -596,8 +707,8 @@ final class LibraryModel {
             albumName: track.track.track.albumName,
             albumArtistName: track.track.track.albumArtistName,
             albumDate: track.track.track.albumDate,
-            albumArtworkData: track.track.albumArtwork?.albumArtwork.data,
-            albumArtworkHash: track.track.albumArtwork?.albumArtwork.hash,
+            albumArtworkImage: track.image,
+            albumArtworkHash: track.image == nil ? nil : track.track.albumArtwork?.albumArtwork.hash,
             trackNumber: track.track.track.trackNumber,
             trackTotal: track.track.track.trackTotal,
             discNumber: track.track.track.discNumber,

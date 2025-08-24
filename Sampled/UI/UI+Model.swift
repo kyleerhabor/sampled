@@ -5,6 +5,7 @@
 //  Created by Kyle Erhabor on 8/19/25.
 //
 
+import CFFmpeg
 import CryptoKit
 import Foundation
 
@@ -13,4 +14,21 @@ import Foundation
 
 func hash(data: some DataProtocol) -> Data {
   Data(SHA256.hash(data: data))
+}
+
+extension LibraryTrackAlbumArtworkFormat {
+  init?(codecID: AVCodecID) {
+    switch codecID {
+      case .png: self = .png
+      case .mjpeg: self = .jpeg
+      default: return nil
+    }
+  }
+
+  var codecID: AVCodecID {
+    switch self {
+      case .png: .png
+      case .jpeg: .mjpeg
+    }
+  }
 }

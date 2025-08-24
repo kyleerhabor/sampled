@@ -131,21 +131,29 @@ extension LibraryRecord: TableRecord {
   }
 }
 
+enum LibraryTrackAlbumArtworkFormat: Int {
+  case png, jpeg
+}
+
+extension LibraryTrackAlbumArtworkFormat: Codable {}
+
 struct LibraryTrackAlbumArtworkRecord {
   var rowID: RowID? = nil
   let data: Data?
   let hash: Data?
+  let format: LibraryTrackAlbumArtworkFormat?
 }
 
 extension LibraryTrackAlbumArtworkRecord: Codable {
   enum CodingKeys: String, CodingKey {
     case rowID = "rowid",
-         data, hash
+         data, hash, format
   }
 
   enum Columns {
     static let data = Column(CodingKeys.data)
     static let hash = Column(CodingKeys.hash)
+    static let format = Column(CodingKeys.format)
   }
 }
 

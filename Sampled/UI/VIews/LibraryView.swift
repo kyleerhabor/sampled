@@ -650,14 +650,28 @@ struct LibraryView: View {
     .onChange(of: selection) {
       let tracks = library.tracks.filter(ids: selection)
       // Would reducing once optimize the performance?
-      //
-      // TODO: Handle infoTrack.albumArtwork.
       infoTrack.title = tracks.reduce(.empty) { $0.reduce(nextValue: $1.title) }
       infoTrack.duration = tracks.reduce(.empty) { $0.reduce(nextValue: $1.duration) }
       infoTrack.artistName = tracks.reduce(.empty) { $0.reduce(nextValue: $1.artistName) }
       infoTrack.albumName = tracks.reduce(.empty) { $0.reduce(nextValue: $1.albumName) }
       infoTrack.albumArtistName = tracks.reduce(.empty) { $0.reduce(nextValue: $1.albumArtistName) }
       infoTrack.albumDate = tracks.reduce(.empty) { $0.reduce(nextValue: $1.albumDate) }
+      infoTrack.albumArtwork = tracks.reduce(.empty) { partialResult, track in
+        let image: LibraryInfoTrackModelAlbumArtwork?
+
+        if let albumArtworkImage = track.albumArtworkImage,
+           let albumArtworkHash = track.albumArtworkHash {
+          image = LibraryInfoTrackModelAlbumArtwork(
+            image: albumArtworkImage,
+            hash: albumArtworkHash
+          )
+        } else {
+          image = nil
+        }
+
+        return partialResult.reduce(nextValue: image)
+      }
+
       infoTrack.trackNumber = tracks.reduce(.empty) { $0.reduce(nextValue: $1.trackNumber) }
       infoTrack.trackTotal = tracks.reduce(.empty) { $0.reduce(nextValue: $1.trackTotal) }
       infoTrack.discNumber = tracks.reduce(.empty) { $0.reduce(nextValue: $1.discNumber) }
