@@ -804,6 +804,7 @@
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		0030BAB82CD17B8C0053BB6E /* Documentation */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = Documentation; sourceTree = "<group>"; };
+		0063653B2E5BC3E80053563E /* Standard */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = Standard; sourceTree = "<group>"; };
 		00693F3E2E52CDBE008C7A38 /* Data */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = Data; sourceTree = "<group>"; };
 		00D98C492CAEE7050008E0F1 /* Tools */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = Tools; sourceTree = "<group>"; };
 		00D98EB82CAF3D3C0008E0F1 /* UI */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = UI; sourceTree = "<group>"; };
@@ -2265,6 +2266,7 @@
 			children = (
 				00D98E5A2CAF3D050008E0F1 /* SampledApp.swift */,
 				00D98E5B2CAF3D050008E0F1 /* Standard.swift */,
+				0063653B2E5BC3E80053563E /* Standard */,
 				00D98EB82CAF3D3C0008E0F1 /* UI */,
 				00693F3E2E52CDBE008C7A38 /* Data */,
 				00D98E562CAF3D050008E0F1 /* Preview Content */,
@@ -2319,6 +2321,7 @@
 				0034E6AF2E5244900070A77A /* PBXTargetDependency */,
 			);
 			fileSystemSynchronizedGroups = (
+				0063653B2E5BC3E80053563E /* Standard */,
 				00693F3E2E52CDBE008C7A38 /* Data */,
 				00D98EB82CAF3D3C0008E0F1 /* UI */,
 			);

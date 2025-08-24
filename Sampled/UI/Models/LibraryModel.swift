@@ -37,7 +37,7 @@ private func duration(
 
 private func readAttachedPicturePacket(
   _ context: UnsafeMutablePointer<AVFormatContext>!,
-  stream: UnsafeMutablePointer<AVStream>,
+  stream: UnsafeMutablePointer<AVStream>!,
   packet: UnsafeMutablePointer<AVPacket>!,
 ) throws(FFError) -> UnsafePointer<AVPacket> {
   if stream.pointee.streamDisposition.contains(.attachedPicture) {
@@ -447,6 +447,7 @@ final class LibraryModel {
                   .select(
                     Column.rowID,
                     LibraryTrackRecord.Columns.title,
+                    LibraryTrackRecord.Columns.library,
                     LibraryTrackRecord.Columns.duration,
                     LibraryTrackRecord.Columns.artistName,
                     LibraryTrackRecord.Columns.albumName,
@@ -579,7 +580,6 @@ final class LibraryModel {
           return Track(
             track: track,
             bookmark: BookmarkRecord(
-              rowID: nil,
               data: bookmark.data,
               options: options,
               hash: hash(data: bookmark.data),
@@ -790,7 +790,6 @@ final class LibraryModel {
         }
 
         let id = configuration.mainLibrary.library.rowID!
-        let bookmarkID = configuration.mainLibrary.bookmark.bookmark.rowID!
         let bookmarkOptions = configuration.mainLibrary.bookmark.bookmark.options!
         let assigned: AssignedBookmark
 
@@ -868,6 +867,7 @@ final class LibraryModel {
         self.eventStream = stream
 
         Task {
+          // TODO: Handle tracks that are removed from the library.
           for await element in stream.stream {
             let source = URLSource(url: assigned.url, options: bookmarkOptions)
             let tracks = source.accessingSecurityScopedResource {
@@ -919,7 +919,7 @@ final class LibraryModel {
                 do {
                   return try openingInput(
                     &formatContext.context,
-                    at: urb.url.pathString
+                    at: urb.url.pathString,
                   ) { formatContext -> LibraryModelTrackInfo? in
                     do {
                       // We need this for formats like FLAC.
@@ -992,7 +992,7 @@ final class LibraryModel {
                             number = first
                             total = nil
                           default:
-                            fatalError("Reached supposedly unreachable code")
+                            unreachable()
                         }
 
                         return Position(number: number, total: total)
@@ -1066,7 +1066,7 @@ final class LibraryModel {
                         data: urb.bookmark.data,
                         options: urb.bookmark.options,
                         hash: hash(data: urb.bookmark.data),
-                        relative: bookmarkID,
+                        relative: configuration.mainLibrary.bookmark.bookmark.rowID,
                       ),
                       artwork: artwork,
                     )

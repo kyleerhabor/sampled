@@ -51,7 +51,7 @@ public func allocateMemory(bytes: Int) -> UnsafeMutableRawPointer! {
 
 public func openInput(
   _ context: UnsafeMutablePointer<UnsafeMutablePointer<AVFormatContext>?>!,
-  at url: UnsafePointer<CChar>!
+  at url: UnsafePointer<CChar>!,
 ) throws(FFError) {
   let status = avformat_open_input(context, url, nil, nil)
 
@@ -63,7 +63,7 @@ public func openInput(
 public func openingInput<T>(
   _ context: UnsafeMutablePointer<UnsafeMutablePointer<AVFormatContext>?>!,
   at url: UnsafePointer<CChar>!,
-  _ body: (UnsafeMutablePointer<AVFormatContext>?) throws -> T
+  _ body: (UnsafeMutablePointer<AVFormatContext>?) throws -> T,
 ) throws -> T where T: ~Copyable {
   try openInput(context, at: url)
 
@@ -77,7 +77,7 @@ public func openingInput<T>(
 public func openingInput<T>(
   _ context: UnsafeMutablePointer<UnsafeMutablePointer<AVFormatContext>?>!,
   at url: UnsafePointer<CChar>!,
-  _ body: (UnsafeMutablePointer<AVFormatContext>?) throws(FFError) -> T
+  _ body: (UnsafeMutablePointer<AVFormatContext>?) throws(FFError) -> T,
 ) throws(FFError) -> T where T: ~Copyable {
   try openInput(context, at: url)
 
@@ -112,7 +112,7 @@ public func findBestStream(
 
 public func readFrame(
   _ context: UnsafeMutablePointer<AVFormatContext>!,
-  into packet: UnsafeMutablePointer<AVPacket>!
+  into packet: UnsafeMutablePointer<AVPacket>!,
 ) throws(FFError) {
   let status = av_read_frame(context, packet)
 
@@ -123,7 +123,7 @@ public func readFrame(
 
 public func copyCodecParameters(
   _ context: UnsafeMutablePointer<AVCodecContext>!,
-  params: UnsafePointer<AVCodecParameters>!
+  params: UnsafePointer<AVCodecParameters>!,
 ) throws(FFError) {
   let result = avcodec_parameters_to_context(context, params)
 
@@ -134,7 +134,7 @@ public func copyCodecParameters(
 
 public func openCodec(
   _ context: UnsafeMutablePointer<AVCodecContext>!,
-  codec: UnsafePointer<AVCodec>!
+  codec: UnsafePointer<AVCodec>!,
 ) throws(FFError) {
   let status = avcodec_open2(context, codec, nil)
 
@@ -145,7 +145,7 @@ public func openCodec(
 
 public func sendPacket(
   _ context: UnsafeMutablePointer<AVCodecContext>!,
-  packet: UnsafePointer<AVPacket>!
+  packet: UnsafePointer<AVPacket>!,
 ) throws(FFError) {
   let status = avcodec_send_packet(context, packet)
 
@@ -161,7 +161,7 @@ public func sendPacket(
 
 public func receiveFrame(
   _ context: UnsafeMutablePointer<AVCodecContext>!,
-  frame: UnsafeMutablePointer<AVFrame>!
+  frame: UnsafeMutablePointer<AVFrame>!,
 ) throws(FFError) {
   let status = avcodec_receive_frame(context, frame)
 
@@ -197,7 +197,7 @@ public func configureResampler(
 public func resampleFrame(
   _ context: OpaquePointer!,
   source: UnsafePointer<AVFrame>!,
-  destination: UnsafeMutablePointer<AVFrame>!
+  destination: UnsafeMutablePointer<AVFrame>!,
 ) throws(FFError) {
   let status = swr_convert_frame(context, destination, source)
 
@@ -212,7 +212,7 @@ public func resampleFrame(
   destination: UnsafeMutablePointer<AVFrame>!,
   channelLayout: AVChannelLayout,
   sampleRate: Int32,
-  sampleFormat: Int32
+  sampleFormat: Int32,
 ) throws(FFError) {
   destination.pointee.ch_layout = channelLayout
   destination.pointee.sample_rate = sampleRate
