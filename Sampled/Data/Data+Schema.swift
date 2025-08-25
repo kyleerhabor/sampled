@@ -179,6 +179,7 @@ struct LibraryTrackRecord {
   let library: RowID?
   let title: String?
   let duration: Double?
+  let isLiked: Bool?
   let artistName: String?
   let albumName: String?
   let albumArtistName: String?
@@ -196,6 +197,7 @@ extension LibraryTrackRecord: Codable {
   enum CodingKeys: String, CodingKey {
     case rowID = "rowid",
          bookmark, library, title, duration,
+         isLiked = "is_liked",
          artistName = "artist_name",
          albumName = "album_name",
          albumArtistName = "album_artist_name",
@@ -212,6 +214,7 @@ extension LibraryTrackRecord: Codable {
     static let library = Column(CodingKeys.library)
     static let title = Column(CodingKeys.title)
     static let duration = Column(CodingKeys.duration)
+    static let isLiked = Column(CodingKeys.isLiked)
     static let artistName = Column(CodingKeys.artistName)
     static let albumName = Column(CodingKeys.albumName)
     static let albumArtistName = Column(CodingKeys.albumArtistName)

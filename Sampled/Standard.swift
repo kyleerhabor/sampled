@@ -17,6 +17,16 @@ func unreachable() -> Never {
   fatalError("Reached supposedly unreachable code")
 }
 
+func setter<Object: AnyObject, Value>(
+  on keyPath: ReferenceWritableKeyPath<Object, Value>,
+  // Should we make this parameter anonymous?
+  value: Value,
+) -> (Object) -> Void {
+  { object in
+    object[keyPath: keyPath] = value
+  }
+}
+
 extension Duration {
   static let hour = Self.seconds(60 * 60)
 }
@@ -39,6 +49,12 @@ extension RangeReplaceableCollection {
   init(minimumCapacity capacity: Int) {
     self.init()
     self.reserveCapacity(capacity)
+  }
+}
+
+extension Set {
+  func isNonEmptySubset(of other: Self) -> Bool {
+    !self.isEmpty && self.isSubset(of: other)
   }
 }
 

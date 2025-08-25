@@ -608,8 +608,27 @@ struct LibraryView: View {
         LibraryTrackDurationView(duration: track.duration)
       }
       .alignment(.numeric)
+
+      TableColumn("Library.Column.Liked.Name"/*, sortUsing: KeyPathComparator(\.albumArtistName)*/) { track in
+        Image(systemName: "heart.fill")
+          .controlSize(.small)
+          .visible(track.isLiked)
+      }
     }
     .contextMenu { ids in
+      var isLiked: Bool {
+        ids.isNonEmptySubset(of: library.likedTrackIDs)
+      }
+
+      Button {
+        Task {
+          await library.setLiked(!isLiked, for: library.tracks.filter(ids: ids))
+        }
+      } label: {
+        // TODO: Localize.
+        Text(verbatim: isLiked ? "Unlike" : "Like")
+      }
+
       Button("Finder.Item.Show") {
         let urls = library.tracks.filter(ids: ids).map(\.source.url)
 

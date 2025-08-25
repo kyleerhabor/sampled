@@ -279,6 +279,7 @@ final class LibraryTrackModel {
   var source: URLSource
   var title: String?
   var duration: Duration
+  var isLiked: Bool
   var artistName: String?
   var albumName: String?
   var albumArtistName: String?
@@ -295,6 +296,7 @@ final class LibraryTrackModel {
     source: URLSource,
     title: String?,
     duration: Duration,
+    isLiked: Bool,
     artistName: String?,
     albumName: String?,
     albumArtistName: String?,
@@ -310,6 +312,7 @@ final class LibraryTrackModel {
     self.source = source
     self.title = title
     self.duration = duration
+    self.isLiked = isLiked
     self.artistName = artistName
     self.albumName = albumName
     self.albumArtistName = albumArtistName
@@ -427,6 +430,7 @@ extension LibraryModelLoadDataConfigurationInfo: Equatable, FetchableRecord {}
 @MainActor
 final class LibraryModel {
   var tracks = IdentifiedArrayOf<LibraryTrackModel>()
+  var likedTrackIDs = Set<LibraryTrackModel.ID>()
   @ObservationIgnored private var eventStream: AsyncStreamContinuationPair<LibraryModelEventStreamElement>?
 
   func load() async {
@@ -449,6 +453,7 @@ final class LibraryModel {
                     LibraryTrackRecord.Columns.title,
                     LibraryTrackRecord.Columns.library,
                     LibraryTrackRecord.Columns.duration,
+                    LibraryTrackRecord.Columns.isLiked,
                     LibraryTrackRecord.Columns.artistName,
                     LibraryTrackRecord.Columns.albumName,
                     LibraryTrackRecord.Columns.albumArtistName,
@@ -602,6 +607,7 @@ final class LibraryModel {
                   library: track.track.track.library,
                   title: track.track.track.title,
                   duration: track.track.track.duration,
+                  isLiked: track.track.track.isLiked,
                   artistName: track.track.track.artistName,
                   albumName: track.track.track.albumName,
                   albumArtistName: track.track.track.albumArtistName,
@@ -684,16 +690,19 @@ final class LibraryModel {
         ) { partialResult, track in
           let rowID = track.track.track.rowID!
           let duration = track.track.track.duration!
+          let isLiked = track.track.track.isLiked!
+          let albumArtworkHash = track.image == nil ? nil : track.track.albumArtwork?.albumArtwork.hash
           let model = self.tracks[id: rowID].map { model in
             model.title = track.track.track.title
             model.source = track.source
             model.duration = Duration.seconds(duration)
+            model.isLiked = isLiked
             model.artistName = track.track.track.artistName
             model.albumName = track.track.track.albumName
             model.albumArtistName = track.track.track.albumArtistName
             model.albumDate = track.track.track.albumDate
             model.albumArtworkImage = track.image
-            model.albumArtworkHash = track.image == nil ? nil : track.track.albumArtwork?.albumArtwork.hash
+            model.albumArtworkHash = albumArtworkHash
             model.trackNumber = track.track.track.trackNumber
             model.trackTotal = track.track.track.trackTotal
             model.discNumber = track.track.track.discNumber
@@ -705,12 +714,13 @@ final class LibraryModel {
             source: track.source,
             title: track.track.track.title,
             duration: Duration.seconds(duration),
+            isLiked: isLiked,
             artistName: track.track.track.artistName,
             albumName: track.track.track.albumName,
             albumArtistName: track.track.track.albumArtistName,
             albumDate: track.track.track.albumDate,
             albumArtworkImage: track.image,
-            albumArtworkHash: track.image == nil ? nil : track.track.albumArtwork?.albumArtwork.hash,
+            albumArtworkHash: albumArtworkHash,
             trackNumber: track.track.track.trackNumber,
             trackTotal: track.track.track.trackTotal,
             discNumber: track.track.track.discNumber,
@@ -719,6 +729,8 @@ final class LibraryModel {
 
           partialResult.append(model)
         }
+
+        self.likedTrackIDs = Set(self.tracks.filter(\.isLiked).map(\.id))
       }
     } catch {
       Logger.model.error("Could not observe changes to library folder in database: \(error)")
@@ -726,6 +738,53 @@ final class LibraryModel {
       return
     }
   }
+
+  func setLiked(_ flag: Bool, for tracks: [LibraryTrackModel]) async {
+    tracks.forEach(setter(on: \.isLiked, value: flag))
+
+    let conn: DatabasePool
+
+    do {
+      conn = try await connection()
+    } catch {
+      Logger.model.error("Could not create database connection: \(error)")
+
+      return
+    }
+
+    let ids = tracks.map(\.id)
+
+    do {
+      try await conn.write { db in
+        try ids.forEach { id in
+          // TODO: Decide whether or not to fetch and update all columns or update select columns.
+          let track = LibraryTrackRecord(
+            rowID: id,
+            bookmark: nil,
+            library: nil,
+            title: nil,
+            duration: nil,
+            isLiked: flag,
+            artistName: nil,
+            albumName: nil,
+            albumArtistName: nil,
+            albumDate: nil,
+            albumArtwork: nil,
+            trackNumber: nil,
+            trackTotal: nil,
+            discNumber: nil,
+            discTotal: nil,
+          )
+
+          try track.update(db, columns: [LibraryTrackRecord.Columns.isLiked])
+        }
+      }
+    } catch {
+      Logger.model.error("Could not write to database: \(error)")
+    }
+  }
+
+  // MARK: -
 
   // TODO: Rename.
   func load(enumerator: FileManager.DirectoryEnumerator, relativeTo relative: URL) -> [URLBookmark] {
@@ -1052,6 +1111,7 @@ final class LibraryModel {
                         library: id,
                         title: title,
                         duration: duration,
+                        isLiked: false,
                         artistName: artistName,
                         albumName: albumName,
                         albumArtistName: albumArtistName,
@@ -1060,7 +1120,7 @@ final class LibraryModel {
                         trackNumber: track?.number,
                         trackTotal: track?.total ?? trackTotal,
                         discNumber: disc?.number,
-                        discTotal: track?.total ?? discTotal,
+                        discTotal: disc?.total ?? discTotal,
                       ),
                       bookmark: BookmarkRecord(
                         data: urb.bookmark.data,
@@ -1101,6 +1161,7 @@ final class LibraryModel {
                     library: track.track.library,
                     title: track.track.title,
                     duration: track.track.duration,
+                    isLiked: track.track.isLiked,
                     artistName: track.track.artistName,
                     albumName: track.track.albumName,
                     albumArtistName: track.track.albumArtistName,
@@ -1112,7 +1173,7 @@ final class LibraryModel {
                     discTotal: track.track.discTotal,
                   )
 
-                  try track.upsert(db)
+                  _ = try track.upsertAndFetch(db) { _ in [LibraryTrackRecord.Columns.isLiked.noOverwrite] }
                 }
               }
             } catch {

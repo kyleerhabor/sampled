@@ -437,7 +437,7 @@ extension CFFmpeg.AVMediaType {
 
 extension AVCodecID {
   public static let png = AV_CODEC_ID_PNG
-  public static let mjpeg = AV_CODEC_ID_MJPEG
+  public static let mjpeg = AV_CODEC_ID_MJPEG // Motion JPEG
 }
 
 // I'm not sure if libavutil's AVDictionary keys are unique.

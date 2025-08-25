@@ -69,7 +69,6 @@ let connection = Once {
   migrator.registerMigration("v1") { db in
     try db.create(table: BookmarkRecord.databaseTableName) { table in
       table.primaryKey(Column.rowID.name, .integer)
-
       table
         .column(BookmarkRecord.Columns.data.name, .blob)
         .notNull()
@@ -132,6 +131,10 @@ let connection = Once {
 
       table
         .column(LibraryTrackRecord.Columns.duration.name, .integer)
+        .notNull()
+
+      table
+        .column(LibraryTrackRecord.Columns.isLiked.name, .boolean)
         .notNull()
 
       table.column(LibraryTrackRecord.Columns.artistName.name, .text)

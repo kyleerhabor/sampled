@@ -71,6 +71,16 @@
         }
       }
     },
+    "Library.Column.Liked.Name" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Liked"
+          }
+        }
+      }
+    },
     "Library.Column.Title.Name" : {
       "localizations" : {
         "en" : {
