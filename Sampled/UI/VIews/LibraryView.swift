@@ -20,31 +20,6 @@ import Synchronization
 // In spite of this, file importers don't recognize selecting folders. folder works around this by making it explicit.
 let libraryContentTypes: [UTType] = [.item, .folder]
 
-struct LibraryTrackPositionItemView: View {
-  let item: Int
-
-  var body: some View {
-    Text(item, format: .number.grouping(.never))
-      .monospacedDigit()
-  }
-}
-
-struct LibraryTrackDurationView: View {
-  let duration: Duration
-
-  var body: some View {
-    Text(
-      duration,
-      format: .time(
-        pattern: duration >= .hour
-        ? .hourMinuteSecond(padHourToLength: 2, roundFractionalSeconds: .towardZero)
-        : .minuteSecond(padMinuteToLength: 2, roundFractionalSeconds: .towardZero)
-      )
-    )
-    .monospacedDigit()
-  }
-}
-
 // TODO: Replace with dispatch queue or some other lock
 //
 // Actors are just not it.
@@ -546,37 +521,57 @@ let player = AudioPlayer()
 //  }
 //}
 
-struct LibraryYearView: View {
-  let yearDate: Date
+// Formatting is slow, but not to the point where I feel it's warranted to move it to the model.
+
+struct LibraryTrackPositionItemView: View {
+  let item: Int
 
   var body: some View {
-    Text(yearDate, format: .dateTime.year())
+    Text(item, format: .number.grouping(.never))
+      .monospacedDigit()
+  }
+}
+
+struct LibraryAlbumYearView: View {
+  let albumDate: Date
+
+  var body: some View {
+    Text(albumDate, format: .dateTime.year())
       .monospacedDigit()
       .environment(\.timeZone, .gmt)
+  }
+}
+
+struct LibraryTrackDurationView: View {
+  let duration: Duration
+
+  var body: some View {
+    Text(
+      duration,
+      format: .time(
+        pattern: duration >= .hour
+        ? .hourMinuteSecond(padHourToLength: 2, roundFractionalSeconds: .towardZero)
+        : .minuteSecond(padMinuteToLength: 2, roundFractionalSeconds: .towardZero),
+      ),
+    )
+    .monospacedDigit()
   }
 }
 
 struct LibraryView: View {
   @Environment(LibraryModel.self) private var library
   @State private var selection = Set<LibraryTrackModel.ID>()
-  @State private var selectedTracks = [LibraryTrackModel]()
   @State private var infoTrack = LibraryInfoTrackModel()
-  @State private var sortOrder: [KeyPathComparator<LibraryTrackModel>] = [
-//    KeyPathComparator(\.albumName),
-//    KeyPathComparator(\.discNumber),
-//    KeyPathComparator(\.trackNumber),
-//    KeyPathComparator(\.title),
-  ]
 
   var body: some View {
-    Table(library.tracks, selection: $selection, sortOrder: $sortOrder) {
-      TableColumn("Library.Column.TrackNumber.Name"/*, sortUsing: KeyPathComparator(\.trackNumber)*/) { track in
+    Table(library.tracks, selection: $selection) {
+      TableColumn("Library.Column.TrackNumber.Name") { track in
         LibraryTrackPositionItemView(item: track.trackNumber ?? 0)
           .visible(track.trackNumber != nil)
       }
       .alignment(.numeric)
 
-      TableColumn("Library.Column.DiscNumber.Name"/*, sortUsing: KeyPathComparator(\.discNumber)*/) { track in
+      TableColumn("Library.Column.DiscNumber.Name") { track in
         LibraryTrackPositionItemView(item: track.discNumber ?? 0)
           .visible(track.discNumber != nil)
       }
@@ -586,30 +581,30 @@ struct LibraryView: View {
         Text(track.title ?? "")
       }
 
-      TableColumn("Library.Column.Artist.Name"/*, sortUsing: KeyPathComparator(\.artistName)*/) { track in
+      TableColumn("Library.Column.Artist.Name") { track in
         Text(track.artistName ?? "")
       }
 
-      TableColumn("Library.Column.Album.Name"/*, sortUsing: KeyPathComparator(\.albumName)*/) { track in
+      TableColumn("Library.Column.Album.Name") { track in
         Text(track.albumName ?? "")
       }
 
-      TableColumn("Library.Column.AlbumArtist.Name"/*, sortUsing: KeyPathComparator(\.albumArtistName)*/) { track in
+      TableColumn("Library.Column.AlbumArtist.Name") { track in
         Text(track.albumArtistName ?? "")
       }
 
-      TableColumn("Library.Column.AlbumYear.Name"/*, sortUsing: KeyPathComparator(\.yearDate)*/) { track in
-        LibraryYearView(yearDate: track.albumDate ?? .distantFuture)
+      TableColumn("Library.Column.AlbumYear.Name") { track in
+        LibraryAlbumYearView(albumDate: track.albumDate ?? .distantFuture)
           .visible(track.albumDate != nil)
       }
       .alignment(.numeric)
 
-      TableColumn("Library.Column.Duration.Name"/*, sortUsing: KeyPathComparator(\.duration)*/) { track in
+      TableColumn("Library.Column.Duration.Name") { track in
         LibraryTrackDurationView(duration: track.duration)
       }
       .alignment(.numeric)
 
-      TableColumn("Library.Column.Liked.Name"/*, sortUsing: KeyPathComparator(\.albumArtistName)*/) { track in
+      TableColumn("Library.Column.Liked.Name") { track in
         Image(systemName: "heart.fill")
           .controlSize(.small)
           .visible(track.isLiked)
@@ -620,13 +615,10 @@ struct LibraryView: View {
         ids.isNonEmptySubset(of: library.likedTrackIDs)
       }
 
-      Button {
+      Button(isLiked ? "Library.Track.Unlike" : "Library.Track.Like") {
         Task {
           await library.setLiked(!isLiked, for: library.tracks.filter(ids: ids))
         }
-      } label: {
-        // TODO: Localize.
-        Text(verbatim: isLiked ? "Unlike" : "Like")
       }
 
       Button("Finder.Item.Show") {
@@ -643,26 +635,23 @@ struct LibraryView: View {
 //        await Self.play(track: track)
 //      }
     }
-    .safeAreaInset(edge: .bottom, spacing: 0) {
-      VStack(spacing: 0) {
-        Divider()
-
-        // TODO: Replace with current track
-        let track = library.tracks.first
-
-        VStack {
-          Text(track?.title ?? "")
-          Text(track?.albumName ?? "")
-            .foregroundStyle(.secondary)
-        }
-        .padding()
-      }
-      .background(in: .rect)
-    }
+//    .safeAreaInset(edge: .bottom, spacing: 0) {
+//      VStack(spacing: 0) {
+//        Divider()
+//
+//        // TODO: Replace with current track
+//        let track = library.tracks.first
+//
+//        VStack {
+//          Text(track?.title ?? "")
+//          Text(track?.albumName ?? "")
+//            .foregroundStyle(.secondary)
+//        }
+//        .padding()
+//      }
+//      .background(in: .rect)
+//    }
     .focusedSceneValue(infoTrack)
-    .task {
-      await library.loadData()
-    }
     .task {
       await library.load()
     }
@@ -695,9 +684,6 @@ struct LibraryView: View {
       infoTrack.trackTotal = tracks.reduce(.empty) { $0.reduce(nextValue: $1.trackTotal) }
       infoTrack.discNumber = tracks.reduce(.empty) { $0.reduce(nextValue: $1.discNumber) }
       infoTrack.discTotal = tracks.reduce(.empty) { $0.reduce(nextValue: $1.discTotal) }
-    }
-    .onChange(of: sortOrder) {
-//      library.tracks.sort(using: sortOrder)
     }
   }
 

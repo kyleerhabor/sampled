@@ -254,7 +254,7 @@ struct LibraryInfoView: View {
 
           LibraryInfoTagValueView {
             LibraryInfoTagValueContentView(property: libraryInfoTrack.albumDate) { albumDate in
-              LibraryYearView(yearDate: albumDate ?? .distantFuture)
+              LibraryAlbumYearView(albumDate: albumDate ?? .distantFuture)
                 .visible(albumDate != nil)
             } mixed: {
               LibraryInfoTagValueMixedNumberView()

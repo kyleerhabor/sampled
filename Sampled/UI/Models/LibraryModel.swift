@@ -17,91 +17,6 @@ import IdentifiedCollections
 import Observation
 import OSLog
 
-private func duration(
-  _ context: UnsafePointer<AVFormatContext>!,
-  stream: UnsafePointer<AVStream>!,
-) -> Double? {
-  // Some formats (like Matroska) have the stream duration set to AV_NOPTS_VALUE, while exposing the real
-  // value in the format context.
-
-  if let duration = duration(stream.pointee.duration) {
-    return Double(duration) * av_q2d(stream.pointee.time_base)
-  }
-
-  if let duration = duration(context.pointee.duration) {
-    return Double(duration * Int64(AV_TIME_BASE))
-  }
-
-  return nil
-}
-
-private func readAttachedPicturePacket(
-  _ context: UnsafeMutablePointer<AVFormatContext>!,
-  stream: UnsafeMutablePointer<AVStream>!,
-  packet: UnsafeMutablePointer<AVPacket>!,
-) throws(FFError) -> UnsafePointer<AVPacket> {
-  if stream.pointee.streamDisposition.contains(.attachedPicture) {
-    return stream.pointer(to: \.attached_pic)!
-  }
-
-  streams(context).forEach { stream in
-    stream!.pointee.discard = AVDISCARD_ALL
-  }
-
-  stream.pointee.discard = AVDISCARD_NONE
-
-  while true {
-    try readFrame(context, into: packet)
-
-    if packet.pointee.stream_index == stream.pointee.index {
-      break
-    }
-  }
-
-  return UnsafePointer(packet)
-}
-
-struct LibraryModelTrackInfo {
-  let track: LibraryTrackRecord
-  let bookmark: BookmarkRecord
-  let artwork: LibraryTrackAlbumArtworkRecord
-}
-
-// TODO: Rename.
-private func read(
-  _ formatContext: UnsafeMutablePointer<AVFormatContext>!,
-  packet: UnsafeMutablePointer<AVPacket>!,
-) throws(FFError) -> LibraryTrackAlbumArtworkRecord? {
-  var decoder: UnsafePointer<AVCodec>!
-  let streami: Int32
-
-  do {
-    streami = try findBestStream(formatContext, type: .video, decoder: &decoder)
-  } catch let error where error.code == .streamNotFound {
-    Logger.model.error("Could not find best video stream for attached picture")
-
-    return nil
-  }
-
-  let stream = formatContext.pointee.streams[Int(streami)]!
-  let codecContext = FFCodecContext(codec: decoder)
-  try copyCodecParameters(codecContext.context, params: stream.pointee.codecpar)
-  try openCodec(codecContext.context, codec: decoder)
-
-  let attachedPicture = try readAttachedPicturePacket(formatContext, stream: stream, packet: packet)
-  let codecID = stream.pointee.codecpar.pointee.codec_id
-
-  guard let format = LibraryTrackAlbumArtworkFormat(codecID: codecID) else {
-    Logger.model.log("Could not create library track album artwork format from codec ID \(codecID.rawValue) (\(String(cString: avcodec_get_name(codecID))))")
-
-    return nil
-  }
-
-  let data = UnsafeBufferPointer(start: attachedPicture.pointee.data, count: Int(attachedPicture.pointee.size))
-  let hash = hash(data: data)
-
-  return LibraryTrackAlbumArtworkRecord(data: Data(data), hash: hash, format: format)
-}
 
 // TODO: Rename.
 func read(frame: UnsafePointer<AVFrame>!, pixelFormatDescriptor: UnsafePointer<AVPixFmtDescriptor>!) -> CGImage? {
@@ -394,38 +309,6 @@ extension LibraryModelLoadConfigurationInfo: Decodable {
 
 extension LibraryModelLoadConfigurationInfo: Equatable, FetchableRecord {}
 
-struct LibraryModelLoadDataConfigurationMainLibraryBookmarkInfo {
-  let bookmark: BookmarkRecord
-}
-
-extension LibraryModelLoadDataConfigurationMainLibraryBookmarkInfo: Equatable, Decodable, FetchableRecord {}
-
-struct LibraryModelLoadDataConfigurationMainLibraryInfo {
-  let library: LibraryRecord
-  let bookmark: LibraryModelLoadDataConfigurationMainLibraryBookmarkInfo
-}
-
-extension LibraryModelLoadDataConfigurationMainLibraryInfo: Decodable {
-  enum CodingKeys: String, CodingKey {
-    case library,
-         bookmark = "_bookmark"
-  }
-}
-
-extension LibraryModelLoadDataConfigurationMainLibraryInfo: Equatable, FetchableRecord {}
-
-struct LibraryModelLoadDataConfigurationInfo {
-  let mainLibrary: LibraryModelLoadDataConfigurationMainLibraryInfo
-}
-
-extension LibraryModelLoadDataConfigurationInfo: Decodable {
-  enum CodingKeys: CodingKey {
-    case mainLibrary
-  }
-}
-
-extension LibraryModelLoadDataConfigurationInfo: Equatable, FetchableRecord {}
-
 @Observable
 @MainActor
 final class LibraryModel {
@@ -434,6 +317,10 @@ final class LibraryModel {
   @ObservationIgnored private var eventStream: AsyncStreamContinuationPair<LibraryModelEventStreamElement>?
 
   func load() async {
+    await load2()
+  }
+
+  nonisolated private func load2() async {
     let observation = ValueObservation
       .trackingConstantRegion { db in
         try ConfigurationRecord
@@ -472,6 +359,7 @@ final class LibraryModel {
                     optional: LibraryTrackRecord.albumArtworkAssociation
                       .forKey(LibraryModelLoadConfigurationMainLibraryTrackInfo.CodingKeys.albumArtwork)
                       .select(
+                        Column.rowID,
                         LibraryTrackAlbumArtworkRecord.Columns.data,
                         LibraryTrackAlbumArtworkRecord.Columns.hash,
                         LibraryTrackAlbumArtworkRecord.Columns.format,
@@ -631,106 +519,126 @@ final class LibraryModel {
         }
 
         // TODO: Extract.
-        struct Track2 {
+
+        struct ResultsTrack {
           let track: LibraryModelLoadConfigurationMainLibraryTrackInfo
           let source: URLSource
-          let image: NSImage?
+          let albumArtworkImage: NSImage?
         }
 
-        let tracks2 = tracks.map { track in
-          let image: CGImage?
+        struct Results {
+          var tracks: [ResultsTrack]
+          var albumArtworkImages: [RowID: NSImage?]
+        }
+
+        let results = tracks.reduce(into: Results(tracks: [], albumArtworkImages: [:])) { partialResult, track in
+          let image: NSImage?
 
           if let albumArtwork = track.track.albumArtwork {
-            // If we wanted to optimize this, we could perform memoization.
-            var data = albumArtwork.albumArtwork.data!
-            let allocatedMemory = allocateMemory(bytes: data.count)
-            let allocated = data.withUnsafeMutableBytes { data in
-              allocatedMemory!.initializeMemory(
-                as: UInt8.self,
-                from: data.baseAddress!.assumingMemoryBound(to: UInt8.self),
-                count: data.count,
-              )
-            }
+            let id = albumArtwork.albumArtwork.rowID!
 
-            let packet = FFPacket()
-            let frame = FFFrame()
-            let scaleFrame = FFFrame()
-            let scaleContext = FFScaleContext()
+            if let img = partialResult.albumArtworkImages[id] {
+              image = img
+            } else {
+              let data = albumArtwork.albumArtwork.data!
+              let allocatedMemory = allocateMemory(bytes: data.count)
+              let allocated = data.withUnsafeBytes { data in
+                allocatedMemory!.initializeMemory(
+                  as: UInt8.self,
+                  from: data.baseAddress!.assumingMemoryBound(to: UInt8.self),
+                  count: data.count,
+                )
+              }
 
-            do {
-              image = try read(
-                packet: packet.packet,
-                data: allocated,
-                // This is safe since it's from AVPacket.size, which is int.
-                bytes: Int32(data.count),
-                codec: avcodec_find_decoder(albumArtwork.albumArtwork.format!.codecID),
-                frame: frame.frame,
-                scaleFrame: scaleFrame.frame,
-                scaleContext: scaleContext.context,
-              )
-            } catch {
-              // TODO: Elaborate.
-              Logger.model.error("\(error)")
+              let packet = FFPacket()
+              let frame = FFFrame()
+              let scaleFrame = FFFrame()
+              let scaleContext = FFScaleContext()
+              let cgImage: CGImage?
 
-              image = nil
+              do {
+                cgImage = try read(
+                  packet: packet.packet,
+                  data: allocated,
+                  // This is safe since it's from AVPacket.size, which is int.
+                  bytes: Int32(data.count),
+                  codec: avcodec_find_decoder(albumArtwork.albumArtwork.format!.codecID),
+                  frame: frame.frame,
+                  scaleFrame: scaleFrame.frame,
+                  scaleContext: scaleContext.context,
+                )
+              } catch {
+                // TODO: Elaborate.
+                Logger.model.error("\(error)")
+
+                // We don't want to retry failures.
+                cgImage = nil
+              }
+
+              image = cgImage.map { NSImage(cgImage: $0, size: .zero) }
+              partialResult.albumArtworkImages[id] = image
             }
           } else {
             image = nil
           }
 
-          return Track2(
-            track: track.track,
-            source: track.source,
-            image: image.map { NSImage(cgImage: $0, size: .zero) },
+          partialResult.tracks.append(
+            ResultsTrack(
+              track: track.track,
+              source: track.source,
+              albumArtworkImage: image,
+            ),
           )
         }
 
-        self.tracks = tracks2.reduce(
-          into: IdentifiedArrayOf<LibraryTrackModel>(minimumCapacity: tracks.count)
-        ) { partialResult, track in
-          let rowID = track.track.track.rowID!
-          let duration = track.track.track.duration!
-          let isLiked = track.track.track.isLiked!
-          let albumArtworkHash = track.image == nil ? nil : track.track.albumArtwork?.albumArtwork.hash
-          let model = self.tracks[id: rowID].map { model in
-            model.title = track.track.track.title
-            model.source = track.source
-            model.duration = Duration.seconds(duration)
-            model.isLiked = isLiked
-            model.artistName = track.track.track.artistName
-            model.albumName = track.track.track.albumName
-            model.albumArtistName = track.track.track.albumArtistName
-            model.albumDate = track.track.track.albumDate
-            model.albumArtworkImage = track.image
-            model.albumArtworkHash = albumArtworkHash
-            model.trackNumber = track.track.track.trackNumber
-            model.trackTotal = track.track.track.trackTotal
-            model.discNumber = track.track.track.discNumber
-            model.discTotal = track.track.track.discTotal
+        Task { @MainActor in
+          self.tracks = results.tracks.reduce(
+            into: IdentifiedArrayOf<LibraryTrackModel>(minimumCapacity: tracks.count)
+          ) { partialResult, track in
+            let rowID = track.track.track.rowID!
+            let duration = track.track.track.duration!
+            let isLiked = track.track.track.isLiked!
+            let albumArtworkHash = track.albumArtworkImage == nil ? nil : track.track.albumArtwork?.albumArtwork.hash
+            let model = self.tracks[id: rowID].map { model in
+              model.title = track.track.track.title
+              model.source = track.source
+              model.duration = Duration.seconds(duration)
+              model.isLiked = isLiked
+              model.artistName = track.track.track.artistName
+              model.albumName = track.track.track.albumName
+              model.albumArtistName = track.track.track.albumArtistName
+              model.albumDate = track.track.track.albumDate
+              model.albumArtworkImage = track.albumArtworkImage
+              model.albumArtworkHash = albumArtworkHash
+              model.trackNumber = track.track.track.trackNumber
+              model.trackTotal = track.track.track.trackTotal
+              model.discNumber = track.track.track.discNumber
+              model.discTotal = track.track.track.discTotal
 
-            return model
-          } ?? LibraryTrackModel(
-            rowID: rowID,
-            source: track.source,
-            title: track.track.track.title,
-            duration: Duration.seconds(duration),
-            isLiked: isLiked,
-            artistName: track.track.track.artistName,
-            albumName: track.track.track.albumName,
-            albumArtistName: track.track.track.albumArtistName,
-            albumDate: track.track.track.albumDate,
-            albumArtworkImage: track.image,
-            albumArtworkHash: albumArtworkHash,
-            trackNumber: track.track.track.trackNumber,
-            trackTotal: track.track.track.trackTotal,
-            discNumber: track.track.track.discNumber,
-            discTotal: track.track.track.discTotal,
-          )
+              return model
+            } ?? LibraryTrackModel(
+              rowID: rowID,
+              source: track.source,
+              title: track.track.track.title,
+              duration: Duration.seconds(duration),
+              isLiked: isLiked,
+              artistName: track.track.track.artistName,
+              albumName: track.track.track.albumName,
+              albumArtistName: track.track.track.albumArtistName,
+              albumDate: track.track.track.albumDate,
+              albumArtworkImage: track.albumArtworkImage,
+              albumArtworkHash: albumArtworkHash,
+              trackNumber: track.track.track.trackNumber,
+              trackTotal: track.track.track.trackTotal,
+              discNumber: track.track.track.discNumber,
+              discTotal: track.track.track.discTotal,
+            )
 
-          partialResult.append(model)
+            partialResult.append(model)
+          }
+
+          self.likedTrackIDs = Set(self.tracks.filter(\.isLiked).map(\.id))
         }
-
-        self.likedTrackIDs = Set(self.tracks.filter(\.isLiked).map(\.id))
       }
     } catch {
       Logger.model.error("Could not observe changes to library folder in database: \(error)")
@@ -738,10 +646,13 @@ final class LibraryModel {
       return
     }
   }
-
+  
   func setLiked(_ flag: Bool, for tracks: [LibraryTrackModel]) async {
-    tracks.forEach(setter(on: \.isLiked, value: flag))
+    tracks.forEach(setter(flag, on: \.isLiked))
+    await setLiked(tracks: tracks.map(\.id), isLiked: flag)
+  }
 
+  nonisolated private func setLiked(tracks: [LibraryTrackModel.ID], isLiked: Bool) async {
     let conn: DatabasePool
 
     do {
@@ -752,11 +663,9 @@ final class LibraryModel {
       return
     }
 
-    let ids = tracks.map(\.id)
-
     do {
       try await conn.write { db in
-        try ids.forEach { id in
+        try tracks.forEach { id in
           // TODO: Decide whether or not to fetch and update all columns or update select columns.
           let track = LibraryTrackRecord(
             rowID: id,
@@ -764,7 +673,7 @@ final class LibraryModel {
             library: nil,
             title: nil,
             duration: nil,
-            isLiked: flag,
+            isLiked: isLiked,
             artistName: nil,
             albumName: nil,
             albumArtistName: nil,
@@ -781,411 +690,6 @@ final class LibraryModel {
       }
     } catch {
       Logger.model.error("Could not write to database: \(error)")
-    }
-  }
-
-  // MARK: -
-
-  // TODO: Rename.
-  func load(enumerator: FileManager.DirectoryEnumerator, relativeTo relative: URL) -> [URLBookmark] {
-    var contents = [URLBookmark]()
-
-    for case let content as URL in enumerator {
-      do {
-        contents.append(try URLBookmark(url: content, options: [], relativeTo: relative))
-      } catch {
-        // TODO: Elaborate.
-        Logger.model.error("\(error)")
-
-        continue
-      }
-    }
-
-    return contents
-  }
-
-  // TODO: Detach from UI.
-  //
-  // This is for data, so it makes no sense that it's called from the task modifier in SwiftUI. This should either run
-  // at startup or database initialization.
-  func loadData() async {
-    let observation = ValueObservation
-      .trackingConstantRegion { db in
-        try ConfigurationRecord
-          .including(
-            required: ConfigurationRecord.mainLibraryAssociation
-              .forKey(LibraryModelLoadDataConfigurationInfo.CodingKeys.mainLibrary)
-              .select(Column.rowID, LibraryRecord.Columns.bookmark)
-              .including(
-                required: LibraryRecord.bookmarkAssociation
-                  .forKey(LibraryModelLoadDataConfigurationMainLibraryInfo.CodingKeys.bookmark)
-                  .select(
-                    Column.rowID,
-                    BookmarkRecord.Columns.data,
-                    BookmarkRecord.Columns.options,
-                    BookmarkRecord.Columns.hash,
-                  ),
-              ),
-          )
-          .asRequest(of: LibraryModelLoadDataConfigurationInfo.self)
-          .fetchOne(db)
-      }
-      .removeDuplicates()
-
-    let conn: DatabasePool
-
-    do {
-      conn = try await connection()
-    } catch {
-      Logger.model.error("Could not create database connection: \(error)")
-
-      return
-    }
-
-    do {
-      for try await configuration in observation.values(in: conn) {
-        guard let configuration else {
-          continue
-        }
-
-        let id = configuration.mainLibrary.library.rowID!
-        let bookmarkOptions = configuration.mainLibrary.bookmark.bookmark.options!
-        let assigned: AssignedBookmark
-
-        do {
-          assigned = try AssignedBookmark(
-            data: configuration.mainLibrary.bookmark.bookmark.data!,
-            options: URL.BookmarkResolutionOptions(bookmarkOptions),
-            relativeTo: nil,
-          ) { url in
-            let source = URLSource(url: url, options: bookmarkOptions)
-            let data = try source.accessingSecurityScopedResource {
-              try source.url.bookmarkData(options: source.options)
-            }
-
-            return data
-          }
-        } catch {
-          // TODO: Elaborate.
-          Logger.model.error("\(error)")
-
-          continue
-        }
-
-        let hashed = hash(data: assigned.data)
-
-        guard hashed == configuration.mainLibrary.bookmark.bookmark.hash! else {
-          do {
-            try await conn.write { db in
-              var bookmark = BookmarkRecord(
-                data: assigned.data,
-                options: bookmarkOptions,
-                hash: hashed,
-                relative: nil,
-              )
-
-              try bookmark.upsert(db)
-
-              let library = LibraryRecord(
-                rowID: id,
-                bookmark: bookmark.rowID,
-              )
-
-              try library.update(db)
-            }
-          } catch {
-            // TODO: Log.
-            Logger.model.error("\(error)")
-          }
-
-          continue
-        }
-
-        // I'm surprised file system events does not require a security scope.
-        if let stream = eventStream {
-          stream.continuation.finish()
-        }
-
-        let stream = AsyncStream<LibraryModelEventStreamElement>.makeStream()
-        stream.continuation.yield(.initial)
-
-        let eventStream = EventStream()
-        let eventStreamCreated = eventStream.create(forFileAt: assigned.url, latency: 1) { events in
-          stream.continuation.yield(.events(events))
-        }
-
-        guard eventStreamCreated,
-              eventStream.start() else {
-          continue
-        }
-
-        stream.continuation.onTermination = { _ in
-          eventStream.stop()
-        }
-
-        self.eventStream = stream
-
-        Task {
-          // TODO: Handle tracks that are removed from the library.
-          for await element in stream.stream {
-            let source = URLSource(url: assigned.url, options: bookmarkOptions)
-            let tracks = source.accessingSecurityScopedResource {
-              var urbs = [URLBookmark]()
-
-              switch element {
-                case .initial:
-                  guard let enumerator = FileManager.default.enumerator(
-                    at: source.url,
-                    includingPropertiesForKeys: nil,
-                  ) else {
-                    // TODO: Log.
-                    break
-                  }
-
-                  urbs.append(contentsOf: load(enumerator: enumerator, relativeTo: source.url))
-                case let .events(events):
-                  // TODO: Coalesce.
-                  //
-                  // All this callback does is give us a means of subscribing to file system events in an increasing order.
-                  // The paths and flags given in a batch could be used to form a configuration on how best to scan the file
-                  // system. This should take into consideration flags like kFSEventStreamEventFlagMustScanSubDirs which
-                  // carry implications on what paths to scan.
-                  for i in 0..<events.count {
-                    let url = events.paths[i]
-                    let flags = events.flags[i]
-                    var options = FileManager.DirectoryEnumerationOptions()
-
-                    if flags.contains(.mustScanSubdirectories) {
-                      options.insert(.skipsSubdirectoryDescendants)
-                    }
-
-                    guard let enumerator = FileManager.default.enumerator(
-                      at: url,
-                      includingPropertiesForKeys: nil,
-                      options: options,
-                    ) else {
-                      // TODO: Log.
-                      continue
-                    }
-
-                    urbs.append(contentsOf: load(enumerator: enumerator, relativeTo: source.url))
-                  }
-              }
-
-              return urbs.compactMap { urb -> LibraryModelTrackInfo? in
-                let formatContext = FFFormatContext()
-
-                do {
-                  return try openingInput(
-                    &formatContext.context,
-                    at: urb.url.pathString,
-                  ) { formatContext -> LibraryModelTrackInfo? in
-                    do {
-                      // We need this for formats like FLAC.
-                      try findStreamInfo(formatContext)
-                    } catch {
-                      Logger.model.log("Could not find stream information from file at URL '\(urb.url.pathString)': \(error)")
-
-                      return nil
-                    }
-
-                    let streami: Int32
-
-                    do {
-                      streami = try findBestStream(formatContext, type: .audio, decoder: nil)
-                    } catch {
-                      Logger.model.log("Could not find best stream from file at URL '\(urb.url.pathString)': \(error)")
-
-                      return nil
-                    }
-
-                    let stream = formatContext!.pointee.streams[Int(streami)]!
-
-                    guard let duration = duration(formatContext, stream: stream) else {
-                      Logger.model.log("Could not parse duration of stream \(stream.pointee.index) from file at URL '\(urb.url.pathString)'")
-
-                      return nil
-                    }
-
-                    // TODO: Extract.
-                    struct Position {
-                      let number: Int
-                      let total: Int?
-                    }
-
-                    var title: String?
-                    var artistName: String?
-                    var albumName: String?
-                    var albumArtistName: String?
-                    var albumDate: Date?
-                    var track: Position?
-                    var trackTotal: Int?
-                    var disc: Position?
-                    var discTotal: Int?
-
-                    chain(
-                      FFDictionaryIterator(formatContext!.pointee.metadata),
-                      FFDictionaryIterator(stream.pointee.metadata),
-                    )
-                    .uniqued(on: \.pointee.key)
-                    .forEach { tag in
-                      func position(from value: String) -> Position? {
-                        let components = value.split(separator: "/", maxSplits: 1)
-                        let number: Int
-                        let total: Int?
-
-                        switch components.count {
-                          case 2: // [Number]/[Total]
-                            guard let first = Int(components[0]),
-                                  let second = Int(components[1]) else {
-                              return nil
-                            }
-
-                            number = first
-                            total = second
-                          case 1: // [Number]
-                            guard let first = Int(components[0]) else {
-                              return nil
-                            }
-
-                            number = first
-                            total = nil
-                          default:
-                            unreachable()
-                        }
-
-                        return Position(number: number, total: total)
-                      }
-
-                      let key = String(cString: tag.pointee.key)
-                      let value = String(cString: tag.pointee.value)
-
-                      switch key {
-                        case "title", "TITLE":
-                          title = value
-                        case "artist", "ARTIST":
-                          artistName = value
-                        case "album", "ALBUM":
-                          albumName = value
-                        case "album_artist", "ALBUM_ARTIST":
-                          albumArtistName = value
-                        case "date", "DATE": // ORIGINALDATE and ORIGINALYEAR exist, but seem specific to MusicBrainz.
-                          do {
-                            albumDate = try Date(value, strategy: .iso8601.year())
-                          } catch {
-                            Logger.model.log("Could not parse album date from stream \(stream.pointee.index) in file at URL '\(urb.url.pathString)': \(error)")
-                          }
-                        case "track":
-                          track = position(from: value)
-                        case "disc", "DISC":
-                          disc = position(from: value)
-                        case "TRACKTOTAL": // TOTALTRACKS exists, but seems to always coincide with TRACKTOTAL.
-                          trackTotal = Int(value)
-                        case "DISCTOTAL": // TOTALDISCS exists, but is in the same situation as above.
-                          discTotal = Int(value)
-                        default:
-                          break
-                      }
-                    }
-
-                    let packet = FFPacket()
-                    let artwork: LibraryTrackAlbumArtworkRecord?
-
-                    do {
-                      artwork = try read(formatContext, packet: packet.packet)
-                    } catch {
-                      // TODO: Elaborate.
-                      Logger.model.error("\(error)")
-
-                      return nil
-                    }
-
-                    guard let artwork else {
-                      // TODO: Log.
-                      return nil
-                    }
-
-                    return LibraryModelTrackInfo(
-                      track: LibraryTrackRecord(
-                        bookmark: nil,
-                        library: id,
-                        title: title,
-                        duration: duration,
-                        isLiked: false,
-                        artistName: artistName,
-                        albumName: albumName,
-                        albumArtistName: albumArtistName,
-                        albumDate: albumDate,
-                        albumArtwork: nil,
-                        trackNumber: track?.number,
-                        trackTotal: track?.total ?? trackTotal,
-                        discNumber: disc?.number,
-                        discTotal: disc?.total ?? discTotal,
-                      ),
-                      bookmark: BookmarkRecord(
-                        data: urb.bookmark.data,
-                        options: urb.bookmark.options,
-                        hash: hash(data: urb.bookmark.data),
-                        relative: configuration.mainLibrary.bookmark.bookmark.rowID,
-                      ),
-                      artwork: artwork,
-                    )
-                  }
-                } catch let error as FFError where error.code == .invalidData {
-                  Logger.model.log("Could not open input stream for file at URL '\(urb.url.pathString)' because the stream contains invalid data")
-
-                  return nil
-                } catch let error as FFError where error.code == .isDirectory {
-                  Logger.model.log("Could not open input stream for file at URL '\(urb.url.pathString)' because the file is a directory")
-
-                  return nil
-                } catch {
-                  Logger.model.error("Could not open input stream for file at URL '\(urb.url.pathString)': \(error)")
-
-                  return nil
-                }
-              }
-            }
-
-            do {
-              try await conn.write { db in
-                try tracks.forEach { track in
-                  var bookmark = track.bookmark
-                  try bookmark.upsert(db)
-
-                  var artwork = track.artwork
-                  try artwork.upsert(db)
-
-                  var track = LibraryTrackRecord(
-                    bookmark: bookmark.rowID,
-                    library: track.track.library,
-                    title: track.track.title,
-                    duration: track.track.duration,
-                    isLiked: track.track.isLiked,
-                    artistName: track.track.artistName,
-                    albumName: track.track.albumName,
-                    albumArtistName: track.track.albumArtistName,
-                    albumDate: track.track.albumDate,
-                    albumArtwork: artwork.rowID,
-                    trackNumber: track.track.trackNumber,
-                    trackTotal: track.track.trackTotal,
-                    discNumber: track.track.discNumber,
-                    discTotal: track.track.discTotal,
-                  )
-
-                  _ = try track.upsertAndFetch(db) { _ in [LibraryTrackRecord.Columns.isLiked.noOverwrite] }
-                }
-              }
-            } catch {
-              Logger.model.error("Could not write library tracks to database: \(error)")
-            }
-          }
-        }
-      }
-    } catch {
-      Logger.model.error("Could not observe changes to library folder in database: \(error)")
-
-      return
     }
   }
 }

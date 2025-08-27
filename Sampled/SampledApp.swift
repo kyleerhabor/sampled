@@ -13,5 +13,6 @@ struct SampledApp: App {
 
   var body: some Scene {
     AppScene()
+      .defaultAppStorage(.default)
   }
 }

@@ -43,5 +43,5 @@ extension Defaults.Keys {
   /// The URL to the user's library folder.
   ///
   /// This is sourced from SQLite but exists so SwiftUI can render it without fetching from the database.
-  static let libraryFolderURL = Key("library-folder-url", default: nil as URL?)
+  static let libraryFolderURL = Key("library-folder-url", default: nil as URL?, suite: .default)
 }

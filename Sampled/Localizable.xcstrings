@@ -101,6 +101,26 @@
         }
       }
     },
+    "Library.Track.Like" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Like"
+          }
+        }
+      }
+    },
+    "Library.Track.Unlike" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Unlike"
+          }
+        }
+      }
+    },
     "Library.Window.Title" : {
       "localizations" : {
         "en" : {

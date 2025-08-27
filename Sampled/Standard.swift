@@ -18,9 +18,8 @@ func unreachable() -> Never {
 }
 
 func setter<Object: AnyObject, Value>(
+  _ value: Value,
   on keyPath: ReferenceWritableKeyPath<Object, Value>,
-  // Should we make this parameter anonymous?
-  value: Value,
 ) -> (Object) -> Void {
   { object in
     object[keyPath: keyPath] = value
@@ -58,26 +57,6 @@ extension Set {
   }
 }
 
-// MARK: - Darwin
-
-extension Bundle {
-  static let appID = Bundle.main.bundleIdentifier!
-}
-
-extension Logger {
-  static let sandbox = Self(subsystem: Bundle.appID, category: "Sandbox")
-}
-
-extension URL {
-  var pathString: String {
-    self.path(percentEncoded: false)
-  }
-
-  var lastPath: String {
-    self.deletingPathExtension().lastPathComponent
-  }
-}
-
 public actor Once<Value> where Value: Sendable {
   public typealias Producer = () async throws -> Value
 
@@ -107,5 +86,42 @@ public actor Once<Value> where Value: Sendable {
 
       throw error
     }
+  }
+}
+
+
+// MARK: - Darwin
+
+extension Bundle {
+  static let appID = Bundle.main.bundleIdentifier!
+}
+
+extension Logger {
+  static let sandbox = Self(subsystem: Bundle.appID, category: "Sandbox")
+}
+
+extension URL {
+  var pathString: String {
+    self.path(percentEncoded: false)
+  }
+
+  var lastPath: String {
+    self.deletingPathExtension().lastPathComponent
+  }
+}
+
+extension UserDefaults {
+  static var `default`: Self {
+    let suiteName: String?
+
+    #if DEBUG
+    suiteName = nil
+
+    #else
+    suiteName = "\(Bundle.appID).Debug"
+
+    #endif
+
+    return Self(suiteName: suiteName)!
   }
 }
