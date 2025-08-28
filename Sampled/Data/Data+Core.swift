@@ -383,7 +383,7 @@ private func load(connection: DatabasePool) async {
 
                   let stream = formatContext!.pointee.streams[Int(streami)]!
 
-                  guard let duration = duration(formatContext, stream: stream) else {
+                  guard let duration = duration(stream: stream, formatContext: formatContext) else {
                     Logger.model.log("Could not parse duration of stream \(stream.pointee.index) from file at URL '\(urb.url.pathString)'")
 
                     return nil

@@ -38,7 +38,7 @@ public func streams(_ context: UnsafePointer<AVFormatContext>!) -> UnsafeBufferP
   UnsafeBufferPointer(start: context.pointee.streams, count: Int(context.pointee.nb_streams))
 }
 
-// MARK: -
+// MARK: - Thin
 
 // I would make this a class, but deinit doesn't seem to play nicely with av_freep(_:).
 public func allocateMemory(bytes: Int) -> UnsafeMutableRawPointer! {
@@ -438,6 +438,28 @@ extension CFFmpeg.AVMediaType {
 extension AVCodecID {
   public static let png = AV_CODEC_ID_PNG
   public static let mjpeg = AV_CODEC_ID_MJPEG // Motion JPEG
+}
+
+// MARK: - Thick
+
+/// Calculates the duration of a stream.
+/// - Parameters:
+///   - stream: The stream.
+///   - formatContext: The stream's format context.
+/// - Returns: The duration in seconds.
+public func duration(stream: UnsafePointer<AVStream>!, formatContext: UnsafePointer<AVFormatContext>!) -> Double? {
+  // Some formats (like Matroska) have the stream duration set to AV_NOPTS_VALUE, while exposing the real value in the
+  // format context.
+
+  if let duration = duration(stream.pointee.duration) {
+    return Double(duration) * av_q2d(stream.pointee.time_base)
+  }
+
+  if let duration = duration(formatContext.pointee.duration) {
+    return Double(duration * Int64(AV_TIME_BASE))
+  }
+
+  return nil
 }
 
 // I'm not sure if libavutil's AVDictionary keys are unique.
