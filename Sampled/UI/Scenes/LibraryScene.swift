@@ -12,5 +12,6 @@ struct LibraryScene: Scene {
     Window("Library.Window.Title", id: "library") {
       LibraryView()
     }
+    .windowToolbarStyle(.unifiedCompact)
   }
 }

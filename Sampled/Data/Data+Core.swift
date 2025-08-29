@@ -796,6 +796,14 @@ let connection = Once {
       table.column(LibraryTrackRecord.Columns.discTotal.name, .integer)
     }
 
+    try db.create(virtualTable: LibraryTrackFTRecord.databaseTableName, using: FTS5()) { table in
+      table.synchronize(withTable: LibraryTrackRecord.databaseTableName)
+      table.column(LibraryTrackFTRecord.Columns.title.name)
+      table.column(LibraryTrackFTRecord.Columns.artistName.name)
+      table.column(LibraryTrackFTRecord.Columns.albumName.name)
+      table.column(LibraryTrackFTRecord.Columns.albumArtistName.name)
+    }
+
     try db.create(table: ConfigurationRecord.databaseTableName) { table in
       table
         .primaryKey(Column.rowID.name, .integer)

@@ -46,26 +46,30 @@ func read(frame: UnsafePointer<AVFrame>!, pixelFormatDescriptor: UnsafePointer<A
   )
 }
 
+// TODO: Rename.
 func read(
   packet: UnsafeMutablePointer<AVPacket>!,
   data: UnsafeMutablePointer<UInt8>!,
   bytes: Int32,
   codec: UnsafePointer<AVCodec>!,
   frame: UnsafeMutablePointer<AVFrame>!,
-  scaleFrame: UnsafeMutablePointer<AVFrame>!,
-  scaleContext: UnsafeMutablePointer<SwsContext>!,
-) throws(FFError) -> CGImage? {
+) throws(FFError) {
   try packetFromData(packet, data: data, size: bytes)
 
   let codecContext = FFCodecContext(codec: codec)
   try openCodec(codecContext.context, codec: codec)
   try sendPacket(codecContext.context, packet: packet)
   try receiveFrame(codecContext.context, frame: frame)
+}
 
+// TODO: Rename.
+func read(
+  frame: UnsafeMutablePointer<AVFrame>!,
+  scaleFrame: UnsafeMutablePointer<AVFrame>!,
+  scaleContext: UnsafeMutablePointer<SwsContext>!,
+) throws(FFError) -> CGImage? {
   let pixelFormat = AV_PIX_FMT_RGBA
   let pixelFormatDescriptor = av_pix_fmt_desc_get(pixelFormat)
-  scaleFrame.pointee.width = frame.pointee.width
-  scaleFrame.pointee.height = frame.pointee.height
   scaleFrame.pointee.format = pixelFormat.rawValue
 
   try SampledFFmpeg.scaleFrame(scaleContext, source: frame, destination: scaleFrame)
@@ -247,6 +251,37 @@ extension LibraryTrackModel: @MainActor Identifiable {
   }
 }
 
+@Observable
+@MainActor
+final class LibrarySearchTrackModel {
+  private let rowID: RowID
+  var source: URLSource
+  var title: String?
+  var artistName: String?
+  var albumArtworkImage: NSImage?
+
+  init(
+    rowID: RowID,
+    source: URLSource,
+    title: String?,
+    artistName: String?,
+    albumArtworkImage: NSImage?,
+  ) {
+    self.rowID = rowID
+    self.source = source
+    self.title = title
+    self.artistName = artistName
+    self.albumArtworkImage = albumArtworkImage
+  }
+}
+
+extension LibrarySearchTrackModel: @MainActor Identifiable {
+  var id: RowID {
+    self.rowID
+  }
+}
+
+
 struct LibraryModelLoadConfigurationMainLibraryBookmarkInfo {
   let bookmark: BookmarkRecord
 }
@@ -309,15 +344,458 @@ extension LibraryModelLoadConfigurationInfo: Decodable {
 
 extension LibraryModelLoadConfigurationInfo: Equatable, FetchableRecord {}
 
+struct LibraryModelSearchConfigurationMainLibraryBookmarkInfo {
+  let bookmark: BookmarkRecord
+}
+
+extension LibraryModelSearchConfigurationMainLibraryBookmarkInfo: Equatable, Decodable, FetchableRecord {}
+
+struct LibraryModelSearchConfigurationMainLibraryTrackFullTextInfo {
+  let fullText: LibraryTrackFTRecord
+}
+
+extension LibraryModelSearchConfigurationMainLibraryTrackFullTextInfo: Equatable, Decodable, FetchableRecord {}
+
+struct LibraryModelSearchConfigurationMainLibraryTrackBookmarkInfo {
+  let bookmark: BookmarkRecord
+}
+
+extension LibraryModelSearchConfigurationMainLibraryTrackBookmarkInfo: Equatable, Decodable, FetchableRecord {}
+
+
+struct LibraryModelSearchConfigurationMainLibraryTrackAlbumArtworkInfo {
+  let albumArtwork: LibraryTrackAlbumArtworkRecord
+}
+
+extension LibraryModelSearchConfigurationMainLibraryTrackAlbumArtworkInfo: Equatable, Decodable, FetchableRecord {}
+
+struct LibraryModelSearchConfigurationMainLibraryTrackInfo {
+  let track: LibraryTrackRecord
+  let fullText: LibraryModelSearchConfigurationMainLibraryTrackFullTextInfo
+  let bookmark: LibraryModelSearchConfigurationMainLibraryTrackBookmarkInfo
+  let albumArtwork: LibraryModelSearchConfigurationMainLibraryTrackAlbumArtworkInfo?
+}
+
+extension LibraryModelSearchConfigurationMainLibraryTrackInfo: Decodable {
+  enum CodingKeys: String, CodingKey {
+    case track,
+         fullText,
+         bookmark = "_bookmark",
+         albumArtwork
+  }
+}
+
+extension LibraryModelSearchConfigurationMainLibraryTrackInfo: Equatable, FetchableRecord {}
+
+struct LibraryModelSearchConfigurationMainLibraryInfo {
+  let library: LibraryRecord
+  let bookmark: LibraryModelSearchConfigurationMainLibraryBookmarkInfo
+  let tracks: [LibraryModelSearchConfigurationMainLibraryTrackInfo]
+}
+
+extension LibraryModelSearchConfigurationMainLibraryInfo: Decodable {
+  enum CodingKeys: String, CodingKey {
+    case library,
+         bookmark = "_bookmark",
+         tracks
+  }
+}
+
+extension LibraryModelSearchConfigurationMainLibraryInfo: Equatable, FetchableRecord {}
+
+struct LibraryModelSearchConfigurationInfo {
+  let mainLibrary: LibraryModelSearchConfigurationMainLibraryInfo
+}
+
+extension LibraryModelSearchConfigurationInfo: Decodable {
+  enum CodingKeys: String, CodingKey {
+    case mainLibrary
+  }
+}
+
+extension LibraryModelSearchConfigurationInfo: Equatable, FetchableRecord {}
+
 @Observable
 @MainActor
 final class LibraryModel {
   var tracks = IdentifiedArrayOf<LibraryTrackModel>()
+  var searchTracks = IdentifiedArrayOf<LibrarySearchTrackModel>()
   var likedTrackIDs = Set<LibraryTrackModel.ID>()
   @ObservationIgnored private var eventStream: AsyncStreamContinuationPair<LibraryModelEventStreamElement>?
 
   func load() async {
     await load2()
+  }
+
+  nonisolated func readLoadPacket(data: Data, codecID: AVCodecID) -> CGImage? {
+    let allocatedMemory = allocateMemory(bytes: data.count)
+    let allocated = data.withUnsafeBytes { data in
+      allocatedMemory!.initializeMemory(
+        as: UInt8.self,
+        from: data.baseAddress!.assumingMemoryBound(to: UInt8.self),
+        count: data.count,
+      )
+    }
+
+    let packet = FFPacket()
+    let frame = FFFrame()
+    let scaleFrame = FFFrame()
+    let scaleContext = FFScaleContext()
+
+    do {
+      try Sampled.read(
+        packet: packet.packet,
+        data: allocated,
+        // This is safe since it's from AVPacket.size, which is int.
+        bytes: Int32(data.count),
+        codec: avcodec_find_decoder(codecID),
+        frame: frame.frame,
+      )
+    } catch {
+      // TODO: Elaborate.
+      Logger.model.error("\(error)")
+
+      return nil
+    }
+
+    scaleFrame.frame.pointee.width = frame.frame.pointee.width
+    scaleFrame.frame.pointee.height = frame.frame.pointee.height
+
+    do {
+      return try Sampled.read(
+        frame: frame.frame,
+        scaleFrame: scaleFrame.frame,
+        scaleContext: scaleContext.context,
+      )
+    } catch {
+      // TODO: Elaborate.
+      Logger.model.error("\(error)")
+
+      return nil
+    }
+  }
+
+  nonisolated func readSearchPacket(data: Data, codecID: AVCodecID, imageSize: Int32) -> CGImage? {
+    let allocatedMemory = allocateMemory(bytes: data.count)
+    let allocated = data.withUnsafeBytes { data in
+      allocatedMemory!.initializeMemory(
+        as: UInt8.self,
+        from: data.baseAddress!.assumingMemoryBound(to: UInt8.self),
+        count: data.count,
+      )
+    }
+
+    let packet = FFPacket()
+    let frame = FFFrame()
+    let scaleFrame = FFFrame()
+    let scaleContext = FFScaleContext()
+
+    do {
+      try Sampled.read(
+        packet: packet.packet,
+        data: allocated,
+        // This is safe since it's from AVPacket.size, which is int.
+        bytes: Int32(data.count),
+        codec: avcodec_find_decoder(codecID),
+        frame: frame.frame,
+      )
+    } catch {
+      // TODO: Elaborate.
+      Logger.model.error("\(error)")
+
+      return nil
+    }
+
+    scaleFrame.frame.pointee.width = imageSize
+    scaleFrame.frame.pointee.height = imageSize
+
+    do {
+      return try Sampled.read(
+        frame: frame.frame,
+        scaleFrame: scaleFrame.frame,
+        scaleContext: scaleContext.context,
+      )
+    } catch {
+      // TODO: Elaborate.
+      Logger.model.error("\(error)")
+
+      return nil
+    }
+  }
+
+  func search(text: String, imageSize: Int32) async {
+    await _search(text: text, imageSize: imageSize)
+  }
+
+  nonisolated func _search(text: String, imageSize: Int32) async {
+    let observation = ValueObservation
+      .trackingConstantRegion { db in
+        try ConfigurationRecord
+          .select(Column.rowID, ConfigurationRecord.Columns.mainLibrary)
+          .including(
+            required: ConfigurationRecord.mainLibraryAssociation
+              .forKey(LibraryModelSearchConfigurationInfo.CodingKeys.mainLibrary)
+              .select(Column.rowID, LibraryRecord.Columns.bookmark)
+              .including(
+                required: LibraryRecord.bookmarkAssociation
+                  .forKey(LibraryModelSearchConfigurationMainLibraryInfo.CodingKeys.bookmark)
+                  .select(BookmarkRecord.Columns.data, BookmarkRecord.Columns.options, BookmarkRecord.Columns.hash),
+              )
+              .including(
+                all: LibraryRecord.tracksAssociation
+                  .forKey(LibraryModelSearchConfigurationMainLibraryInfo.CodingKeys.tracks)
+                  .select(
+                    Column.rowID,
+                    LibraryTrackRecord.Columns.bookmark,
+                    LibraryTrackRecord.Columns.title,
+                    LibraryTrackRecord.Columns.artistName,
+                    LibraryTrackRecord.Columns.albumArtwork,
+                  )
+                  .including(
+                    required: LibraryTrackRecord.fullTextAssociation
+                      .forKey(LibraryModelSearchConfigurationMainLibraryTrackInfo.CodingKeys.fullText)
+                      .matching(FTS5Pattern(matchingAllPrefixesIn: text))
+                      .order(Column.rank),
+                  )
+                  .including(
+                    required: LibraryTrackRecord.bookmarkAssociation
+                      .forKey(LibraryModelSearchConfigurationMainLibraryTrackInfo.CodingKeys.bookmark)
+                      .select(BookmarkRecord.Columns.data, BookmarkRecord.Columns.options, BookmarkRecord.Columns.hash),
+                  )
+                  .including(
+                    optional: LibraryTrackRecord.albumArtworkAssociation
+                      .forKey(LibraryModelSearchConfigurationMainLibraryTrackInfo.CodingKeys.albumArtwork)
+                      .select(
+                        Column.rowID,
+                        LibraryTrackAlbumArtworkRecord.Columns.data,
+                        LibraryTrackAlbumArtworkRecord.Columns.format,
+                      ),
+                  ),
+              ),
+          )
+          .asRequest(of: LibraryModelSearchConfigurationInfo.self)
+          .fetchOne(db)
+      }
+      .removeDuplicates()
+
+    let conn: DatabasePool
+
+    do {
+      conn = try await connection()
+    } catch {
+      Logger.model.error("Could not create database connection: \(error)")
+
+      return
+    }
+
+    do {
+      for try await configuration in observation.values(in: conn) {
+        guard let configuration else {
+          continue
+        }
+
+        let options = configuration.mainLibrary.bookmark.bookmark.options!
+        let assigned: AssignedBookmark
+
+        do {
+          assigned = try AssignedBookmark(
+            data: configuration.mainLibrary.bookmark.bookmark.data!,
+            options: URL.BookmarkResolutionOptions(options),
+            relativeTo: nil,
+          ) { url in
+            let source = URLSource(url: url, options: options)
+
+            return try source.accessingSecurityScopedResource {
+              try source.url.bookmarkData(options: source.options)
+            }
+          }
+        } catch {
+          // TODO: Elaborate.
+          Logger.model.error("\(error)")
+
+          continue
+        }
+
+        // We could probably compare the bookmark data directly.
+        let hashed = hash(data: assigned.data)
+
+        guard hashed == configuration.mainLibrary.bookmark.bookmark.hash! else {
+          do {
+            try await conn.write { db in
+              var bookmark = BookmarkRecord(
+                data: assigned.data,
+                options: options,
+                hash: hashed,
+                relative: nil,
+              )
+
+              try bookmark.upsert(db)
+
+              let library = LibraryRecord(
+                rowID: configuration.mainLibrary.library.rowID,
+                bookmark: bookmark.rowID,
+              )
+
+              try library.update(db)
+            }
+          } catch {
+            // TODO: Elaborate.
+            Logger.model.error("\(error)")
+          }
+
+          continue
+        }
+
+        struct Track {
+          let track: LibraryModelSearchConfigurationMainLibraryTrackInfo
+          let bookmark: BookmarkRecord
+          let source: URLSource
+        }
+
+        let tracks = configuration.mainLibrary.tracks.compactMap { track -> Track? in
+          let options = track.bookmark.bookmark.options!
+          let bookmark: AssignedBookmark
+
+          do {
+            bookmark = try AssignedBookmark(
+              data: track.bookmark.bookmark.data!,
+              options: URL.BookmarkResolutionOptions(options),
+              relativeTo: assigned.url,
+            ) { url in
+              let source = URLSource(url: url, options: options)
+              let data = try source.accessingSecurityScopedResource {
+                try url.bookmarkData(options: options, relativeTo: assigned.url)
+              }
+
+              return data
+            }
+          } catch {
+            // TODO: Elaborate.
+            Logger.model.error("\(error)")
+
+            return nil
+          }
+
+          return Track(
+            track: track,
+            bookmark: BookmarkRecord(
+              data: bookmark.data,
+              options: options,
+              hash: hash(data: bookmark.data),
+              relative: configuration.mainLibrary.library.rowID,
+            ),
+            source: URLSource(url: bookmark.url, options: options),
+          )
+        }
+
+        guard tracks.allSatisfy({ $0.track.bookmark.bookmark.hash == $0.bookmark.hash }) else {
+          do {
+            try await conn.write { db in
+              try tracks.forEach { track in
+                var bookmark = track.bookmark
+                try bookmark.upsert(db)
+
+                let track = LibraryTrackRecord(
+                  rowID: track.track.track.rowID,
+                  bookmark: bookmark.rowID,
+                  library: track.track.track.library,
+                  title: track.track.track.title,
+                  duration: track.track.track.duration,
+                  isLiked: track.track.track.isLiked,
+                  artistName: track.track.track.artistName,
+                  albumName: track.track.track.albumName,
+                  albumArtistName: track.track.track.albumArtistName,
+                  albumDate: track.track.track.albumDate,
+                  albumArtwork: track.track.albumArtwork?.albumArtwork.rowID,
+                  trackNumber: track.track.track.trackNumber,
+                  trackTotal: track.track.track.trackTotal,
+                  discNumber: track.track.track.discNumber,
+                  discTotal: track.track.track.discTotal,
+                )
+
+                try track.update(db)
+              }
+            }
+          } catch {
+            // TODO: Elaborate.
+            Logger.model.error("\(error)")
+          }
+
+          continue
+        }
+
+        struct ResultsTrack {
+          let track: LibraryModelSearchConfigurationMainLibraryTrackInfo
+          let source: URLSource
+          let albumArtworkImage: NSImage?
+        }
+
+        struct Results {
+          var tracks: [ResultsTrack]
+          var albumArtworkImages: [RowID: NSImage?]
+        }
+
+        let results = tracks.reduce(into: Results(tracks: [], albumArtworkImages: [:])) { partialResult, track in
+          let image: NSImage?
+
+          if let albumArtwork = track.track.albumArtwork {
+            let id = albumArtwork.albumArtwork.rowID!
+
+            if let img = partialResult.albumArtworkImages[id] {
+              image = img
+            } else {
+              let img = readSearchPacket(
+                data: albumArtwork.albumArtwork.data!,
+                codecID: albumArtwork.albumArtwork.format!.codecID,
+                imageSize: imageSize,
+              ).map { NSImage(cgImage: $0, size: .zero) }
+
+              partialResult.albumArtworkImages[id] = img
+              image = img
+            }
+          } else {
+            image = nil
+          }
+
+          partialResult.tracks.append(
+            ResultsTrack(
+              track: track.track,
+              source: track.source,
+              albumArtworkImage: image,
+            ),
+          )
+        }
+
+        Task { @MainActor in
+          self.searchTracks = results.tracks.reduce(
+            into: IdentifiedArrayOf<LibrarySearchTrackModel>(minimumCapacity: tracks.count)
+          ) { partialResult, track in
+            let rowID = track.track.track.rowID!
+            let model = self.searchTracks[id: rowID].map { model in
+              model.title = track.track.track.title
+              model.source = track.source
+              model.artistName = track.track.track.artistName
+              model.albumArtworkImage = track.albumArtworkImage
+
+              return model
+            } ?? LibrarySearchTrackModel(
+              rowID: rowID,
+              source: track.source,
+              title: track.track.track.title,
+              artistName: track.track.track.artistName,
+              albumArtworkImage: track.albumArtworkImage,
+            )
+
+            partialResult.append(model)
+          }
+        }
+      }
+    } catch {
+      // TODO: Elaborate.
+      Logger.model.error("\(error)")
+
+      return
+    }
   }
 
   nonisolated private func load2() async {
@@ -540,43 +1018,13 @@ final class LibraryModel {
             if let img = partialResult.albumArtworkImages[id] {
               image = img
             } else {
-              let data = albumArtwork.albumArtwork.data!
-              let allocatedMemory = allocateMemory(bytes: data.count)
-              let allocated = data.withUnsafeBytes { data in
-                allocatedMemory!.initializeMemory(
-                  as: UInt8.self,
-                  from: data.baseAddress!.assumingMemoryBound(to: UInt8.self),
-                  count: data.count,
-                )
-              }
+              let img = readLoadPacket(
+                data: albumArtwork.albumArtwork.data!,
+                codecID: albumArtwork.albumArtwork.format!.codecID,
+              ).map { NSImage(cgImage: $0, size: .zero) }
 
-              let packet = FFPacket()
-              let frame = FFFrame()
-              let scaleFrame = FFFrame()
-              let scaleContext = FFScaleContext()
-              let cgImage: CGImage?
-
-              do {
-                cgImage = try read(
-                  packet: packet.packet,
-                  data: allocated,
-                  // This is safe since it's from AVPacket.size, which is int.
-                  bytes: Int32(data.count),
-                  codec: avcodec_find_decoder(albumArtwork.albumArtwork.format!.codecID),
-                  frame: frame.frame,
-                  scaleFrame: scaleFrame.frame,
-                  scaleContext: scaleContext.context,
-                )
-              } catch {
-                // TODO: Elaborate.
-                Logger.model.error("\(error)")
-
-                // We don't want to retry failures.
-                cgImage = nil
-              }
-
-              image = cgImage.map { NSImage(cgImage: $0, size: .zero) }
-              partialResult.albumArtworkImages[id] = image
+              partialResult.albumArtworkImages[id] = img
+              image = img
             }
           } else {
             image = nil

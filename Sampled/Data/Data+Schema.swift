@@ -242,6 +242,10 @@ extension LibraryTrackRecord: TableRecord {
     Self.everyColumn
   }
 
+  static var fullTextAssociation: HasOneAssociation<Self, LibraryTrackFTRecord> {
+    self.hasOne(LibraryTrackFTRecord.self, using: ForeignKey([Column.rowID]))
+  }
+
   static var bookmarkAssociation: BelongsToAssociation<Self, BookmarkRecord> {
     self.belongsTo(BookmarkRecord.self, using: ForeignKey([Columns.bookmark]))
   }
@@ -254,6 +258,10 @@ extension LibraryTrackRecord: TableRecord {
     self.belongsTo(LibraryTrackAlbumArtworkRecord.self, using: ForeignKey([Columns.albumArtwork]))
   }
 
+  var fullTextRequest: QueryInterfaceRequest<LibraryTrackFTRecord> {
+    self.request(for: Self.fullTextAssociation)
+  }
+
   var bookmarkRequest: QueryInterfaceRequest<BookmarkRecord> {
     self.request(for: Self.bookmarkAssociation)
   }
@@ -264,6 +272,42 @@ extension LibraryTrackRecord: TableRecord {
 
   var albumArtworkRequest: QueryInterfaceRequest<LibraryTrackAlbumArtworkRecord> {
     self.request(for: Self.albumArtworkAssociation)
+  }
+}
+
+struct LibraryTrackFTRecord {
+  let rowID: RowID?
+  let rank: Double?
+  let title: String?
+  let artistName: String?
+  let albumName: String?
+  let albumArtistName: String?
+}
+
+extension LibraryTrackFTRecord: Decodable {
+  enum CodingKeys: String, CodingKey {
+    case rowID = "rowid",
+         rank, title,
+         artistName = "artist_name",
+         albumName = "album_name",
+         albumArtistName = "album_artist_name"
+  }
+
+  enum Columns {
+    static let title = Column(CodingKeys.title)
+    static let artistName = Column(CodingKeys.artistName)
+    static let albumName = Column(CodingKeys.albumName)
+    static let albumArtistName = Column(CodingKeys.albumArtistName)
+  }
+}
+
+extension LibraryTrackFTRecord: Equatable {}
+
+extension LibraryTrackFTRecord: TableRecord {
+  static let databaseTableName = "library_tracks_ft"
+
+  static var databaseSelection: [SQLSelectable] {
+    Self.everyColumn
   }
 }
 

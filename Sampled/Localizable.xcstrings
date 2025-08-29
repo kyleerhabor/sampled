@@ -101,6 +101,76 @@
         }
       }
     },
+    "Library.Search.Track.Artist.Unknown" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Unknown artist"
+          }
+        }
+      }
+    },
+    "Library.Search.Track.Help.Title.%@.Artist.%@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ by %2$@"
+          }
+        }
+      }
+    },
+    "Library.Search.Track.Help.Title.%@.Artist.Unknown" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ by an unknown artist"
+          }
+        }
+      }
+    },
+    "Library.Search.Track.Help.Title.Unknown.Artist.%@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Unknown title by %1$@"
+          }
+        }
+      }
+    },
+    "Library.Search.Track.Help.Title.Unknown.Artist.Unknown" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Unknown title by an unknown artist"
+          }
+        }
+      }
+    },
+    "Library.Search.Track.Title.%@.Artist.%@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ %2$@"
+          }
+        }
+      }
+    },
+    "Library.Search.Track.Title.Unknown.Artist.%@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Unknown title %@"
+          }
+        }
+      }
+    },
     "Library.Track.Like" : {
       "localizations" : {
         "en" : {
@@ -126,7 +196,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Library"
+            "value" : "Sampled"
           }
         }
       }

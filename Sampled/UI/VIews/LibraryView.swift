@@ -558,56 +558,127 @@ struct LibraryTrackDurationView: View {
   }
 }
 
+struct LibrarySearchSuggestionTitleView: View {
+  let track: LibrarySearchTrackModel
+
+  var body: some View {
+    switch (track.title, track.artistName) {
+      case (nil, nil):
+        Text("Library.Search.Track.Title.Unknown.Artist.\(Text("Library.Search.Track.Artist.Unknown").foregroundStyle(.secondary))")
+      case (nil, .some(let artistName)):
+        Text("Library.Search.Track.Title.Unknown.Artist.\(Text(artistName).foregroundStyle(.secondary))")
+      case (.some(let title), nil):
+        Text("Library.Search.Track.Title.\(title).Artist.\(Text("Library.Search.Track.Artist.Unknown").foregroundStyle(.secondary))")
+      case (.some(let title), .some(let artistName)):
+        Text("Library.Search.Track.Title.\(title).Artist.\(Text(artistName).foregroundStyle(.secondary))")
+    }
+  }
+}
+
+struct LibrarySearchSuggestionView: View {
+  let track: LibrarySearchTrackModel
+  @Binding var selection: Set<LibraryTrackModel.ID>
+  let proxy: ScrollViewProxy
+
+  var body: some View {
+    Button {
+      let id = track.id
+
+      selection = [id]
+      // TODO: Restore focus to table
+      //
+      // This would highlight the selection in a non-muted color.
+      //
+      // TODO: Ignore horizontal axis.
+      //
+      // We only care about scrolling vertically, not horizontally.
+      proxy.scrollTo(id, anchor: .leading)
+    } label: {
+      Label {
+        LibrarySearchSuggestionTitleView(track: track)
+          .lineLimit(1)
+          .help(titleHelp)
+      } icon: {
+        Image(nsImage: track.albumArtworkImage ?? NSImage())
+          .resizable()
+          .scaledToFit()
+      }
+    }
+  }
+
+  var titleHelp: LocalizedStringKey {
+    switch (track.title, track.artistName) {
+      case (nil, nil):
+        "Library.Search.Track.Help.Title.Unknown.Artist.Unknown"
+      case (nil, .some(let artistName)):
+        "Library.Search.Track.Help.Title.Unknown.Artist.\(artistName)"
+      case (.some(let title), nil):
+        "Library.Search.Track.Help.Title.\(title).Artist.Unknown"
+      case (.some(let title), .some(let artistName)):
+        "Library.Search.Track.Help.Title.\(title).Artist.\(artistName)"
+    }
+  }
+}
+
 struct LibraryView: View {
   @Environment(LibraryModel.self) private var library
   @State private var selection = Set<LibraryTrackModel.ID>()
   @State private var infoTrack = LibraryInfoTrackModel()
+  @State private var searchText = ""
 
   var body: some View {
-    Table(library.tracks, selection: $selection) {
-      TableColumn("Library.Column.TrackNumber.Name") { track in
-        LibraryTrackPositionItemView(item: track.trackNumber ?? 0)
-          .visible(track.trackNumber != nil)
-      }
-      .alignment(.numeric)
+    ScrollViewReader { proxy in
+      Table(library.tracks, selection: $selection) {
+        TableColumn("Library.Column.TrackNumber.Name") { track in
+          LibraryTrackPositionItemView(item: track.trackNumber ?? 0)
+            .visible(track.trackNumber != nil)
+        }
+        .alignment(.numeric)
 
-      TableColumn("Library.Column.DiscNumber.Name") { track in
-        LibraryTrackPositionItemView(item: track.discNumber ?? 0)
-          .visible(track.discNumber != nil)
-      }
-      .alignment(.numeric)
+        TableColumn("Library.Column.DiscNumber.Name") { track in
+          LibraryTrackPositionItemView(item: track.discNumber ?? 0)
+            .visible(track.discNumber != nil)
+        }
+        .alignment(.numeric)
 
-      TableColumn("Library.Column.Title.Name") { track in
-        Text(track.title ?? "")
-      }
+        TableColumn("Library.Column.Title.Name") { track in
+          Text(track.title ?? "")
+        }
 
-      TableColumn("Library.Column.Artist.Name") { track in
-        Text(track.artistName ?? "")
-      }
+        TableColumn("Library.Column.Artist.Name") { track in
+          Text(track.artistName ?? "")
+        }
 
-      TableColumn("Library.Column.Album.Name") { track in
-        Text(track.albumName ?? "")
-      }
+        TableColumn("Library.Column.Album.Name") { track in
+          Text(track.albumName ?? "")
+        }
 
-      TableColumn("Library.Column.AlbumArtist.Name") { track in
-        Text(track.albumArtistName ?? "")
-      }
+        TableColumn("Library.Column.AlbumArtist.Name") { track in
+          Text(track.albumArtistName ?? "")
+        }
 
-      TableColumn("Library.Column.AlbumYear.Name") { track in
-        LibraryAlbumYearView(albumDate: track.albumDate ?? .distantFuture)
-          .visible(track.albumDate != nil)
-      }
-      .alignment(.numeric)
+        TableColumn("Library.Column.AlbumYear.Name") { track in
+          LibraryAlbumYearView(albumDate: track.albumDate ?? .distantFuture)
+            .visible(track.albumDate != nil)
+        }
+        .alignment(.numeric)
 
-      TableColumn("Library.Column.Duration.Name") { track in
-        LibraryTrackDurationView(duration: track.duration)
-      }
-      .alignment(.numeric)
+        TableColumn("Library.Column.Duration.Name") { track in
+          LibraryTrackDurationView(duration: track.duration)
+        }
+        .alignment(.numeric)
 
-      TableColumn("Library.Column.Liked.Name") { track in
-        Image(systemName: "heart.fill")
-          .controlSize(.small)
-          .visible(track.isLiked)
+        TableColumn("Library.Column.Liked.Name") { track in
+          Image(systemName: "heart.fill")
+            .controlSize(.small)
+            .visible(track.isLiked)
+        }
+      }
+      .searchable(text: $searchText) {
+        // TODO: Figure out why this is slow.
+        ForEach(library.searchTracks) { track in
+          LibrarySearchSuggestionView(track: track, selection: $selection, proxy: proxy)
+        }
       }
     }
     .contextMenu { ids in
@@ -654,6 +725,9 @@ struct LibraryView: View {
     .focusedSceneValue(infoTrack)
     .task {
       await library.load()
+    }
+    .task(id: searchText) {
+      await library.search(text: searchText, imageSize: 32)
     }
     .onChange(of: selection) {
       let tracks = library.tracks.filter(ids: selection)
