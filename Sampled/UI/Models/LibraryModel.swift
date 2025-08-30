@@ -311,7 +311,6 @@ final class LibraryModel {
   var tracks = IdentifiedArrayOf<LibraryTrackModel>()
   var searchTracks = IdentifiedArrayOf<LibrarySearchTrackModel>()
   var likedTrackIDs = Set<LibraryTrackModel.ID>()
-  @ObservationIgnored private var eventStream: AsyncStreamContinuationPair<LibraryModelEventStreamElement>?
 
   func load() async {
     await _load()
@@ -422,7 +421,311 @@ final class LibraryModel {
     }
   }
 
-  nonisolated func _search(text: String, imageSize: Int32) async {
+  nonisolated private func _load() async {
+    let observation = ValueObservation
+      .trackingConstantRegion { db in
+        try ConfigurationRecord
+          .including(
+            required: ConfigurationRecord.mainLibraryAssociation
+              .forKey(LibraryModelLoadConfigurationInfo.CodingKeys.mainLibrary)
+              .including(
+                required: LibraryRecord.bookmarkAssociation
+                  .forKey(LibraryModelLoadConfigurationMainLibraryInfo.CodingKeys.bookmark)
+                  .select(BookmarkRecord.Columns.data, BookmarkRecord.Columns.options, BookmarkRecord.Columns.hash),
+              )
+              .including(
+                all: LibraryRecord.tracksAssociation
+                  .forKey(LibraryModelLoadConfigurationMainLibraryInfo.CodingKeys.tracks)
+                  .select(
+                    Column.rowID,
+                    LibraryTrackRecord.Columns.title,
+                    LibraryTrackRecord.Columns.library,
+                    LibraryTrackRecord.Columns.duration,
+                    LibraryTrackRecord.Columns.isLiked,
+                    LibraryTrackRecord.Columns.artistName,
+                    LibraryTrackRecord.Columns.albumName,
+                    LibraryTrackRecord.Columns.albumArtistName,
+                    LibraryTrackRecord.Columns.albumDate,
+                    LibraryTrackRecord.Columns.trackNumber,
+                    LibraryTrackRecord.Columns.trackTotal,
+                    LibraryTrackRecord.Columns.discNumber,
+                    LibraryTrackRecord.Columns.discTotal,
+                  )
+                  .including(
+                    required: LibraryTrackRecord.bookmarkAssociation
+                      .forKey(LibraryModelLoadConfigurationMainLibraryTrackInfo.CodingKeys.bookmark)
+                      .select(BookmarkRecord.Columns.data, BookmarkRecord.Columns.options, BookmarkRecord.Columns.hash),
+                  )
+                  .including(
+                    optional: LibraryTrackRecord.albumArtworkAssociation
+                      .forKey(LibraryModelLoadConfigurationMainLibraryTrackInfo.CodingKeys.albumArtwork)
+                      .select(
+                        Column.rowID,
+                        LibraryTrackAlbumArtworkRecord.Columns.data,
+                        LibraryTrackAlbumArtworkRecord.Columns.hash,
+                        LibraryTrackAlbumArtworkRecord.Columns.format,
+                      ),
+                  ),
+              ),
+          )
+          .asRequest(of: LibraryModelLoadConfigurationInfo.self)
+          .fetchOne(db)
+      }
+      .removeDuplicates()
+
+    let conn: DatabasePool
+
+    do {
+      conn = try await connection()
+    } catch {
+      Logger.model.error("Could not create database connection: \(error)")
+
+      return
+    }
+
+    do {
+      for try await configuration in observation.values(in: conn) {
+        guard let configuration else {
+          continue
+        }
+
+        let options = configuration.mainLibrary.bookmark.bookmark.options!
+        let assigned: AssignedBookmark
+
+        do {
+          assigned = try AssignedBookmark(
+            data: configuration.mainLibrary.bookmark.bookmark.data!,
+            options: URL.BookmarkResolutionOptions(options),
+            relativeTo: nil,
+          ) { url in
+            let source = URLSource(url: url, options: options)
+
+            return try source.accessingSecurityScopedResource {
+              try source.url.bookmarkData(options: source.options)
+            }
+          }
+        } catch {
+          // TODO: Elaborate.
+          Logger.model.error("\(error)")
+
+          continue
+        }
+
+        let hashed = hash(data: assigned.data)
+
+        guard hashed == configuration.mainLibrary.bookmark.bookmark.hash! else {
+          do {
+            try await conn.write { db in
+              var bookmark = BookmarkRecord(
+                data: assigned.data,
+                options: options,
+                hash: hashed,
+                relative: nil,
+              )
+
+              try bookmark.upsert(db)
+
+              let library = LibraryRecord(
+                rowID: configuration.mainLibrary.library.rowID,
+                bookmark: bookmark.rowID,
+              )
+
+              try library.update(db)
+            }
+          } catch {
+            // TODO: Log.
+            Logger.model.error("\(error)")
+          }
+
+          continue
+        }
+
+        // TODO: Extract.
+        struct Track {
+          let track: LibraryModelLoadConfigurationMainLibraryTrackInfo
+          let bookmark: BookmarkRecord
+          let source: URLSource
+        }
+
+        let tracks = configuration.mainLibrary.tracks.compactMap { track -> Track? in
+          let options = track.bookmark.bookmark.options!
+          let bookmark: AssignedBookmark
+
+          do {
+            bookmark = try AssignedBookmark(
+              data: track.bookmark.bookmark.data!,
+              options: URL.BookmarkResolutionOptions(options),
+              relativeTo: assigned.url,
+            ) { url in
+              let source = URLSource(url: url, options: options)
+              let data = try source.accessingSecurityScopedResource {
+                try url.bookmarkData(options: options, relativeTo: assigned.url)
+              }
+
+              return data
+            }
+          } catch {
+            // TODO: Elaborate.
+            Logger.model.error("\(error)")
+
+            return nil
+          }
+
+          return Track(
+            track: track,
+            bookmark: BookmarkRecord(
+              data: bookmark.data,
+              options: options,
+              hash: hash(data: bookmark.data),
+              relative: configuration.mainLibrary.library.rowID,
+            ),
+            source: URLSource(url: bookmark.url, options: options),
+          )
+        }
+
+        guard tracks.allSatisfy({ $0.track.bookmark.bookmark.hash == $0.bookmark.hash }) else {
+          do {
+            try await conn.write { db in
+              try tracks.forEach { track in
+                var bookmark = track.bookmark
+                try bookmark.upsert(db)
+
+                let track = LibraryTrackRecord(
+                  rowID: track.track.track.rowID,
+                  bookmark: bookmark.rowID,
+                  library: track.track.track.library,
+                  title: track.track.track.title,
+                  duration: track.track.track.duration,
+                  isLiked: track.track.track.isLiked,
+                  artistName: track.track.track.artistName,
+                  albumName: track.track.track.albumName,
+                  albumArtistName: track.track.track.albumArtistName,
+                  albumDate: track.track.track.albumDate,
+                  albumArtwork: track.track.albumArtwork?.albumArtwork.rowID,
+                  trackNumber: track.track.track.trackNumber,
+                  trackTotal: track.track.track.trackTotal,
+                  discNumber: track.track.track.discNumber,
+                  discTotal: track.track.track.discTotal,
+                )
+
+                try track.update(db)
+              }
+            }
+          } catch {
+            // TODO: Log.
+            Logger.model.error("\(error)")
+          }
+
+          continue
+        }
+
+        // TODO: Extract.
+
+        struct ResultsTrack {
+          let track: LibraryModelLoadConfigurationMainLibraryTrackInfo
+          let source: URLSource
+          let albumArtworkImage: NSImage?
+        }
+
+        struct Results {
+          var tracks: [ResultsTrack]
+          var albumArtworkImages: [RowID: NSImage?]
+        }
+
+        let results = tracks.reduce(into: Results(tracks: [], albumArtworkImages: [:])) { partialResult, track in
+          let image: NSImage?
+
+          if let albumArtwork = track.track.albumArtwork {
+            let id = albumArtwork.albumArtwork.rowID!
+
+            if let img = partialResult.albumArtworkImages[id] {
+              image = img
+            } else {
+              let img = readLoadPacket(
+                data: albumArtwork.albumArtwork.data!,
+                codecID: albumArtwork.albumArtwork.format!.codecID,
+              ).map { NSImage(cgImage: $0, size: .zero) }
+
+              partialResult.albumArtworkImages[id] = img
+              image = img
+            }
+          } else {
+            image = nil
+          }
+
+          partialResult.tracks.append(
+            ResultsTrack(
+              track: track.track,
+              source: track.source,
+              albumArtworkImage: image,
+            ),
+          )
+        }
+
+        let likedTrackIDs = Set(
+          results.tracks
+            .filter { $0.track.track.isLiked! }
+            .map { $0.track.track.rowID! },
+        )
+
+        Task { @MainActor in
+          self.tracks = results.tracks.reduce(
+            into: IdentifiedArrayOf<LibraryTrackModel>(minimumCapacity: tracks.count)
+          ) { partialResult, track in
+            let rowID = track.track.track.rowID!
+            let duration = track.track.track.duration!
+            let isLiked = track.track.track.isLiked!
+            let albumArtworkHash = track.albumArtworkImage == nil ? nil : track.track.albumArtwork?.albumArtwork.hash
+            let model = self.tracks[id: rowID].map { model in
+              model.title = track.track.track.title
+              model.source = track.source
+              model.duration = Duration.seconds(duration)
+              model.isLiked = isLiked
+              model.artistName = track.track.track.artistName
+              model.albumName = track.track.track.albumName
+              model.albumArtistName = track.track.track.albumArtistName
+              model.albumDate = track.track.track.albumDate
+              model.albumArtworkImage = track.albumArtworkImage
+              model.albumArtworkHash = albumArtworkHash
+              model.trackNumber = track.track.track.trackNumber
+              model.trackTotal = track.track.track.trackTotal
+              model.discNumber = track.track.track.discNumber
+              model.discTotal = track.track.track.discTotal
+
+              return model
+            } ?? LibraryTrackModel(
+              rowID: rowID,
+              source: track.source,
+              title: track.track.track.title,
+              duration: Duration.seconds(duration),
+              isLiked: isLiked,
+              artistName: track.track.track.artistName,
+              albumName: track.track.track.albumName,
+              albumArtistName: track.track.track.albumArtistName,
+              albumDate: track.track.track.albumDate,
+              albumArtworkImage: track.albumArtworkImage,
+              albumArtworkHash: albumArtworkHash,
+              trackNumber: track.track.track.trackNumber,
+              trackTotal: track.track.track.trackTotal,
+              discNumber: track.track.track.discNumber,
+              discTotal: track.track.track.discTotal,
+            )
+
+            partialResult.append(model)
+          }
+
+          // We're not dedicating a method to this since it opens another opportunity for the data to get out of sync.
+          self.likedTrackIDs = likedTrackIDs
+        }
+      }
+    } catch {
+      Logger.model.error("Could not observe changes to library folder in database: \(error)")
+
+      return
+    }
+  }
+
+  nonisolated private func _search(text: String, imageSize: Int32) async {
     let observation = ValueObservation
       .trackingConstantRegion { db in
         try ConfigurationRecord
@@ -688,303 +991,6 @@ final class LibraryModel {
     } catch {
       // TODO: Elaborate.
       Logger.model.error("\(error)")
-
-      return
-    }
-  }
-
-  nonisolated private func _load() async {
-    let observation = ValueObservation
-      .trackingConstantRegion { db in
-        try ConfigurationRecord
-          .including(
-            required: ConfigurationRecord.mainLibraryAssociation
-              .forKey(LibraryModelLoadConfigurationInfo.CodingKeys.mainLibrary)
-              .including(
-                required: LibraryRecord.bookmarkAssociation
-                  .forKey(LibraryModelLoadConfigurationMainLibraryInfo.CodingKeys.bookmark)
-                  .select(BookmarkRecord.Columns.data, BookmarkRecord.Columns.options, BookmarkRecord.Columns.hash),
-              )
-              .including(
-                all: LibraryRecord.tracksAssociation
-                  .forKey(LibraryModelLoadConfigurationMainLibraryInfo.CodingKeys.tracks)
-                  .select(
-                    Column.rowID,
-                    LibraryTrackRecord.Columns.title,
-                    LibraryTrackRecord.Columns.library,
-                    LibraryTrackRecord.Columns.duration,
-                    LibraryTrackRecord.Columns.isLiked,
-                    LibraryTrackRecord.Columns.artistName,
-                    LibraryTrackRecord.Columns.albumName,
-                    LibraryTrackRecord.Columns.albumArtistName,
-                    LibraryTrackRecord.Columns.albumDate,
-                    LibraryTrackRecord.Columns.trackNumber,
-                    LibraryTrackRecord.Columns.trackTotal,
-                    LibraryTrackRecord.Columns.discNumber,
-                    LibraryTrackRecord.Columns.discTotal,
-                  )
-                  .including(
-                    required: LibraryTrackRecord.bookmarkAssociation
-                      .forKey(LibraryModelLoadConfigurationMainLibraryTrackInfo.CodingKeys.bookmark)
-                      .select(BookmarkRecord.Columns.data, BookmarkRecord.Columns.options, BookmarkRecord.Columns.hash),
-                  )
-                  .including(
-                    optional: LibraryTrackRecord.albumArtworkAssociation
-                      .forKey(LibraryModelLoadConfigurationMainLibraryTrackInfo.CodingKeys.albumArtwork)
-                      .select(
-                        Column.rowID,
-                        LibraryTrackAlbumArtworkRecord.Columns.data,
-                        LibraryTrackAlbumArtworkRecord.Columns.hash,
-                        LibraryTrackAlbumArtworkRecord.Columns.format,
-                      ),
-                  ),
-              ),
-          )
-          .asRequest(of: LibraryModelLoadConfigurationInfo.self)
-          .fetchOne(db)
-      }
-      .removeDuplicates()
-
-    let conn: DatabasePool
-
-    do {
-      conn = try await connection()
-    } catch {
-      Logger.model.error("Could not create database connection: \(error)")
-
-      return
-    }
-
-    do {
-      for try await configuration in observation.values(in: conn) {
-        guard let configuration else {
-          continue
-        }
-
-        let options = configuration.mainLibrary.bookmark.bookmark.options!
-        let assigned: AssignedBookmark
-
-        do {
-          assigned = try AssignedBookmark(
-            data: configuration.mainLibrary.bookmark.bookmark.data!,
-            options: URL.BookmarkResolutionOptions(options),
-            relativeTo: nil,
-          ) { url in
-            let source = URLSource(url: url, options: options)
-
-            return try source.accessingSecurityScopedResource {
-              try source.url.bookmarkData(options: source.options)
-            }
-          }
-        } catch {
-          // TODO: Elaborate.
-          Logger.model.error("\(error)")
-
-          continue
-        }
-
-        let hashed = hash(data: assigned.data)
-
-        guard hashed == configuration.mainLibrary.bookmark.bookmark.hash! else {
-          do {
-            try await conn.write { db in
-              var bookmark = BookmarkRecord(
-                data: assigned.data,
-                options: options,
-                hash: hashed,
-                relative: nil,
-              )
-
-              try bookmark.upsert(db)
-
-              let library = LibraryRecord(
-                rowID: configuration.mainLibrary.library.rowID,
-                bookmark: bookmark.rowID,
-              )
-
-              try library.update(db)
-            }
-          } catch {
-            // TODO: Log.
-            Logger.model.error("\(error)")
-          }
-
-          continue
-        }
-
-        // TODO: Extract.
-        struct Track {
-          let track: LibraryModelLoadConfigurationMainLibraryTrackInfo
-          let bookmark: BookmarkRecord
-          let source: URLSource
-        }
-
-        let tracks = configuration.mainLibrary.tracks.compactMap { track -> Track? in
-          let options = track.bookmark.bookmark.options!
-          let bookmark: AssignedBookmark
-
-          do {
-            bookmark = try AssignedBookmark(
-              data: track.bookmark.bookmark.data!,
-              options: URL.BookmarkResolutionOptions(options),
-              relativeTo: assigned.url,
-            ) { url in
-              let source = URLSource(url: url, options: options)
-              let data = try source.accessingSecurityScopedResource {
-                try url.bookmarkData(options: options, relativeTo: assigned.url)
-              }
-
-              return data
-            }
-          } catch {
-            // TODO: Elaborate.
-            Logger.model.error("\(error)")
-
-            return nil
-          }
-
-          return Track(
-            track: track,
-            bookmark: BookmarkRecord(
-              data: bookmark.data,
-              options: options,
-              hash: hash(data: bookmark.data),
-              relative: configuration.mainLibrary.library.rowID,
-            ),
-            source: URLSource(url: bookmark.url, options: options),
-          )
-        }
-
-        guard tracks.allSatisfy({ $0.track.bookmark.bookmark.hash == $0.bookmark.hash }) else {
-          do {
-            try await conn.write { db in
-              try tracks.forEach { track in
-                var bookmark = track.bookmark
-                try bookmark.upsert(db)
-
-                let track = LibraryTrackRecord(
-                  rowID: track.track.track.rowID,
-                  bookmark: bookmark.rowID,
-                  library: track.track.track.library,
-                  title: track.track.track.title,
-                  duration: track.track.track.duration,
-                  isLiked: track.track.track.isLiked,
-                  artistName: track.track.track.artistName,
-                  albumName: track.track.track.albumName,
-                  albumArtistName: track.track.track.albumArtistName,
-                  albumDate: track.track.track.albumDate,
-                  albumArtwork: track.track.albumArtwork?.albumArtwork.rowID,
-                  trackNumber: track.track.track.trackNumber,
-                  trackTotal: track.track.track.trackTotal,
-                  discNumber: track.track.track.discNumber,
-                  discTotal: track.track.track.discTotal,
-                )
-
-                try track.update(db)
-              }
-            }
-          } catch {
-            // TODO: Log.
-            Logger.model.error("\(error)")
-          }
-
-          continue
-        }
-
-        // TODO: Extract.
-
-        struct ResultsTrack {
-          let track: LibraryModelLoadConfigurationMainLibraryTrackInfo
-          let source: URLSource
-          let albumArtworkImage: NSImage?
-        }
-
-        struct Results {
-          var tracks: [ResultsTrack]
-          var albumArtworkImages: [RowID: NSImage?]
-        }
-
-        let results = tracks.reduce(into: Results(tracks: [], albumArtworkImages: [:])) { partialResult, track in
-          let image: NSImage?
-
-          if let albumArtwork = track.track.albumArtwork {
-            let id = albumArtwork.albumArtwork.rowID!
-
-            if let img = partialResult.albumArtworkImages[id] {
-              image = img
-            } else {
-              let img = readLoadPacket(
-                data: albumArtwork.albumArtwork.data!,
-                codecID: albumArtwork.albumArtwork.format!.codecID,
-              ).map { NSImage(cgImage: $0, size: .zero) }
-
-              partialResult.albumArtworkImages[id] = img
-              image = img
-            }
-          } else {
-            image = nil
-          }
-
-          partialResult.tracks.append(
-            ResultsTrack(
-              track: track.track,
-              source: track.source,
-              albumArtworkImage: image,
-            ),
-          )
-        }
-
-        Task { @MainActor in
-          self.tracks = results.tracks.reduce(
-            into: IdentifiedArrayOf<LibraryTrackModel>(minimumCapacity: tracks.count)
-          ) { partialResult, track in
-            let rowID = track.track.track.rowID!
-            let duration = track.track.track.duration!
-            let isLiked = track.track.track.isLiked!
-            let albumArtworkHash = track.albumArtworkImage == nil ? nil : track.track.albumArtwork?.albumArtwork.hash
-            let model = self.tracks[id: rowID].map { model in
-              model.title = track.track.track.title
-              model.source = track.source
-              model.duration = Duration.seconds(duration)
-              model.isLiked = isLiked
-              model.artistName = track.track.track.artistName
-              model.albumName = track.track.track.albumName
-              model.albumArtistName = track.track.track.albumArtistName
-              model.albumDate = track.track.track.albumDate
-              model.albumArtworkImage = track.albumArtworkImage
-              model.albumArtworkHash = albumArtworkHash
-              model.trackNumber = track.track.track.trackNumber
-              model.trackTotal = track.track.track.trackTotal
-              model.discNumber = track.track.track.discNumber
-              model.discTotal = track.track.track.discTotal
-
-              return model
-            } ?? LibraryTrackModel(
-              rowID: rowID,
-              source: track.source,
-              title: track.track.track.title,
-              duration: Duration.seconds(duration),
-              isLiked: isLiked,
-              artistName: track.track.track.artistName,
-              albumName: track.track.track.albumName,
-              albumArtistName: track.track.track.albumArtistName,
-              albumDate: track.track.track.albumDate,
-              albumArtworkImage: track.albumArtworkImage,
-              albumArtworkHash: albumArtworkHash,
-              trackNumber: track.track.track.trackNumber,
-              trackTotal: track.track.track.trackTotal,
-              discNumber: track.track.track.discNumber,
-              discTotal: track.track.track.discTotal,
-            )
-
-            partialResult.append(model)
-          }
-
-          self.likedTrackIDs = Set(self.tracks.filter(\.isLiked).map(\.id))
-        }
-      }
-    } catch {
-      Logger.model.error("Could not observe changes to library folder in database: \(error)")
 
       return
     }
