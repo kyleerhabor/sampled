@@ -576,6 +576,7 @@ struct LibrarySearchSuggestionTitleView: View {
 }
 
 struct LibrarySearchSuggestionView: View {
+  @Environment(LibraryModel.self) private var library
   let track: LibrarySearchTrackModel
   @Binding var selection: Set<LibraryTrackModel.ID>
   let proxy: ScrollViewProxy
@@ -599,9 +600,8 @@ struct LibrarySearchSuggestionView: View {
           .lineLimit(1)
           .help(titleHelp)
       } icon: {
-        Image(nsImage: track.albumArtworkImage ?? NSImage())
-          .resizable()
-          .scaledToFit()
+        // I wanted to use LibraryImageView here, but it seems the menu is not a fan of dynamic images, since it hitches.
+        LibraryAlbumArtworkImageView(image: track.albumArtworkImage)
       }
     }
   }
@@ -622,9 +622,11 @@ struct LibrarySearchSuggestionView: View {
 
 struct LibraryView: View {
   @Environment(LibraryModel.self) private var library
+  @Environment(\.pixelLength) private var pixelLength
   @State private var selection = Set<LibraryTrackModel.ID>()
   @State private var infoTrack = LibraryInfoTrackModel()
   @State private var searchText = ""
+  @State private var isInspectorPresented = false
 
   var body: some View {
     ScrollViewReader { proxy in
@@ -698,9 +700,9 @@ struct LibraryView: View {
         NSWorkspace.shared.activateFileViewerSelecting(urls)
       }
     } primaryAction: { ids in
-//      guard let track = library.tracks.filter(ids: ids).first else {
-//        return
-//      }
+      guard let track = library.tracks.filter(ids: ids).first else {
+        return
+      }
 //
 //      Task {
 //        await Self.play(track: track)
@@ -723,6 +725,36 @@ struct LibraryView: View {
 //      .background(in: .rect)
 //    }
     .focusedSceneValue(infoTrack)
+    .inspector(isPresented: $isInspectorPresented) {
+      List(library.queuedTracks) { track in
+        Label {
+          VStack(alignment: .leading) {
+            Text(track.title, default: "Library.UpNext.Item.Title.Unknown")
+              .lineLimit(1)
+
+            Text(track.artistName, default: "Library.UpNext.Item.Artist.Unknown")
+              .lineLimit(1)
+              .font(.callout)
+              .foregroundStyle(.secondary)
+          }
+        } icon: {
+          LibraryImageView(id: track.albumArtworkHash) { length in
+            await library.resampleImage(track: track, length: length)
+          }
+        }
+        .labelStyle(ListLabelStyle())
+        .frame(height: 36)
+      }
+      .scrollContentBackground(.hidden)
+    }
+    .toolbar {
+      ToolbarItem(id: "\(Bundle.appID).library-up-next") {
+        // TODO: Localize.
+        Button("Inspect", systemImage: "list.number") {
+          isInspectorPresented.toggle()
+        }
+      }
+    }
     .task {
       await library.load()
     }
@@ -745,7 +777,7 @@ struct LibraryView: View {
            let albumArtworkHash = track.albumArtworkHash {
           image = LibraryInfoTrackModelAlbumArtwork(
             image: albumArtworkImage,
-            hash: albumArtworkHash
+            hash: albumArtworkHash,
           )
         } else {
           image = nil

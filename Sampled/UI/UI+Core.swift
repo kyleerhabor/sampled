@@ -15,6 +15,12 @@ extension Logger {
   static let ffmpeg = Self(subsystem: Bundle.appID, category: "FFmpeg")
 }
 
+extension CGSize {
+  var length: Double {
+    max(self.width, self.height)
+  }
+}
+
 struct StorageKey<Value> {
   let name: String
   let defaultValue: Value

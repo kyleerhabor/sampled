@@ -7,6 +7,45 @@
 
 import SwiftUI
 
+extension Text {
+  init<S>(
+    _ content: S?,
+    default key: LocalizedStringKey,
+    tableName: String? = nil,
+    bundle: Bundle? = nil,
+    comment: StaticString? = nil,
+  ) where S: StringProtocol {
+    guard let content else {
+      self.init(key, tableName: tableName, bundle: bundle, comment: comment)
+
+      return
+    }
+
+    self.init(content)
+  }
+}
+
+struct ListLabelStyle: LabelStyle {
+  func makeBody(configuration: Configuration) -> some View {
+    HStack {
+      configuration.icon
+
+      HStack {
+        configuration.title
+
+        Spacer()
+      }
+      .layoutPriority(1)
+    }
+  }
+}
+
+extension LabelStyle where Self == ListLabelStyle {
+  static var list: Self {
+    ListLabelStyle()
+  }
+}
+
 struct Line: Shape {
   func path(in rect: CGRect) -> Path {
     var path = Path()

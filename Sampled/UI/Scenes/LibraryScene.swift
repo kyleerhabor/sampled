@@ -13,5 +13,8 @@ struct LibraryScene: Scene {
       LibraryView()
     }
     .windowToolbarStyle(.unifiedCompact)
+    .commands {
+      LibraryCommands()
+    }
   }
 }

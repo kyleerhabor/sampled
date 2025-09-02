@@ -123,9 +123,10 @@ class SettingsModel {
               let library = LibraryRecord(
                 rowID: configuration.mainLibrary.library.rowID,
                 bookmark: bookmark.rowID,
+                currentQueue: nil,
               )
 
-              try library.update(db)
+              try library.update(db, columns: [LibraryRecord.Columns.bookmark])
             }
           } catch {
             // TODO: Log.
@@ -185,7 +186,7 @@ class SettingsModel {
 
         try bookmark.upsert(db)
 
-        var library = LibraryRecord(bookmark: bookmark.rowID)
+        var library = LibraryRecord(bookmark: bookmark.rowID, currentQueue: nil)
         try library.upsert(db)
 
         let configuration = try ConfigurationRecord.find(db)

@@ -1,6 +1,9 @@
 {
   "sourceLanguage" : "en",
   "strings" : {
+    "%@" : {
+
+    },
     "Finder.Item.Show" : {
       "localizations" : {
         "en" : {
@@ -10,6 +13,9 @@
           }
         }
       }
+    },
+    "Inspect" : {
+
     },
     "Library.Column.Album.Name" : {
       "localizations" : {
@@ -187,6 +193,26 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Unlike"
+          }
+        }
+      }
+    },
+    "Library.UpNext.Item.Artist.Unknown" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Unknown artist"
+          }
+        }
+      }
+    },
+    "Library.UpNext.Item.Title.Unknown" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Unknown title"
           }
         }
       }

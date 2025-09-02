@@ -266,9 +266,10 @@ private func load(connection: DatabasePool) async {
             let library = LibraryRecord(
               rowID: id,
               bookmark: bookmark.rowID,
+              currentQueue: nil,
             )
 
-            try library.update(db)
+            try library.update(db, columns: [LibraryRecord.Columns.bookmark])
           }
         } catch {
           // TODO: Log.
@@ -732,6 +733,7 @@ let connection = Once {
         .references(BookmarkRecord.databaseTableName)
     }
 
+    // TODO: Clarify uniqueness constraints and their affects on associated tables.
     try db.create(table: LibraryRecord.databaseTableName) { table in
       table.primaryKey(Column.rowID.name, .integer)
       table
@@ -802,6 +804,45 @@ let connection = Once {
       table.column(LibraryTrackFTRecord.Columns.artistName.name)
       table.column(LibraryTrackFTRecord.Columns.albumName.name)
       table.column(LibraryTrackFTRecord.Columns.albumArtistName.name)
+    }
+
+    try db.create(table: LibraryQueueRecord.databaseTableName) { table in
+      table.primaryKey(Column.rowID.name, .integer)
+      table
+        .column(LibraryQueueRecord.Columns.library.name, .integer)
+        .notNull()
+        .references(LibraryRecord.databaseTableName)
+    }
+
+    try db.alter(table: LibraryRecord.databaseTableName) { table in
+      table
+        .add(column: LibraryRecord.Columns.currentQueue.name, .integer)
+        .references(LibraryQueueRecord.databaseTableName)
+    }
+
+    try db.create(
+      indexOn: LibraryRecord.databaseTableName,
+      columns: [LibraryRecord.Columns.currentQueue.name],
+      options: .unique,
+    )
+
+    try db.create(table: LibraryQueueItemRecord.databaseTableName) { table in
+      table.primaryKey(Column.rowID.name, .integer)
+      table
+        .column(LibraryQueueItemRecord.Columns.queue.name, .integer)
+        .notNull()
+        .references(LibraryQueueRecord.databaseTableName)
+
+      table
+        .column(LibraryQueueItemRecord.Columns.track.name, .integer)
+        .notNull()
+        .references(LibraryTrackRecord.databaseTableName)
+
+      table
+        .column(LibraryQueueItemRecord.Columns.position.name, .integer)
+        .notNull()
+
+      table.uniqueKey([LibraryQueueItemRecord.Columns.queue.name, LibraryQueueItemRecord.Columns.position.name])
     }
 
     try db.create(table: ConfigurationRecord.databaseTableName) { table in

@@ -85,6 +85,8 @@ enum LibraryModelEventStreamElement {
 @MainActor
 final class LibraryTrackModel {
   private let rowID: RowID
+  fileprivate var albumArtworkData: Data?
+  fileprivate var albumArtworkFormat: LibraryTrackAlbumArtworkFormat?
   var source: URLSource
   var title: String?
   var duration: Duration
@@ -102,6 +104,8 @@ final class LibraryTrackModel {
 
   init(
     rowID: RowID,
+    albumArtworkData: Data?,
+    albumArtworkFormat: LibraryTrackAlbumArtworkFormat?,
     source: URLSource,
     title: String?,
     duration: Duration,
@@ -118,6 +122,8 @@ final class LibraryTrackModel {
     discTotal: Int?,
   ) {
     self.rowID = rowID
+    self.albumArtworkData = albumArtworkData
+    self.albumArtworkFormat = albumArtworkFormat
     self.source = source
     self.title = title
     self.duration = duration
@@ -171,7 +177,6 @@ extension LibrarySearchTrackModel: @MainActor Identifiable {
   }
 }
 
-
 struct LibraryModelLoadConfigurationMainLibraryBookmarkInfo {
   let bookmark: BookmarkRecord
 }
@@ -183,6 +188,25 @@ struct LibraryModelLoadConfigurationMainLibraryTrackBookmarkInfo {
 }
 
 extension LibraryModelLoadConfigurationMainLibraryTrackBookmarkInfo: Equatable, Decodable, FetchableRecord {}
+
+struct LibraryModelLoadConfigurationMainLibraryCurrentQueueItemInfo {
+  let item: LibraryQueueItemRecord
+}
+
+extension LibraryModelLoadConfigurationMainLibraryCurrentQueueItemInfo: Equatable, Decodable, FetchableRecord {}
+
+struct LibraryModelLoadConfigurationMainLibraryCurrentQueueInfo {
+  let queue: LibraryQueueRecord
+  let items: [LibraryModelLoadConfigurationMainLibraryCurrentQueueItemInfo]
+}
+
+extension LibraryModelLoadConfigurationMainLibraryCurrentQueueInfo: Decodable {
+  enum CodingKeys: String, CodingKey {
+    case queue, items
+  }
+}
+
+extension LibraryModelLoadConfigurationMainLibraryCurrentQueueInfo: Equatable, FetchableRecord {}
 
 struct LibraryModelLoadConfigurationMainLibraryTrackAlbumArtworkInfo {
   let albumArtwork: LibraryTrackAlbumArtworkRecord
@@ -209,6 +233,7 @@ extension LibraryModelLoadConfigurationMainLibraryTrackInfo: Equatable, Fetchabl
 struct LibraryModelLoadConfigurationMainLibraryInfo {
   let library: LibraryRecord
   let bookmark: LibraryModelLoadConfigurationMainLibraryBookmarkInfo
+  let currentQueue: LibraryModelLoadConfigurationMainLibraryCurrentQueueInfo?
   let tracks: [LibraryModelLoadConfigurationMainLibraryTrackInfo]
 }
 
@@ -216,6 +241,7 @@ extension LibraryModelLoadConfigurationMainLibraryInfo: Decodable {
   enum CodingKeys: String, CodingKey {
     case library,
          bookmark = "_bookmark",
+         currentQueue,
          tracks
   }
 }
@@ -309,15 +335,12 @@ extension LibraryModelSearchConfigurationInfo: Equatable, FetchableRecord {}
 @MainActor
 final class LibraryModel {
   var tracks = IdentifiedArrayOf<LibraryTrackModel>()
-  var searchTracks = IdentifiedArrayOf<LibrarySearchTrackModel>()
   var likedTrackIDs = Set<LibraryTrackModel.ID>()
+  var queuedTracks = IdentifiedArrayOf<LibraryTrackModel>()
+  var searchTracks = IdentifiedArrayOf<LibrarySearchTrackModel>()
 
   func load() async {
     await _load()
-  }
-
-  func search(text: String, imageSize: Int32) async {
-    await _search(text: text, imageSize: imageSize)
   }
 
   func setLiked(_ flag: Bool, for tracks: [LibraryTrackModel]) async {
@@ -325,7 +348,20 @@ final class LibraryModel {
     await setLiked(tracks: tracks.map(\.id), isLiked: flag)
   }
 
-  nonisolated func readLoadPacket(data: Data, codecID: AVCodecID) -> CGImage? {
+  func search(text: String, imageSize: Int32) async {
+    await _search(text: text, imageSize: imageSize)
+  }
+
+  func resampleImage(track: LibraryTrackModel, length: Double) async -> NSImage? {
+    guard let albumArtworkData = track.albumArtworkData,
+          let albumArtworkFormat = track.albumArtworkFormat else {
+      return nil
+    }
+
+    return await resampleImage(data: albumArtworkData, format: albumArtworkFormat, length: length)
+  }
+
+  nonisolated private func readLoadPacket(data: Data, codecID: AVCodecID) -> CGImage? {
     let allocatedMemory = allocateMemory(bytes: data.count)
     let allocated = data.withUnsafeBytes { data in
       allocatedMemory!.initializeMemory(
@@ -373,54 +409,6 @@ final class LibraryModel {
     }
   }
 
-  nonisolated func readSearchPacket(data: Data, codecID: AVCodecID, imageSize: Int32) -> CGImage? {
-    let allocatedMemory = allocateMemory(bytes: data.count)
-    let allocated = data.withUnsafeBytes { data in
-      allocatedMemory!.initializeMemory(
-        as: UInt8.self,
-        from: data.baseAddress!.assumingMemoryBound(to: UInt8.self),
-        count: data.count,
-      )
-    }
-
-    let packet = FFPacket()
-    let frame = FFFrame()
-    let scaleFrame = FFFrame()
-    let scaleContext = FFScaleContext()
-
-    do {
-      try Sampled.read(
-        packet: packet.packet,
-        data: allocated,
-        // This is safe since it's from AVPacket.size, which is int.
-        bytes: Int32(data.count),
-        codec: avcodec_find_decoder(codecID),
-        frame: frame.frame,
-      )
-    } catch {
-      // TODO: Elaborate.
-      Logger.model.error("\(error)")
-
-      return nil
-    }
-
-    scaleFrame.frame.pointee.width = imageSize
-    scaleFrame.frame.pointee.height = imageSize
-
-    do {
-      return try Sampled.read(
-        frame: frame.frame,
-        scaleFrame: scaleFrame.frame,
-        scaleContext: scaleContext.context,
-      )
-    } catch {
-      // TODO: Elaborate.
-      Logger.model.error("\(error)")
-
-      return nil
-    }
-  }
-
   nonisolated private func _load() async {
     let observation = ValueObservation
       .trackingConstantRegion { db in
@@ -428,6 +416,7 @@ final class LibraryModel {
           .including(
             required: ConfigurationRecord.mainLibraryAssociation
               .forKey(LibraryModelLoadConfigurationInfo.CodingKeys.mainLibrary)
+              .select(Column.rowID, LibraryRecord.Columns.bookmark, LibraryRecord.Columns.currentQueue)
               .including(
                 required: LibraryRecord.bookmarkAssociation
                   .forKey(LibraryModelLoadConfigurationMainLibraryInfo.CodingKeys.bookmark)
@@ -465,6 +454,16 @@ final class LibraryModel {
                         LibraryTrackAlbumArtworkRecord.Columns.hash,
                         LibraryTrackAlbumArtworkRecord.Columns.format,
                       ),
+                  ),
+              )
+              .including(
+                optional: LibraryRecord.currentQueueAssociation
+                  .forKey(LibraryModelLoadConfigurationMainLibraryInfo.CodingKeys.currentQueue)
+                  .including(
+                    all: LibraryQueueRecord.itemsAssociation
+                      .forKey(LibraryModelLoadConfigurationMainLibraryCurrentQueueInfo.CodingKeys.items)
+                      .select(Column.rowID, LibraryQueueItemRecord.Columns.track)
+                      .order(LibraryQueueItemRecord.Columns.position),
                   ),
               ),
           )
@@ -528,9 +527,10 @@ final class LibraryModel {
               let library = LibraryRecord(
                 rowID: configuration.mainLibrary.library.rowID,
                 bookmark: bookmark.rowID,
+                currentQueue: nil,
               )
 
-              try library.update(db)
+              try library.update(db, columns: [LibraryRecord.Columns.bookmark])
             }
           } catch {
             // TODO: Log.
@@ -677,8 +677,10 @@ final class LibraryModel {
             let isLiked = track.track.track.isLiked!
             let albumArtworkHash = track.albumArtworkImage == nil ? nil : track.track.albumArtwork?.albumArtwork.hash
             let model = self.tracks[id: rowID].map { model in
-              model.title = track.track.track.title
+              model.albumArtworkData = track.track.albumArtwork?.albumArtwork.data
+              model.albumArtworkFormat = track.track.albumArtwork?.albumArtwork.format
               model.source = track.source
+              model.title = track.track.track.title
               model.duration = Duration.seconds(duration)
               model.isLiked = isLiked
               model.artistName = track.track.track.artistName
@@ -695,6 +697,8 @@ final class LibraryModel {
               return model
             } ?? LibraryTrackModel(
               rowID: rowID,
+              albumArtworkData: track.track.albumArtwork?.albumArtwork.data,
+              albumArtworkFormat: track.track.albumArtwork?.albumArtwork.format,
               source: track.source,
               title: track.track.track.title,
               duration: Duration.seconds(duration),
@@ -716,12 +720,72 @@ final class LibraryModel {
 
           // We're not dedicating a method to this since it opens another opportunity for the data to get out of sync.
           self.likedTrackIDs = likedTrackIDs
+          self.queuedTracks = configuration.mainLibrary.currentQueue.map { currentQueue in
+            IdentifiedArray(uniqueElements: currentQueue.items.compactMap { item in
+              self.tracks[id: item.item.track!]
+            })
+          } ?? IdentifiedArray()
         }
       }
     } catch {
       Logger.model.error("Could not observe changes to library folder in database: \(error)")
 
       return
+    }
+  }
+
+  nonisolated private func readImagePacket(
+    data: Data,
+    codecID: AVCodecID,
+    imageLength: Int32,
+  ) -> CGImage? {
+    let allocatedMemory = allocateMemory(bytes: data.count)
+    let allocated = data.withUnsafeBytes { data in
+      allocatedMemory!.initializeMemory(
+        as: UInt8.self,
+        from: data.baseAddress!.assumingMemoryBound(to: UInt8.self),
+        count: data.count,
+      )
+    }
+
+    let packet = FFPacket()
+    let frame = FFFrame()
+    let scaleFrame = FFFrame()
+    let scaleContext = FFScaleContext()
+
+    do {
+      try Sampled.read(
+        packet: packet.packet,
+        data: allocated,
+        // This is safe since it's from AVPacket.size, which is int.
+        bytes: Int32(data.count),
+        codec: avcodec_find_decoder(codecID),
+        frame: frame.frame,
+      )
+    } catch {
+      // TODO: Elaborate.
+      Logger.model.error("\(error)")
+
+      return nil
+    }
+
+    let width = Float(frame.frame.pointee.width)
+    let height = Float(frame.frame.pointee.height)
+    let scale = min(1, Float(imageLength) / max(width, height))
+    scaleFrame.frame.pointee.width = Int32(width * scale)
+    scaleFrame.frame.pointee.height = Int32(height * scale)
+
+    do {
+      return try Sampled.read(
+        frame: frame.frame,
+        scaleFrame: scaleFrame.frame,
+        scaleContext: scaleContext.context,
+      )
+    } catch {
+      // TODO: Elaborate.
+      Logger.model.error("\(error)")
+
+      return nil
     }
   }
 
@@ -752,6 +816,7 @@ final class LibraryModel {
                   .including(
                     required: LibraryTrackRecord.fullTextAssociation
                       .forKey(LibraryModelSearchConfigurationMainLibraryTrackInfo.CodingKeys.fullText)
+                      .select(Column.rowID)
                       .matching(FTS5Pattern(matchingAllPrefixesIn: text))
                       .order(Column.rank),
                   )
@@ -832,9 +897,10 @@ final class LibraryModel {
               let library = LibraryRecord(
                 rowID: configuration.mainLibrary.library.rowID,
                 bookmark: bookmark.rowID,
+                currentQueue: nil,
               )
 
-              try library.update(db)
+              try library.update(db, columns: [LibraryRecord.Columns.bookmark])
             }
           } catch {
             // TODO: Elaborate.
@@ -942,10 +1008,10 @@ final class LibraryModel {
             if let img = partialResult.albumArtworkImages[id] {
               image = img
             } else {
-              let img = readSearchPacket(
+              let img = readImagePacket(
                 data: albumArtwork.albumArtwork.data!,
                 codecID: albumArtwork.albumArtwork.format!.codecID,
-                imageSize: imageSize,
+                imageLength: imageSize,
               ).map { NSImage(cgImage: $0, size: .zero) }
 
               partialResult.albumArtworkImages[id] = img
@@ -970,8 +1036,8 @@ final class LibraryModel {
           ) { partialResult, track in
             let rowID = track.track.track.rowID!
             let model = self.searchTracks[id: rowID].map { model in
-              model.title = track.track.track.title
               model.source = track.source
+              model.title = track.track.track.title
               model.artistName = track.track.track.artistName
               model.albumArtworkImage = track.albumArtworkImage
 
@@ -1035,5 +1101,21 @@ final class LibraryModel {
     } catch {
       Logger.model.error("Could not write to database: \(error)")
     }
+  }
+
+  nonisolated private func resampleImage(
+    data: Data,
+    format: LibraryTrackAlbumArtworkFormat,
+    length: Double,
+  ) async -> NSImage? {
+    guard let image = readImagePacket(
+      data: data,
+      codecID: format.codecID,
+      imageLength: Int32(min(length.rounded(.up), Double(Int32.max))),
+    ) else {
+      return nil
+    }
+
+    return NSImage(cgImage: image, size: .zero)
   }
 }
