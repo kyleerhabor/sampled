@@ -64,24 +64,6 @@ extension GRDB.Configuration {
   }
 }
 
-private func duration(
-  _ context: UnsafePointer<AVFormatContext>!,
-  stream: UnsafePointer<AVStream>!,
-) -> Double? {
-  // Some formats (like Matroska) have the stream duration set to AV_NOPTS_VALUE, while exposing the real
-  // value in the format context.
-
-  if let duration = duration(stream.pointee.duration) {
-    return Double(duration) * av_q2d(stream.pointee.time_base)
-  }
-
-  if let duration = duration(context.pointee.duration) {
-    return Double(duration * Int64(AV_TIME_BASE))
-  }
-
-  return nil
-}
-
 private func readAttachedPicturePacket(
   _ context: UnsafeMutablePointer<AVFormatContext>!,
   stream: UnsafeMutablePointer<AVStream>!,
@@ -197,6 +179,7 @@ private func load(connection: DatabasePool) async {
   let observation = ValueObservation
     .trackingConstantRegion { db in
       try ConfigurationRecord
+        .select(ConfigurationRecord.Columns.mainLibrary)
         .including(
           required: ConfigurationRecord.mainLibraryAssociation
             .forKey(DatabaseLoadConfigurationInfo.CodingKeys.mainLibrary)
@@ -491,7 +474,6 @@ private func load(connection: DatabasePool) async {
                   return Track(
                     track: LibraryTrackRecord(
                       bookmark: nil,
-                      library: id,
                       title: title,
                       duration: duration,
                       isLiked: false,
@@ -542,7 +524,6 @@ private func load(connection: DatabasePool) async {
                 var track = LibraryTrackRecord(
                   rowID: track.track.rowID,
                   bookmark: bookmark.rowID,
-                  library: track.track.library,
                   title: track.track.title,
                   duration: track.track.duration,
                   isLiked: track.track.isLiked,
@@ -558,6 +539,14 @@ private func load(connection: DatabasePool) async {
                 )
 
                 try track.upsert(db)
+
+                var trackLibrary = TrackLibraryRecord(
+                  rowID: nil,
+                  library: id,
+                  track: track.rowID,
+                )
+
+                try trackLibrary.upsert(db)
               }
 
               // If we wanted to optimize the above, we could use the following code, which sidesteps GRDB's slow
@@ -712,6 +701,8 @@ let connection = Once {
 
   var migrator = DatabaseMigrator()
   migrator.registerMigration("v1") { db in
+    // TODO: Clarify uniqueness constraints and their affects on associated tables.
+
     try db.create(table: BookmarkRecord.databaseTableName) { table in
       table.primaryKey(Column.rowID.name, .integer)
       table
@@ -730,16 +721,6 @@ let connection = Once {
 
       table
         .column(BookmarkRecord.Columns.relative.name, .integer)
-        .references(BookmarkRecord.databaseTableName)
-    }
-
-    // TODO: Clarify uniqueness constraints and their affects on associated tables.
-    try db.create(table: LibraryRecord.databaseTableName) { table in
-      table.primaryKey(Column.rowID.name, .integer)
-      table
-        .column(LibraryRecord.Columns.bookmark.name, .integer)
-        .notNull()
-        .unique()
         .references(BookmarkRecord.databaseTableName)
     }
 
@@ -767,11 +748,6 @@ let connection = Once {
         .notNull()
         .unique()
         .references(BookmarkRecord.databaseTableName)
-
-      table
-        .column(LibraryTrackRecord.Columns.library.name, .integer)
-        .notNull()
-        .references(LibraryRecord.databaseTableName)
 
       table.column(LibraryTrackRecord.Columns.title.name, .text)
 
@@ -806,33 +782,8 @@ let connection = Once {
       table.column(LibraryTrackFTRecord.Columns.albumArtistName.name)
     }
 
-    try db.create(table: LibraryQueueRecord.databaseTableName) { table in
-      table.primaryKey(Column.rowID.name, .integer)
-      table
-        .column(LibraryQueueRecord.Columns.library.name, .integer)
-        .notNull()
-        .references(LibraryRecord.databaseTableName)
-    }
-
-    try db.alter(table: LibraryRecord.databaseTableName) { table in
-      table
-        .add(column: LibraryRecord.Columns.currentQueue.name, .integer)
-        .references(LibraryQueueRecord.databaseTableName)
-    }
-
-    try db.create(
-      indexOn: LibraryRecord.databaseTableName,
-      columns: [LibraryRecord.Columns.currentQueue.name],
-      options: .unique,
-    )
-
     try db.create(table: LibraryQueueItemRecord.databaseTableName) { table in
       table.primaryKey(Column.rowID.name, .integer)
-      table
-        .column(LibraryQueueItemRecord.Columns.queue.name, .integer)
-        .notNull()
-        .references(LibraryQueueRecord.databaseTableName)
-
       table
         .column(LibraryQueueItemRecord.Columns.track.name, .integer)
         .notNull()
@@ -842,8 +793,83 @@ let connection = Once {
         .column(LibraryQueueItemRecord.Columns.position.name, .integer)
         .notNull()
 
-      table.uniqueKey([LibraryQueueItemRecord.Columns.queue.name, LibraryQueueItemRecord.Columns.position.name])
+//      table.uniqueKey([LibraryQueueItemRecord.Columns.queue.name, LibraryQueueItemRecord.Columns.position.name])
     }
+
+    try db.create(table: LibraryQueueRecord.databaseTableName) { table in
+      table.primaryKey(Column.rowID.name, .integer)
+      // Should this be unique?
+      table
+        .column(LibraryQueueRecord.Columns.currentItem.name, .integer)
+        .references(LibraryQueueItemRecord.databaseTableName)
+    }
+
+    try db.create(table: LibraryRecord.databaseTableName) { table in
+      table.primaryKey(Column.rowID.name, .integer)
+      table
+        .column(LibraryRecord.Columns.bookmark.name, .integer)
+        .notNull()
+        .unique()
+        .references(BookmarkRecord.databaseTableName)
+
+      // TODO: Check that this exists in queue_libraries and corresponds to the library.
+      table
+        .column(LibraryRecord.Columns.currentQueue.name, .integer)
+        .references(LibraryQueueRecord.databaseTableName)
+    }
+
+    try db.create(table: TrackLibraryRecord.databaseTableName) { table in
+      table.primaryKey(Column.rowID.name, .integer)
+      table
+        .column(TrackLibraryRecord.Columns.library.name, .integer)
+        .notNull()
+        .references(LibraryRecord.databaseTableName)
+
+      table
+        .column(TrackLibraryRecord.Columns.track.name, .integer)
+        .notNull()
+        .unique()
+        .references(LibraryTrackRecord.databaseTableName)
+    }
+
+    try db.create(table: ItemLibraryQueueRecord.databaseTableName) { table in
+      table.primaryKey(Column.rowID.name, .integer)
+      table
+        .column(ItemLibraryQueueRecord.Columns.queue.name, .integer)
+        .notNull()
+        .references(LibraryQueueRecord.databaseTableName)
+
+      table
+        .column(ItemLibraryQueueRecord.Columns.item.name, .integer)
+        .notNull()
+        .unique()
+        .references(LibraryQueueItemRecord.databaseTableName)
+    }
+
+    try db.create(table: QueueLibraryRecord.databaseTableName) { table in
+      table.primaryKey(Column.rowID.name, .integer)
+      table
+        .column(QueueLibraryRecord.Columns.library.name, .integer)
+        .notNull()
+        .references(LibraryRecord.databaseTableName)
+
+      table
+        .column(QueueLibraryRecord.Columns.queue.name, .integer)
+        .notNull()
+        .unique()
+        .references(LibraryQueueRecord.databaseTableName)
+    }
+
+//    try db.execute(
+//      literal: """
+//      CREATE TRIGGER BEFORE INSERT ON \(ItemLibraryQueueRecord.self) FOR EACH ROW WHEN \
+//      (SELECT EXISTS (\
+//      SELECT 1 FROM \(ItemLibraryQueueRecord.self) \
+//      
+//      WHERE \(ItemLibraryQueueRecord.Columns.queue) = new.\(ItemLibraryQueueRecord.Columns.queue)
+//      INNER JOIN \(LibraryQueueItemRecord.self) ON \(LibraryQueueItemRecord.Columns.position) = \(ItemLibraryQueueRecord.self) WHERE \(ItemLibraryQueueRecord.Columns.queue) = new.\(ItemLibraryQueueRecord.Columns.queue)))
+//      """,
+//    )
 
     try db.create(table: ConfigurationRecord.databaseTableName) { table in
       table

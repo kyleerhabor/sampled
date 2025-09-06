@@ -700,9 +700,12 @@ struct LibraryView: View {
         NSWorkspace.shared.activateFileViewerSelecting(urls)
       }
     } primaryAction: { ids in
-      guard let track = library.tracks.filter(ids: ids).first else {
-        return
+      Task {
+        await library.queue(tracks: ids)
       }
+//      guard let track = library.tracks.filter(ids: ids).first else {
+//        return
+//      }
 //
 //      Task {
 //        await Self.play(track: track)
@@ -726,20 +729,20 @@ struct LibraryView: View {
 //    }
     .focusedSceneValue(infoTrack)
     .inspector(isPresented: $isInspectorPresented) {
-      List(library.queuedTracks) { track in
+      List(library.queuedItems) { item in
         Label {
           VStack(alignment: .leading) {
-            Text(track.title, default: "Library.UpNext.Item.Title.Unknown")
+            Text(item.track.title, default: "Library.UpNext.Item.Title.Unknown")
               .lineLimit(1)
 
-            Text(track.artistName, default: "Library.UpNext.Item.Artist.Unknown")
+            Text(item.track.artistName, default: "Library.UpNext.Item.Artist.Unknown")
               .lineLimit(1)
               .font(.callout)
               .foregroundStyle(.secondary)
           }
         } icon: {
-          LibraryImageView(id: track.albumArtworkHash) { length in
-            await library.resampleImage(track: track, length: length)
+          LibraryImageView(id: item.track.albumArtworkHash) { length in
+            await library.resampleImage(track: item.track, length: length)
           }
         }
         .labelStyle(ListLabelStyle())

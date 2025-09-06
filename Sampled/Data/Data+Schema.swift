@@ -11,13 +11,13 @@ import GRDB
 typealias RowID = Int64
 
 extension TableRecord {
-  static var everyColumn: [SQLSelectable] {
+  static var everyColumn: [any SQLSelectable] {
     [AllColumns(), Column.rowID]
   }
 }
 
 struct BookmarkRecord {
-  var rowID: RowID? = nil
+  var rowID: RowID?
   let data: Data?
   let options: URL.BookmarkCreationOptions?
   let hash: Data?
@@ -69,75 +69,8 @@ extension BookmarkRecord: MutablePersistableRecord {
 
 extension BookmarkRecord: TableRecord {
   static let databaseTableName = "bookmarks"
-
-  static var databaseSelection: [SQLSelectable] {
+  static var databaseSelection: [any SQLSelectable] {
     Self.everyColumn
-  }
-
-  static var relativeAssociation: BelongsToAssociation<Self, Self> {
-    self.belongsTo(Self.self, using: ForeignKey([Columns.relative]))
-  }
-
-  var relativeRequest: QueryInterfaceRequest<Self> {
-    self.request(for: Self.relativeAssociation)
-  }
-}
-
-struct LibraryRecord {
-  var rowID: RowID? = nil
-  let bookmark: RowID?
-  let currentQueue: RowID?
-}
-
-extension LibraryRecord: Codable {
-  enum CodingKeys: String, CodingKey {
-    case rowID = "rowid",
-         bookmark,
-         currentQueue = "current_queue"
-  }
-
-  enum Columns {
-    static let bookmark = Column(CodingKeys.bookmark)
-    static let currentQueue = Column(CodingKeys.currentQueue)
-  }
-}
-
-extension LibraryRecord: MutablePersistableRecord {
-  mutating func didInsert(_ inserted: InsertionSuccess) {
-    self.rowID = inserted.rowID
-  }
-}
-
-extension LibraryRecord: Equatable, FetchableRecord {}
-
-extension LibraryRecord: TableRecord {
-  static let databaseTableName = "libraries"
-  static var databaseSelection: [SQLSelectable] {
-    Self.everyColumn
-  }
-
-  static var bookmarkAssociation: BelongsToAssociation<Self, BookmarkRecord> {
-    self.belongsTo(BookmarkRecord.self, using: ForeignKey([Columns.bookmark]))
-  }
-
-  static var currentQueueAssociation: BelongsToAssociation<Self, LibraryQueueRecord> {
-    self.belongsTo(LibraryQueueRecord.self, using: ForeignKey([Columns.currentQueue]))
-  }
-
-  static var tracksAssociation: HasManyAssociation<Self, LibraryTrackRecord> {
-    self.hasMany(LibraryTrackRecord.self, using: ForeignKey([LibraryTrackRecord.Columns.library]))
-  }
-
-  var bookmarkRequest: QueryInterfaceRequest<BookmarkRecord> {
-    self.request(for: Self.bookmarkAssociation)
-  }
-
-  var currentQueueRequest: QueryInterfaceRequest<LibraryQueueRecord> {
-    self.request(for: Self.currentQueueAssociation)
-  }
-
-  var tracksRequest: QueryInterfaceRequest<LibraryTrackRecord> {
-    self.request(for: Self.tracksAssociation)
   }
 }
 
@@ -148,7 +81,7 @@ enum LibraryTrackAlbumArtworkFormat: Int {
 extension LibraryTrackAlbumArtworkFormat: Codable {}
 
 struct LibraryTrackAlbumArtworkRecord {
-  var rowID: RowID? = nil
+  var rowID: RowID?
   let data: Data?
   let hash: Data?
   let format: LibraryTrackAlbumArtworkFormat?
@@ -177,15 +110,14 @@ extension LibraryTrackAlbumArtworkRecord: Equatable, FetchableRecord {}
 
 extension LibraryTrackAlbumArtworkRecord: TableRecord {
   static let databaseTableName = "library_track_album_artworks"
-  static var databaseSelection: [SQLSelectable] {
+  static var databaseSelection: [any SQLSelectable] {
     Self.everyColumn
   }
 }
 
 struct LibraryTrackRecord {
-  var rowID: RowID? = nil
+  var rowID: RowID?
   let bookmark: RowID?
-  let library: RowID?
   let title: String?
   let duration: Double?
   let isLiked: Bool?
@@ -205,7 +137,7 @@ struct LibraryTrackRecord {
 extension LibraryTrackRecord: Codable {
   enum CodingKeys: String, CodingKey {
     case rowID = "rowid",
-         bookmark, library, title, duration,
+         bookmark, title, duration,
          isLiked = "is_liked",
          artistName = "artist_name",
          albumName = "album_name",
@@ -220,7 +152,6 @@ extension LibraryTrackRecord: Codable {
 
   enum Columns {
     static let bookmark = Column(CodingKeys.bookmark)
-    static let library = Column(CodingKeys.library)
     static let title = Column(CodingKeys.title)
     static let duration = Column(CodingKeys.duration)
     static let isLiked = Column(CodingKeys.isLiked)
@@ -246,7 +177,7 @@ extension LibraryTrackRecord: Equatable, FetchableRecord {}
 
 extension LibraryTrackRecord: TableRecord {
   static let databaseTableName = "library_tracks"
-  static var databaseSelection: [SQLSelectable] {
+  static var databaseSelection: [any SQLSelectable] {
     Self.everyColumn
   }
 
@@ -258,28 +189,16 @@ extension LibraryTrackRecord: TableRecord {
     self.belongsTo(BookmarkRecord.self, using: ForeignKey([Columns.bookmark]))
   }
 
-  static var libraryAssociation: BelongsToAssociation<Self, LibraryRecord> {
-    self.belongsTo(LibraryRecord.self, using: ForeignKey([Columns.library]))
-  }
-
   static var albumArtworkAssociation: BelongsToAssociation<Self, LibraryTrackAlbumArtworkRecord> {
     self.belongsTo(LibraryTrackAlbumArtworkRecord.self, using: ForeignKey([Columns.albumArtwork]))
   }
 
-  var fullTextRequest: QueryInterfaceRequest<LibraryTrackFTRecord> {
-    self.request(for: Self.fullTextAssociation)
+  static var trackLibraries: HasOneAssociation<Self, TrackLibraryRecord> {
+    self.hasOne(TrackLibraryRecord.self, using: ForeignKey([TrackLibraryRecord.Columns.track]))
   }
 
-  var bookmarkRequest: QueryInterfaceRequest<BookmarkRecord> {
-    self.request(for: Self.bookmarkAssociation)
-  }
-
-  var libraryRequest: QueryInterfaceRequest<LibraryRecord> {
-    self.request(for: Self.libraryAssociation)
-  }
-
-  var albumArtworkRequest: QueryInterfaceRequest<LibraryTrackAlbumArtworkRecord> {
-    self.request(for: Self.albumArtworkAssociation)
+  static var library: HasOneThroughAssociation<Self, LibraryRecord> {
+    self.hasOne(LibraryRecord.self, through: trackLibraries, using: TrackLibraryRecord.library)
   }
 }
 
@@ -313,49 +232,13 @@ extension LibraryTrackFTRecord: Equatable {}
 
 extension LibraryTrackFTRecord: TableRecord {
   static let databaseTableName = "library_tracks_ft"
-  static var databaseSelection: [SQLSelectable] {
+  static var databaseSelection: [any SQLSelectable] {
     Self.everyColumn
-  }
-}
-
-struct LibraryQueueRecord {
-  var rowID: RowID? = nil
-  let library: RowID?
-}
-
-extension LibraryQueueRecord: Equatable {}
-
-extension LibraryQueueRecord: Codable {
-  enum CodingKeys: String, CodingKey {
-    case rowID = "rowid",
-         library
-  }
-
-  enum Columns {
-    static let library = Column(CodingKeys.library)
-  }
-}
-
-extension LibraryQueueRecord: MutablePersistableRecord {
-  mutating func didInsert(_ inserted: InsertionSuccess) {
-    self.rowID = inserted.rowID
-  }
-}
-
-extension LibraryQueueRecord: TableRecord {
-  static let databaseTableName = "library_queues"
-  static var databaseSelection: [SQLSelectable] {
-    Self.everyColumn
-  }
-
-  static var itemsAssociation: HasManyAssociation<Self, LibraryQueueItemRecord> {
-    Self.hasMany(LibraryQueueItemRecord.self, using: ForeignKey([LibraryQueueItemRecord.Columns.queue]))
   }
 }
 
 struct LibraryQueueItemRecord {
-  var rowID: RowID? = nil
-  let queue: RowID?
+  var rowID: RowID?
   let track: RowID?
   let position: Int?
 }
@@ -365,11 +248,10 @@ extension LibraryQueueItemRecord: Equatable {}
 extension LibraryQueueItemRecord: Codable {
   enum CodingKeys: String, CodingKey {
     case rowID = "rowid",
-         queue, track, position
+         track, position
   }
 
   enum Columns {
-    static let queue = Column(CodingKeys.queue)
     static let track = Column(CodingKeys.track)
     static let position = Column(CodingKeys.position)
   }
@@ -383,29 +265,210 @@ extension LibraryQueueItemRecord: MutablePersistableRecord {
 
 extension LibraryQueueItemRecord: TableRecord {
   static let databaseTableName = "library_queue_items"
-  static var databaseSelection: [SQLSelectable] {
+  static var databaseSelection: [any SQLSelectable] {
+    Self.everyColumn
+  }
+}
+
+struct LibraryQueueRecord {
+  var rowID: RowID?
+  // TODO: Add timestamp.
+  let currentItem: RowID?
+}
+
+extension LibraryQueueRecord: Equatable {}
+
+extension LibraryQueueRecord: Codable {
+  enum CodingKeys: String, CodingKey {
+    case rowID = "rowid",
+         currentItem = "current_item"
+  }
+
+  enum Columns {
+    static let currentItem = Column(CodingKeys.currentItem)
+  }
+}
+
+extension LibraryQueueRecord: MutablePersistableRecord {
+  mutating func didInsert(_ inserted: InsertionSuccess) {
+    self.rowID = inserted.rowID
+  }
+}
+
+extension LibraryQueueRecord: TableRecord {
+  static let databaseTableName = "library_queues"
+  static var databaseSelection: [any SQLSelectable] {
     Self.everyColumn
   }
 
-  static var queueAssociation: BelongsToAssociation<Self, LibraryQueueRecord> {
-    Self.belongsTo(LibraryQueueRecord.self, using: ForeignKey([Columns.queue]))
+  static var itemLibraryQueues: HasManyAssociation<Self, ItemLibraryQueueRecord> {
+    Self.hasMany(ItemLibraryQueueRecord.self, using: ForeignKey([ItemLibraryQueueRecord.Columns.queue]))
   }
 
-  static var trackAssociation: BelongsToAssociation<Self, LibraryTrackRecord> {
-    Self.belongsTo(LibraryTrackRecord.self, using: ForeignKey([Columns.track]))
+  static var items: HasManyThroughAssociation<Self, LibraryQueueItemRecord> {
+    Self.hasMany(LibraryQueueItemRecord.self, through: itemLibraryQueues, using: ItemLibraryQueueRecord.item)
+  }
+}
+
+struct LibraryRecord {
+  var rowID: RowID?
+  let bookmark: RowID?
+  let currentQueue: RowID?
+}
+
+extension LibraryRecord: Codable {
+  enum CodingKeys: String, CodingKey {
+    case rowID = "rowid",
+         bookmark,
+         currentQueue = "current_queue"
   }
 
-  var queueRequest: QueryInterfaceRequest<LibraryQueueRecord> {
-    self.request(for: Self.queueAssociation)
+  enum Columns {
+    static let bookmark = Column(CodingKeys.bookmark)
+    static let currentQueue = Column(CodingKeys.currentQueue)
+  }
+}
+
+extension LibraryRecord: MutablePersistableRecord {
+  mutating func didInsert(_ inserted: InsertionSuccess) {
+    self.rowID = inserted.rowID
+  }
+}
+
+extension LibraryRecord: Equatable, FetchableRecord {}
+
+extension LibraryRecord: TableRecord {
+  static let databaseTableName = "libraries"
+  static var databaseSelection: [any SQLSelectable] {
+    Self.everyColumn
   }
 
-  var trackRequest: QueryInterfaceRequest<LibraryTrackRecord> {
-    self.request(for: Self.trackAssociation)
+  static var bookmarkAssociation: BelongsToAssociation<Self, BookmarkRecord> {
+    self.belongsTo(BookmarkRecord.self, using: ForeignKey([Columns.bookmark]))
+  }
+
+  static var currentQueueAssociation: BelongsToAssociation<Self, LibraryQueueRecord> {
+    self.belongsTo(LibraryQueueRecord.self, using: ForeignKey([Columns.currentQueue]))
+  }
+
+  static var trackLibraries: HasManyAssociation<Self, TrackLibraryRecord> {
+    self.hasMany(TrackLibraryRecord.self, using: ForeignKey([TrackLibraryRecord.Columns.library]))
+  }
+
+  static var tracks: HasManyThroughAssociation<Self, LibraryTrackRecord> {
+    self.hasMany(LibraryTrackRecord.self, through: trackLibraries, using: TrackLibraryRecord.track)
+  }
+}
+
+struct TrackLibraryRecord {
+  var rowID: RowID?
+  let library: RowID?
+  let track: RowID?
+}
+
+extension TrackLibraryRecord: Codable {
+  enum CodingKeys: String, CodingKey {
+    case rowID = "rowid",
+         library,
+         track
+  }
+
+  enum Columns {
+    static let library = Column(CodingKeys.library)
+    static let track = Column(CodingKeys.track)
+  }
+}
+
+extension TrackLibraryRecord: MutablePersistableRecord {
+  mutating func didInsert(_ inserted: InsertionSuccess) {
+    self.rowID = inserted.rowID
+  }
+}
+
+extension TrackLibraryRecord: TableRecord {
+  static let databaseTableName = "track_libraries"
+  static var databaseSelection: [any SQLSelectable] {
+    Self.everyColumn
+  }
+
+  static var library: BelongsToAssociation<Self, LibraryRecord> {
+    self.belongsTo(LibraryRecord.self, using: ForeignKey([Columns.library]))
+  }
+
+  static var track: BelongsToAssociation<Self, LibraryTrackRecord> {
+    self.belongsTo(LibraryTrackRecord.self, using: ForeignKey([Columns.track]))
+  }
+}
+
+struct ItemLibraryQueueRecord {
+  var rowID: RowID?
+  let queue: RowID?
+  let item: RowID?
+}
+
+extension ItemLibraryQueueRecord: Codable {
+  enum CodingKeys: String, CodingKey {
+    case rowID = "rowid",
+         queue,
+         item
+  }
+
+  enum Columns {
+    static let queue = Column(CodingKeys.queue)
+    static let item = Column(CodingKeys.item)
+  }
+}
+
+extension ItemLibraryQueueRecord: MutablePersistableRecord {
+  mutating func didInsert(_ inserted: InsertionSuccess) {
+    self.rowID = inserted.rowID
+  }
+}
+
+extension ItemLibraryQueueRecord: TableRecord {
+  static let databaseTableName = "item_library_queues"
+  static var databaseSelection: [any SQLSelectable] {
+    Self.everyColumn
+  }
+
+  static var item: BelongsToAssociation<Self, LibraryQueueItemRecord> {
+    Self.belongsTo(LibraryQueueItemRecord.self, using: ForeignKey([Columns.item]))
+  }
+}
+
+struct QueueLibraryRecord {
+  var rowID: RowID?
+  let library: RowID?
+  let queue: RowID?
+}
+
+extension QueueLibraryRecord: Codable {
+  enum CodingKeys: String, CodingKey {
+    case rowID = "rowid",
+         library, queue
+  }
+
+  enum Columns {
+    static let library = Column(CodingKeys.library)
+    static let queue = Column(CodingKeys.queue)
+  }
+}
+
+extension QueueLibraryRecord: MutablePersistableRecord {
+  mutating func didInsert(_ inserted: InsertionSuccess) {
+    self.rowID = inserted.rowID
+  }
+}
+
+extension QueueLibraryRecord: TableRecord {
+  static let databaseTableName = "queue_libraries"
+  static var databaseSelection: [any SQLSelectable] {
+    Self.everyColumn
   }
 }
 
 struct ConfigurationRecord {
-  var rowID: RowID? = nil
+  var rowID: RowID?
   let mainLibrary: RowID?
 
   static let `default` = Self(rowID: 1, mainLibrary: nil)
@@ -436,15 +499,11 @@ extension ConfigurationRecord: FetchableRecord {
 
 extension ConfigurationRecord: TableRecord {
   static let databaseTableName = "configuration"
-  static var databaseSelection: [SQLSelectable] {
+  static var databaseSelection: [any SQLSelectable] {
     Self.everyColumn
   }
 
   static var mainLibraryAssociation: BelongsToAssociation<Self, LibraryRecord> {
     self.belongsTo(LibraryRecord.self, using: ForeignKey([Columns.mainLibrary]))
-  }
-
-  var mainLibraryRequest: QueryInterfaceRequest<LibraryRecord> {
-    self.request(for: Self.mainLibraryAssociation)
   }
 }

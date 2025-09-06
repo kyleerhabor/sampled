@@ -18,14 +18,6 @@ public let FFSTATUS_ENOMEM = FFAVERROR_ENOMEM
 public let FFSTATUS_EISDIR = FFAVERROR_EISDIR
 public let FFSTATUS_EAGAIN = FFAVERROR_EAGAIN
 
-public func duration(_ duration: Int64) -> Int64? {
-  guard duration != FFAV_NOPTS_VALUE else {
-    return nil
-  }
-
-  return duration
-}
-
 public func bufferCount(sampleFormat: AVSampleFormat, channelCount: Int32) -> Int32 {
   if sampleFormat.isInterleaved {
     return 1
@@ -34,13 +26,21 @@ public func bufferCount(sampleFormat: AVSampleFormat, channelCount: Int32) -> In
   return channelCount
 }
 
+// MARK: - Thin
+
 public func streams(_ context: UnsafePointer<AVFormatContext>!) -> UnsafeBufferPointer<UnsafeMutablePointer<AVStream>?> {
   UnsafeBufferPointer(start: context.pointee.streams, count: Int(context.pointee.nb_streams))
 }
 
-// MARK: - Thin
+public func duration(_ duration: Int64) -> Int64? {
+  guard duration != FFAV_NOPTS_VALUE else {
+    return nil
+  }
 
-// I would make this a class, but deinit doesn't seem to play nicely with av_freep(_:).
+  return duration
+}
+
+// I would make this a class, but deinit doesn't behave nicely with av_freep(_:) (i.e., it crashes).
 public func allocateMemory(bytes: Int) -> UnsafeMutableRawPointer! {
   guard let allocatedMemory = av_malloc(bytes) else {
     fatalError()

@@ -1,9 +1,6 @@
 {
   "sourceLanguage" : "en",
   "strings" : {
-    "%@" : {
-
-    },
     "Finder.Item.Show" : {
       "localizations" : {
         "en" : {

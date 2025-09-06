@@ -26,6 +26,16 @@ func setter<Object: AnyObject, Value>(
   }
 }
 
+extension Numeric {
+  func incremented() -> Self {
+    self + 1
+  }
+
+  mutating func increment() {
+    self = incremented()
+  }
+}
+
 extension Duration {
   static let hour = Self.seconds(60 * 60)
 }

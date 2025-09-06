@@ -149,6 +149,24 @@ extension LibraryTrackModel: @MainActor Identifiable {
 
 @Observable
 @MainActor
+final class LibraryQueueItemModel {
+  private let rowID: RowID
+  let track: LibraryTrackModel
+
+  init(rowID: RowID, track: LibraryTrackModel) {
+    self.rowID = rowID
+    self.track = track
+  }
+}
+
+extension LibraryQueueItemModel: @MainActor Identifiable {
+  var id: RowID {
+    self.rowID
+  }
+}
+
+@Observable
+@MainActor
 final class LibrarySearchTrackModel {
   private let rowID: RowID
   var source: URLSource
@@ -260,6 +278,51 @@ extension LibraryModelLoadConfigurationInfo: Decodable {
 
 extension LibraryModelLoadConfigurationInfo: Equatable, FetchableRecord {}
 
+struct LibraryModelQueueTrackLibraryCurrentQueueItemInfo {
+  let item: LibraryQueueItemRecord
+}
+
+extension LibraryModelQueueTrackLibraryCurrentQueueItemInfo: Equatable, Decodable, FetchableRecord {}
+
+struct LibraryModelQueueTrackLibraryCurrentQueueInfo {
+  let queue: LibraryQueueRecord
+  let items: [LibraryModelQueueTrackLibraryCurrentQueueItemInfo]
+}
+
+extension LibraryModelQueueTrackLibraryCurrentQueueInfo: Decodable {
+  enum CodingKeys: String, CodingKey {
+    case queue, items
+  }
+}
+
+extension LibraryModelQueueTrackLibraryCurrentQueueInfo: Equatable, FetchableRecord {}
+
+struct LibraryModelQueueTrackLibraryInfo {
+  let library: LibraryRecord
+  let currentQueue: LibraryModelQueueTrackLibraryCurrentQueueInfo?
+}
+
+extension LibraryModelQueueTrackLibraryInfo: Decodable {
+  enum CodingKeys: String, CodingKey {
+    case library, currentQueue
+  }
+}
+
+extension LibraryModelQueueTrackLibraryInfo: Equatable, FetchableRecord {}
+
+struct LibraryModelQueueTrackInfo {
+  let track: LibraryTrackRecord
+  let library: LibraryModelQueueTrackLibraryInfo
+}
+
+extension LibraryModelQueueTrackInfo: Decodable {
+  enum CodingKeys: String, CodingKey {
+    case track, library
+  }
+}
+
+extension LibraryModelQueueTrackInfo: Equatable, FetchableRecord {}
+
 struct LibraryModelSearchConfigurationMainLibraryBookmarkInfo {
   let bookmark: BookmarkRecord
 }
@@ -277,7 +340,6 @@ struct LibraryModelSearchConfigurationMainLibraryTrackBookmarkInfo {
 }
 
 extension LibraryModelSearchConfigurationMainLibraryTrackBookmarkInfo: Equatable, Decodable, FetchableRecord {}
-
 
 struct LibraryModelSearchConfigurationMainLibraryTrackAlbumArtworkInfo {
   let albumArtwork: LibraryTrackAlbumArtworkRecord
@@ -336,7 +398,7 @@ extension LibraryModelSearchConfigurationInfo: Equatable, FetchableRecord {}
 final class LibraryModel {
   var tracks = IdentifiedArrayOf<LibraryTrackModel>()
   var likedTrackIDs = Set<LibraryTrackModel.ID>()
-  var queuedTracks = IdentifiedArrayOf<LibraryTrackModel>()
+  var queuedItems = IdentifiedArrayOf<LibraryQueueItemModel>()
   var searchTracks = IdentifiedArrayOf<LibrarySearchTrackModel>()
 
   func load() async {
@@ -346,6 +408,10 @@ final class LibraryModel {
   func setLiked(_ flag: Bool, for tracks: [LibraryTrackModel]) async {
     tracks.forEach(setter(flag, on: \.isLiked))
     await setLiked(tracks: tracks.map(\.id), isLiked: flag)
+  }
+
+  func queue(tracks: Set<LibraryTrackModel.ID>) async {
+    await _queue(tracks: tracks)
   }
 
   func search(text: String, imageSize: Int32) async {
@@ -423,12 +489,11 @@ final class LibraryModel {
                   .select(BookmarkRecord.Columns.data, BookmarkRecord.Columns.options, BookmarkRecord.Columns.hash),
               )
               .including(
-                all: LibraryRecord.tracksAssociation
+                all: LibraryRecord.tracks
                   .forKey(LibraryModelLoadConfigurationMainLibraryInfo.CodingKeys.tracks)
                   .select(
                     Column.rowID,
                     LibraryTrackRecord.Columns.title,
-                    LibraryTrackRecord.Columns.library,
                     LibraryTrackRecord.Columns.duration,
                     LibraryTrackRecord.Columns.isLiked,
                     LibraryTrackRecord.Columns.artistName,
@@ -460,7 +525,7 @@ final class LibraryModel {
                 optional: LibraryRecord.currentQueueAssociation
                   .forKey(LibraryModelLoadConfigurationMainLibraryInfo.CodingKeys.currentQueue)
                   .including(
-                    all: LibraryQueueRecord.itemsAssociation
+                    all: LibraryQueueRecord.items
                       .forKey(LibraryModelLoadConfigurationMainLibraryCurrentQueueInfo.CodingKeys.items)
                       .select(Column.rowID, LibraryQueueItemRecord.Columns.track)
                       .order(LibraryQueueItemRecord.Columns.position),
@@ -593,7 +658,6 @@ final class LibraryModel {
                 let track = LibraryTrackRecord(
                   rowID: track.track.track.rowID,
                   bookmark: bookmark.rowID,
-                  library: track.track.track.library,
                   title: track.track.track.title,
                   duration: track.track.track.duration,
                   isLiked: track.track.track.isLiked,
@@ -720,9 +784,19 @@ final class LibraryModel {
 
           // We're not dedicating a method to this since it opens another opportunity for the data to get out of sync.
           self.likedTrackIDs = likedTrackIDs
-          self.queuedTracks = configuration.mainLibrary.currentQueue.map { currentQueue in
+          self.queuedItems = configuration.mainLibrary.currentQueue.map { currentQueue in
             IdentifiedArray(uniqueElements: currentQueue.items.compactMap { item in
-              self.tracks[id: item.item.track!]
+              let id = item.item.rowID!
+
+              if let item = self.queuedItems[id: id] {
+                return item
+              }
+
+              guard let track = self.tracks[id: item.item.track!] else {
+                return nil
+              }
+
+              return LibraryQueueItemModel(rowID: id, track: track)
             })
           } ?? IdentifiedArray()
         }
@@ -731,6 +805,110 @@ final class LibraryModel {
       Logger.model.error("Could not observe changes to library folder in database: \(error)")
 
       return
+    }
+  }
+
+  nonisolated private func _queue(tracks: Set<LibraryTrackModel.ID>) async {
+    let conn: DatabasePool
+
+    do {
+      conn = try await connection()
+    } catch {
+      Logger.model.error("Could not create database connection: \(error)")
+
+      return
+    }
+
+    do {
+      try await conn.write { db in
+        let tracks = try LibraryTrackRecord
+          .select(Column.rowID)
+          .filter(keys: tracks)
+          .including(
+            required: LibraryTrackRecord.library
+              .forKey(LibraryModelQueueTrackInfo.CodingKeys.library)
+              .select(Column.rowID, LibraryRecord.Columns.currentQueue)
+              .including(
+                optional: LibraryRecord.currentQueueAssociation
+                  .forKey(LibraryModelQueueTrackLibraryInfo.CodingKeys.currentQueue)
+                  .select(Column.rowID)
+                  .including(
+                    // TODO: Don't request all items to get the latest position.
+                    all: LibraryQueueRecord.items
+                      .forKey(LibraryModelQueueTrackLibraryCurrentQueueInfo.CodingKeys.items)
+                      .select(LibraryQueueItemRecord.Columns.position)
+                      .order(LibraryQueueItemRecord.Columns.position),
+                  ),
+              ),
+          )
+          .asRequest(of: LibraryModelQueueTrackInfo.self)
+          .fetchAll(db)
+
+        // For sake of convenience, we're going to assume all libraries are the same. This should apply to the rest of
+        // this class.
+        var iterator = tracks.makeIterator()
+
+        if let track = iterator.next() {
+          var position = (track.library.currentQueue?.items.last?.item.position ?? 0).incremented()
+          var item = LibraryQueueItemRecord(
+            rowID: nil,
+            track: track.track.rowID,
+            position: position,
+          )
+
+          try item.insert(db)
+
+          var queue = track.library.currentQueue?.queue ?? LibraryQueueRecord(rowID: nil, currentItem: item.rowID)
+          try queue.upsert(db)
+
+          var itemLibraryQueue = ItemLibraryQueueRecord(
+            rowID: nil,
+            queue: queue.rowID,
+            item: item.rowID,
+          )
+
+          try itemLibraryQueue.insert(db)
+
+          var queueLibrary = QueueLibraryRecord(
+            rowID: nil,
+            library: track.library.library.rowID,
+            queue: queue.rowID,
+          )
+
+          try queueLibrary.upsert(db)
+
+          let library = LibraryRecord(
+            rowID: track.library.library.rowID,
+            bookmark: nil,
+            currentQueue: queue.rowID,
+          )
+
+          try library.update(db, columns: [LibraryRecord.Columns.currentQueue])
+
+          for track in iterator {
+            position.increment()
+
+            var item = LibraryQueueItemRecord(
+              rowID: nil,
+              track: track.track.rowID,
+              position: position,
+            )
+
+            try item.insert(db)
+
+            var itemLibraryQueue = ItemLibraryQueueRecord(
+              rowID: nil,
+              queue: queue.rowID,
+              item: item.rowID,
+            )
+
+            try itemLibraryQueue.insert(db)
+          }
+        }
+      }
+    } catch {
+      // TODO: Elaborate.
+      Logger.model.error("\(error)")
     }
   }
 
@@ -804,7 +982,7 @@ final class LibraryModel {
                   .select(BookmarkRecord.Columns.data, BookmarkRecord.Columns.options, BookmarkRecord.Columns.hash),
               )
               .including(
-                all: LibraryRecord.tracksAssociation
+                all: LibraryRecord.tracks
                   .forKey(LibraryModelSearchConfigurationMainLibraryInfo.CodingKeys.tracks)
                   .select(
                     Column.rowID,
@@ -962,7 +1140,6 @@ final class LibraryModel {
                 let track = LibraryTrackRecord(
                   rowID: track.track.track.rowID,
                   bookmark: bookmark.rowID,
-                  library: track.track.track.library,
                   title: track.track.track.title,
                   duration: track.track.track.duration,
                   isLiked: track.track.track.isLiked,
@@ -1080,7 +1257,6 @@ final class LibraryModel {
           let track = LibraryTrackRecord(
             rowID: id,
             bookmark: nil,
-            library: nil,
             title: nil,
             duration: nil,
             isLiked: isLiked,
