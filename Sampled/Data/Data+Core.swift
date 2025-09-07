@@ -722,6 +722,7 @@ let connection = Once {
       table
         .column(BookmarkRecord.Columns.relative.name, .integer)
         .references(BookmarkRecord.databaseTableName)
+        .indexed()
     }
 
     try db.create(table: LibraryTrackAlbumArtworkRecord.databaseTableName) { table in
@@ -767,6 +768,7 @@ let connection = Once {
       table
         .column(LibraryTrackRecord.Columns.albumArtwork.name, .integer)
         .references(LibraryTrackAlbumArtworkRecord.databaseTableName)
+        .indexed()
 
       table.column(LibraryTrackRecord.Columns.trackNumber.name, .integer)
       table.column(LibraryTrackRecord.Columns.trackTotal.name, .integer)
@@ -788,6 +790,7 @@ let connection = Once {
         .column(LibraryQueueItemRecord.Columns.track.name, .integer)
         .notNull()
         .references(LibraryTrackRecord.databaseTableName)
+        .indexed()
 
       table
         .column(LibraryQueueItemRecord.Columns.position.name, .integer)
@@ -802,6 +805,7 @@ let connection = Once {
       table
         .column(LibraryQueueRecord.Columns.currentItem.name, .integer)
         .references(LibraryQueueItemRecord.databaseTableName)
+        .indexed()
     }
 
     try db.create(table: LibraryRecord.databaseTableName) { table in
@@ -816,6 +820,7 @@ let connection = Once {
       table
         .column(LibraryRecord.Columns.currentQueue.name, .integer)
         .references(LibraryQueueRecord.databaseTableName)
+        .indexed()
     }
 
     try db.create(table: TrackLibraryRecord.databaseTableName) { table in
@@ -824,6 +829,7 @@ let connection = Once {
         .column(TrackLibraryRecord.Columns.library.name, .integer)
         .notNull()
         .references(LibraryRecord.databaseTableName)
+        .indexed()
 
       table
         .column(TrackLibraryRecord.Columns.track.name, .integer)
@@ -838,6 +844,7 @@ let connection = Once {
         .column(ItemLibraryQueueRecord.Columns.queue.name, .integer)
         .notNull()
         .references(LibraryQueueRecord.databaseTableName)
+        .indexed()
 
       table
         .column(ItemLibraryQueueRecord.Columns.item.name, .integer)
@@ -852,6 +859,7 @@ let connection = Once {
         .column(QueueLibraryRecord.Columns.library.name, .integer)
         .notNull()
         .references(LibraryRecord.databaseTableName)
+        .indexed()
 
       table
         .column(QueueLibraryRecord.Columns.queue.name, .integer)
@@ -879,6 +887,7 @@ let connection = Once {
       table
         .column(ConfigurationRecord.Columns.mainLibrary.name, .integer)
         .references(LibraryRecord.databaseTableName)
+        .indexed()
     }
   }
 
