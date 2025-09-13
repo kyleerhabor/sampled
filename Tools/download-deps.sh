@@ -17,7 +17,7 @@ VORBIS_GIT_COMMIT=43bbff0141028e58d476c1d5fd45dd5573db576d # v1.3.7+
 VORBIS_GIT_URL=https://gitlab.xiph.org/xiph/vorbis.git
 OPUS_GIT_COMMIT=f92fdda4f9b75ecb5f0f38b86c991195585579ea # v1.5.2+
 OPUS_GIT_URL=https://gitlab.xiph.org/xiph/opus.git
-FFMPEG_GIT_COMMIT=b61e510e7500c27c7dee2b9c8cfa77689195f2a0 # v7.1.1+
+FFMPEG_GIT_COMMIT=a4fd3f27f4d911e807f9c45931a5fd5d3ae95c87 # v8.0.0+
 FFMPEG_GIT_URL=https://git.ffmpeg.org/ffmpeg.git
 
 gitdownload () {
@@ -30,7 +30,7 @@ gitdownload () {
 }
 
 downloadbrew () {
-  brew install autoconf automake libtool nasm wget
+  brew install autoconf automake libtool nasm wget pkgconf
 }
 
 downloadogg () {

@@ -31,7 +31,7 @@ let package = Package(
         .linkedLibrary("z"),
         // Libraries of interest
         .linkedLibrary("opus"),
-      ]
-    )
-  ]
+      ],
+    ),
+  ],
 )
