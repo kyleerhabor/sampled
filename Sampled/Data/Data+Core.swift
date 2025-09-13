@@ -793,7 +793,7 @@ let connection = Once {
         .indexed()
 
       table
-        .column(LibraryQueueItemRecord.Columns.position.name, .integer)
+        .column(LibraryQueueItemRecord.Columns.position.name, .text)
         .notNull()
 
 //      table.uniqueKey([LibraryQueueItemRecord.Columns.queue.name, LibraryQueueItemRecord.Columns.position.name])

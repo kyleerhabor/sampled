@@ -7,7 +7,8 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		002FA3942E5510CF00DAAEF7 /* Defaults in Frameworks */ = {isa = PBXBuildFile; productRef = 002FA3932E5510CF00DAAEF7 /* Defaults */; };
+		0040AFD02E7605F400F33735 /* Defaults in Frameworks */ = {isa = PBXBuildFile; productRef = 0040AFCF2E7605F400F33735 /* Defaults */; };
+		0040AFD32E76063500F33735 /* FractionalIndex in Frameworks */ = {isa = PBXBuildFile; productRef = 0040AFD22E76063500F33735 /* FractionalIndex */; };
 		00693F3D2E52CA71008C7A38 /* GRDB in Frameworks */ = {isa = PBXBuildFile; productRef = 00693F3C2E52CA71008C7A38 /* GRDB */; };
 		00BDFB332CB42B7C009D66A8 /* Localizable.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = 00BDFB322CB42B7C009D66A8 /* Localizable.xcstrings */; };
 		00C7BCCC2CE003730094F057 /* Algorithms in Frameworks */ = {isa = PBXBuildFile; productRef = 00C7BCCB2CE003730094F057 /* Algorithms */; };
@@ -816,10 +817,11 @@
 			buildActionMask = 2147483647;
 			files = (
 				00EE810D2E5831D100F705C5 /* IdentifiedCollections in Frameworks */,
-				002FA3942E5510CF00DAAEF7 /* Defaults in Frameworks */,
 				00693F3D2E52CA71008C7A38 /* GRDB in Frameworks */,
 				00C7BCFA2CE006310094F057 /* SampledFFmpeg in Frameworks */,
 				00C7BCCC2CE003730094F057 /* Algorithms in Frameworks */,
+				0040AFD32E76063500F33735 /* FractionalIndex in Frameworks */,
+				0040AFD02E7605F400F33735 /* Defaults in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -2330,8 +2332,9 @@
 				00C7BCCB2CE003730094F057 /* Algorithms */,
 				00C7BCF92CE006310094F057 /* SampledFFmpeg */,
 				00693F3C2E52CA71008C7A38 /* GRDB */,
-				002FA3932E5510CF00DAAEF7 /* Defaults */,
 				00EE810C2E5831D100F705C5 /* IdentifiedCollections */,
+				0040AFCF2E7605F400F33735 /* Defaults */,
+				0040AFD22E76063500F33735 /* FractionalIndex */,
 			);
 			productName = Forward;
 			productReference = 0017ED242BF17A38008B3D76 /* Sampled.app */;
@@ -2365,8 +2368,9 @@
 				00D98C3F2CAE5B180008E0F1 /* XCRemoteSwiftPackageReference "swift-algorithms" */,
 				0034E6AD2E5243DE0070A77A /* XCRemoteSwiftPackageReference "SwiftLintPlugins" */,
 				00693F3B2E52CA71008C7A38 /* XCRemoteSwiftPackageReference "GRDB" */,
-				002FA3922E5510CE00DAAEF7 /* XCRemoteSwiftPackageReference "Defaults" */,
 				00EE810B2E5831D100F705C5 /* XCRemoteSwiftPackageReference "swift-identified-collections" */,
+				0040AFCE2E7605F400F33735 /* XCRemoteSwiftPackageReference "Defaults" */,
+				0040AFD12E76063500F33735 /* XCRemoteSwiftPackageReference "FractionalIndex" */,
 			);
 			productRefGroup = 0017ED252BF17A38008B3D76 /* Products */;
 			projectDirPath = "";
@@ -2768,20 +2772,28 @@
 /* End XCConfigurationList section */
 
 /* Begin XCRemoteSwiftPackageReference section */
-		002FA3922E5510CE00DAAEF7 /* XCRemoteSwiftPackageReference "Defaults" */ = {
-			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = "https://github.com/sindresorhus/Defaults/";
-			requirement = {
-				kind = revision;
-				revision = cc938ecf0bed848dc80a9726ac5455104e3f9dae;
-			};
-		};
 		0034E6AD2E5243DE0070A77A /* XCRemoteSwiftPackageReference "SwiftLintPlugins" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/SimplyDanny/SwiftLintPlugins";
 			requirement = {
 				kind = revision;
 				revision = 8545ddf4de043e6f2051c5cf204f39ef778ebf6b;
+			};
+		};
+		0040AFCE2E7605F400F33735 /* XCRemoteSwiftPackageReference "Defaults" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/sindresorhus/Defaults.git";
+			requirement = {
+				kind = revision;
+				revision = 00c82eff4550c87cf9c547d7e5493a6a97837061;
+			};
+		};
+		0040AFD12E76063500F33735 /* XCRemoteSwiftPackageReference "FractionalIndex" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/varunrau/FractionalIndex.git";
+			requirement = {
+				kind = revision;
+				revision = 2e84e529881039b3917319a3d126ba78b94b8bc5;
 			};
 		};
 		00693F3B2E52CA71008C7A38 /* XCRemoteSwiftPackageReference "GRDB" */ = {
@@ -2811,15 +2823,20 @@
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
-		002FA3932E5510CF00DAAEF7 /* Defaults */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = 002FA3922E5510CE00DAAEF7 /* XCRemoteSwiftPackageReference "Defaults" */;
-			productName = Defaults;
-		};
 		0034E6AE2E5244900070A77A /* SwiftLintBuildToolPlugin */ = {
 			isa = XCSwiftPackageProductDependency;
 			package = 0034E6AD2E5243DE0070A77A /* XCRemoteSwiftPackageReference "SwiftLintPlugins" */;
 			productName = "plugin:SwiftLintBuildToolPlugin";
+		};
+		0040AFCF2E7605F400F33735 /* Defaults */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 0040AFCE2E7605F400F33735 /* XCRemoteSwiftPackageReference "Defaults" */;
+			productName = Defaults;
+		};
+		0040AFD22E76063500F33735 /* FractionalIndex */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 0040AFD12E76063500F33735 /* XCRemoteSwiftPackageReference "FractionalIndex" */;
+			productName = FractionalIndex;
 		};
 		00693F3C2E52CA71008C7A38 /* GRDB */ = {
 			isa = XCSwiftPackageProductDependency;

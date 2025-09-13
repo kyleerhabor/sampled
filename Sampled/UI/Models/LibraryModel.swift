@@ -11,12 +11,12 @@ import SampledFFmpeg
 import Algorithms
 import AppKit
 import CoreGraphics
+import FractionalIndex
 import Foundation
 import GRDB
 import IdentifiedCollections
 import Observation
 import OSLog
-
 
 // TODO: Rename.
 func read(frame: UnsafePointer<AVFrame>!, pixelFormatDescriptor: UnsafePointer<AVPixFmtDescriptor>!) -> CGImage? {
@@ -849,7 +849,7 @@ final class LibraryModel {
         var iterator = tracks.makeIterator()
 
         if let track = iterator.next() {
-          var position = (track.library.currentQueue?.items.last?.item.position ?? 0).incremented()
+          var position = try generateKeyBetween(a: track.library.currentQueue?.items.last?.item.position, b: nil)
           var item = LibraryQueueItemRecord(
             rowID: nil,
             track: track.track.rowID,
@@ -886,7 +886,7 @@ final class LibraryModel {
           try library.update(db, columns: [LibraryRecord.Columns.currentQueue])
 
           for track in iterator {
-            position.increment()
+            position = try generateKeyBetween(a: position, b: nil)
 
             var item = LibraryQueueItemRecord(
               rowID: nil,

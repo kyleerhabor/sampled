@@ -240,7 +240,7 @@ extension LibraryTrackFTRecord: TableRecord {
 struct LibraryQueueItemRecord {
   var rowID: RowID?
   let track: RowID?
-  let position: Int?
+  let position: String?
 }
 
 extension LibraryQueueItemRecord: Equatable {}

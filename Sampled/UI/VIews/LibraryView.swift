@@ -749,6 +749,15 @@ struct LibraryView: View {
         .frame(height: 36)
       }
       .scrollContentBackground(.hidden)
+      .overlay {
+        if library.queuedItems.isEmpty {
+          ContentUnavailableView {
+            Text("Library.UpNext.Empty.Title")
+          } description: {
+            Text("Library.UpNext.Empty.Description")
+          }
+        }
+      }
     }
     .toolbar {
       ToolbarItem(id: "\(Bundle.appID).library-up-next") {

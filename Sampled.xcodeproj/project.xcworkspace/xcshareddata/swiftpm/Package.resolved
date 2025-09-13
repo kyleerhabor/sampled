@@ -1,12 +1,20 @@
 {
-  "originHash" : "1ec56c6e88fc8e23b1f9e5ea6a1d5d83f865f517e94146eb81998ebb2abeef3c",
+  "originHash" : "d97052f2025785984d76e3ebb1de7c7fdc33b0b84843d0156f246a6af22a17c0",
   "pins" : [
     {
       "identity" : "defaults",
       "kind" : "remoteSourceControl",
-      "location" : "https://github.com/sindresorhus/Defaults/",
+      "location" : "https://github.com/sindresorhus/Defaults.git",
       "state" : {
-        "revision" : "cc938ecf0bed848dc80a9726ac5455104e3f9dae"
+        "revision" : "00c82eff4550c87cf9c547d7e5493a6a97837061"
+      }
+    },
+    {
+      "identity" : "fractionalindex",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/varunrau/FractionalIndex.git",
+      "state" : {
+        "revision" : "2e84e529881039b3917319a3d126ba78b94b8bc5"
       }
     },
     {
@@ -56,8 +64,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/swiftlang/swift-syntax",
       "state" : {
-        "revision" : "0687f71944021d616d34d922343dcef086855920",
-        "version" : "600.0.1"
+        "revision" : "f99ae8aa18f0cf0d53481901f88a0991dc3bd4a2",
+        "version" : "601.0.1"
       }
     },
     {

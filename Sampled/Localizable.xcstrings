@@ -194,6 +194,26 @@
         }
       }
     },
+    "Library.UpNext.Empty.Description" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Double-click tracks to add to the queue."
+          }
+        }
+      }
+    },
+    "Library.UpNext.Empty.Title" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Queue is Empty"
+          }
+        }
+      }
+    },
     "Library.UpNext.Item.Artist.Unknown" : {
       "localizations" : {
         "en" : {
