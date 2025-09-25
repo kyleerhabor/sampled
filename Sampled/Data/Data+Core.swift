@@ -795,8 +795,6 @@ let connection = Once {
       table
         .column(LibraryQueueItemRecord.Columns.position.name, .text)
         .notNull()
-
-//      table.uniqueKey([LibraryQueueItemRecord.Columns.queue.name, LibraryQueueItemRecord.Columns.position.name])
     }
 
     try db.create(table: LibraryQueueRecord.databaseTableName) { table in
@@ -868,16 +866,22 @@ let connection = Once {
         .references(LibraryQueueRecord.databaseTableName)
     }
 
-//    try db.execute(
-//      literal: """
-//      CREATE TRIGGER BEFORE INSERT ON \(ItemLibraryQueueRecord.self) FOR EACH ROW WHEN \
-//      (SELECT EXISTS (\
-//      SELECT 1 FROM \(ItemLibraryQueueRecord.self) \
-//      
-//      WHERE \(ItemLibraryQueueRecord.Columns.queue) = new.\(ItemLibraryQueueRecord.Columns.queue)
-//      INNER JOIN \(LibraryQueueItemRecord.self) ON \(LibraryQueueItemRecord.Columns.position) = \(ItemLibraryQueueRecord.self) WHERE \(ItemLibraryQueueRecord.Columns.queue) = new.\(ItemLibraryQueueRecord.Columns.queue)))
-//      """,
-//    )
+    try db.execute(
+      literal: """
+      CREATE TRIGGER unique_library_queue_item_position \
+      BEFORE INSERT ON \(ItemLibraryQueueRecord.self) \
+      FOR EACH ROW \
+      WHEN EXISTS (\
+      SELECT 1 FROM \(ItemLibraryQueueRecord.self) \
+      INNER JOIN \(LibraryQueueItemRecord.self) AS item ON item.\(Column.rowID) = \(ItemLibraryQueueRecord.self).\(ItemLibraryQueueRecord.Columns.item) \
+      INNER JOIN \(LibraryQueueItemRecord.self) AS new_item ON new_item.\(Column.rowID) = new.\(ItemLibraryQueueRecord.Columns.item) \
+      WHERE \(ItemLibraryQueueRecord.self).\(ItemLibraryQueueRecord.Columns.queue) = new.\(ItemLibraryQueueRecord.Columns.queue) AND item.\(LibraryQueueItemRecord.Columns.position) = new_item.\(LibraryQueueItemRecord.Columns.position)\
+      ) \
+      BEGIN \
+      SELECT RAISE(ABORT, '\(ItemLibraryQueueRecord.self).\(ItemLibraryQueueRecord.Columns.item).\(LibraryQueueItemRecord.Columns.position) already exists'); \
+      END;
+      """,
+    )
 
     try db.create(table: ConfigurationRecord.databaseTableName) { table in
       table
