@@ -60,6 +60,14 @@ extension GRDB.Configuration {
 
     #endif
 
+    configuration.prepareDatabase { db in
+      guard !db.configuration.readonly else {
+        return
+      }
+
+      try db.execute(literal: "VACUUM")
+    }
+
     return configuration
   }
 }

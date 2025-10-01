@@ -24,7 +24,6 @@
 /* Begin PBXFileReference section */
 		00132E1A2CF194A4004FF827 /* SampledFFmpeg */ = {isa = PBXFileReference; lastKnownFileType = wrapper; path = SampledFFmpeg; sourceTree = "<group>"; };
 		0017ED242BF17A38008B3D76 /* Sampled.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Sampled.app; sourceTree = BUILT_PRODUCTS_DIR; };
-		0034E6B12E5248050070A77A /* .swiftlint.yml */ = {isa = PBXFileReference; lastKnownFileType = text.yaml; path = .swiftlint.yml; sourceTree = "<group>"; };
 		005810632BF40688009CB589 /* .gitignore */ = {isa = PBXFileReference; lastKnownFileType = text; path = .gitignore; sourceTree = "<group>"; };
 		009526B02BF7C6C6006CB1D1 /* libm.tbd */ = {isa = PBXFileReference; lastKnownFileType = "sourcecode.text-based-dylib-definition"; name = libm.tbd; path = usr/lib/libm.tbd; sourceTree = SDKROOT; };
 		00B5C7432BF973B500212E92 /* libavcodec.pc */ = {isa = PBXFileReference; lastKnownFileType = text; name = libavcodec.pc; path = ForwardFFmpeg/Sources/CFFmpeg/x86_64/lib/pkgconfig/libavcodec.pc; sourceTree = "<group>"; };
@@ -833,7 +832,6 @@
 			children = (
 				00D98E542CAF3C060008E0F1 /* README.md */,
 				00D98EC62CAF47690008E0F1 /* LICENSE */,
-				0034E6B12E5248050070A77A /* .swiftlint.yml */,
 				005810632BF40688009CB589 /* .gitignore */,
 				00D98E5C2CAF3D050008E0F1 /* Sampled */,
 				00132E1A2CF194A4004FF827 /* SampledFFmpeg */,
@@ -2320,7 +2318,6 @@
 			buildRules = (
 			);
 			dependencies = (
-				0034E6AF2E5244900070A77A /* PBXTargetDependency */,
 			);
 			fileSystemSynchronizedGroups = (
 				0063653B2E5BC3E80053563E /* Standard */,
@@ -2366,7 +2363,6 @@
 			mainGroup = 0017ED1B2BF17A38008B3D76;
 			packageReferences = (
 				00D98C3F2CAE5B180008E0F1 /* XCRemoteSwiftPackageReference "swift-algorithms" */,
-				0034E6AD2E5243DE0070A77A /* XCRemoteSwiftPackageReference "SwiftLintPlugins" */,
 				00693F3B2E52CA71008C7A38 /* XCRemoteSwiftPackageReference "GRDB" */,
 				00EE810B2E5831D100F705C5 /* XCRemoteSwiftPackageReference "swift-identified-collections" */,
 				0040AFCE2E7605F400F33735 /* XCRemoteSwiftPackageReference "Defaults" */,
@@ -2537,13 +2533,6 @@
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXSourcesBuildPhase section */
-
-/* Begin PBXTargetDependency section */
-		0034E6AF2E5244900070A77A /* PBXTargetDependency */ = {
-			isa = PBXTargetDependency;
-			productRef = 0034E6AE2E5244900070A77A /* SwiftLintBuildToolPlugin */;
-		};
-/* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
 		0017ED312BF17A3D008B3D76 /* Debug */ = {
@@ -2772,14 +2761,6 @@
 /* End XCConfigurationList section */
 
 /* Begin XCRemoteSwiftPackageReference section */
-		0034E6AD2E5243DE0070A77A /* XCRemoteSwiftPackageReference "SwiftLintPlugins" */ = {
-			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = "https://github.com/SimplyDanny/SwiftLintPlugins";
-			requirement = {
-				kind = revision;
-				revision = 8545ddf4de043e6f2051c5cf204f39ef778ebf6b;
-			};
-		};
 		0040AFCE2E7605F400F33735 /* XCRemoteSwiftPackageReference "Defaults" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/sindresorhus/Defaults.git";
@@ -2823,11 +2804,6 @@
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
-		0034E6AE2E5244900070A77A /* SwiftLintBuildToolPlugin */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = 0034E6AD2E5243DE0070A77A /* XCRemoteSwiftPackageReference "SwiftLintPlugins" */;
-			productName = "plugin:SwiftLintBuildToolPlugin";
-		};
 		0040AFCF2E7605F400F33735 /* Defaults */ = {
 			isa = XCSwiftPackageProductDependency;
 			package = 0040AFCE2E7605F400F33735 /* XCRemoteSwiftPackageReference "Defaults" */;
