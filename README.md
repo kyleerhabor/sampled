@@ -48,6 +48,9 @@ If you encounter an error like `'libavutil/avutil.h' file not found`, you may ne
 
 If you'd like to contribute, I recommend using [Base][base] to browse the database in `~/Library/Containers/com.kyleerhabor.Sampled/Data/Library/Application Support/com.kyleerhabor.Sampled/[Debug]Data`.
 
+If package resolutions fails, it's possible Command Line Tools for Xcode is out of sync. See Xcode > Settings... >
+Locations > Command Line Tools.
+
 [^1]: An initial build on my 2019 MacBook Pro takes ~4 minutes to complete. 
 
 [meta]: https://www.nightbirdsevolve.com/meta

@@ -48,7 +48,8 @@ extension Sequence {
   func filter(ids: some SetAlgebra<Element.ID>) -> [Element] where Element: Identifiable {
     self.filter(in: ids, by: \.id)
   }
-
+  
+  /// - Precondition: The sum must not overflow.
   func sum() -> Element where Element: AdditiveArithmetic {
     self.reduce(.zero, +)
   }

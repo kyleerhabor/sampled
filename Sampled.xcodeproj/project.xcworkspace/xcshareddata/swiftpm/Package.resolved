@@ -1,5 +1,5 @@
 {
-  "originHash" : "78b712e12cc631dd571dfa97599bea077b442b1a6b53cff38c3cbabf1456a9d6",
+  "originHash" : "87683b9dd2e1dbdcfbd6600b49723bef8eeadbc0bd1d1a452f22b1463188a5b4",
   "pins" : [
     {
       "identity" : "defaults",
@@ -20,9 +20,9 @@
     {
       "identity" : "grdb.swift",
       "kind" : "remoteSourceControl",
-      "location" : "https://github.com/groue/GRDB.swift",
+      "location" : "https://github.com/groue/GRDB.swift.git",
       "state" : {
-        "revision" : "8ba1bc9a96afc731a000fd4136dd13a5a46297bd"
+        "revision" : "db695cf7dc2632c263bcf0b26f118074feb2697a"
       }
     },
     {
@@ -57,6 +57,14 @@
       "state" : {
         "revision" : "0a5bc04095a675662cf24757cc0640aa2204253b",
         "version" : "1.0.2"
+      }
+    },
+    {
+      "identity" : "swift-property-based",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/x-sheep/swift-property-based.git",
+      "state" : {
+        "revision" : "695120fe95d7f81c0baf556f63ad2468d7ed965d"
       }
     },
     {

@@ -9,7 +9,6 @@
 /* Begin PBXBuildFile section */
 		0040AFD02E7605F400F33735 /* Defaults in Frameworks */ = {isa = PBXBuildFile; productRef = 0040AFCF2E7605F400F33735 /* Defaults */; };
 		0040AFD32E76063500F33735 /* FractionalIndex in Frameworks */ = {isa = PBXBuildFile; productRef = 0040AFD22E76063500F33735 /* FractionalIndex */; };
-		00693F3D2E52CA71008C7A38 /* GRDB in Frameworks */ = {isa = PBXBuildFile; productRef = 00693F3C2E52CA71008C7A38 /* GRDB */; };
 		00BDFB332CB42B7C009D66A8 /* Localizable.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = 00BDFB322CB42B7C009D66A8 /* Localizable.xcstrings */; };
 		00C7BCCC2CE003730094F057 /* Algorithms in Frameworks */ = {isa = PBXBuildFile; productRef = 00C7BCCB2CE003730094F057 /* Algorithms */; };
 		00C7BCFA2CE006310094F057 /* SampledFFmpeg in Frameworks */ = {isa = PBXBuildFile; productRef = 00C7BCF92CE006310094F057 /* SampledFFmpeg */; };
@@ -19,7 +18,19 @@
 		00D98E612CAF3D060008E0F1 /* Standard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 00D98E5B2CAF3D050008E0F1 /* Standard.swift */; };
 		00D98EC72CAF47690008E0F1 /* LICENSE in Resources */ = {isa = PBXBuildFile; fileRef = 00D98EC62CAF47690008E0F1 /* LICENSE */; };
 		00EE810D2E5831D100F705C5 /* IdentifiedCollections in Frameworks */ = {isa = PBXBuildFile; productRef = 00EE810C2E5831D100F705C5 /* IdentifiedCollections */; };
+		00EF74A22E8DD2FA00EA0D19 /* GRDB in Frameworks */ = {isa = PBXBuildFile; productRef = 00EF74A12E8DD2FA00EA0D19 /* GRDB */; };
+		00EF74A52E8DD33800EA0D19 /* PropertyBased in Frameworks */ = {isa = PBXBuildFile; productRef = 00EF74A42E8DD33800EA0D19 /* PropertyBased */; };
 /* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		00EF74ED2E8DD70800EA0D19 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 0017ED1C2BF17A38008B3D76 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 0017ED232BF17A38008B3D76;
+			remoteInfo = Sampled;
+		};
+/* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
 		00132E1A2CF194A4004FF827 /* SampledFFmpeg */ = {isa = PBXFileReference; lastKnownFileType = wrapper; path = SampledFFmpeg; sourceTree = "<group>"; };
@@ -800,6 +811,7 @@
 		00EF03202BF334BC008BF17B /* CoreVideo.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreVideo.framework; path = System/Library/Frameworks/CoreVideo.framework; sourceTree = SDKROOT; };
 		00EF03222BF334C4008BF17B /* CoreServices.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreServices.framework; path = System/Library/Frameworks/CoreServices.framework; sourceTree = SDKROOT; };
 		00EF03242BF33511008BF17B /* liblzma.tbd */ = {isa = PBXFileReference; lastKnownFileType = "sourcecode.text-based-dylib-definition"; name = liblzma.tbd; path = usr/lib/liblzma.tbd; sourceTree = SDKROOT; };
+		00EF74E92E8DD70800EA0D19 /* SampledTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = SampledTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -808,6 +820,7 @@
 		00693F3E2E52CDBE008C7A38 /* Data */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = Data; sourceTree = "<group>"; };
 		00D98C492CAEE7050008E0F1 /* Tools */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = Tools; sourceTree = "<group>"; };
 		00D98EB82CAF3D3C0008E0F1 /* UI */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = UI; sourceTree = "<group>"; };
+		00EF74EA2E8DD70800EA0D19 /* SampledTests */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = SampledTests; sourceTree = "<group>"; };
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -816,11 +829,19 @@
 			buildActionMask = 2147483647;
 			files = (
 				00EE810D2E5831D100F705C5 /* IdentifiedCollections in Frameworks */,
-				00693F3D2E52CA71008C7A38 /* GRDB in Frameworks */,
 				00C7BCFA2CE006310094F057 /* SampledFFmpeg in Frameworks */,
 				00C7BCCC2CE003730094F057 /* Algorithms in Frameworks */,
+				00EF74A52E8DD33800EA0D19 /* PropertyBased in Frameworks */,
+				00EF74A22E8DD2FA00EA0D19 /* GRDB in Frameworks */,
 				0040AFD32E76063500F33735 /* FractionalIndex in Frameworks */,
 				0040AFD02E7605F400F33735 /* Defaults in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		00EF74E62E8DD70800EA0D19 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -837,6 +858,7 @@
 				00132E1A2CF194A4004FF827 /* SampledFFmpeg */,
 				00D98C492CAEE7050008E0F1 /* Tools */,
 				0030BAB82CD17B8C0053BB6E /* Documentation */,
+				00EF74EA2E8DD70800EA0D19 /* SampledTests */,
 				0017ED252BF17A38008B3D76 /* Products */,
 				00EF01A22BF32AAF008BF17B /* Frameworks */,
 			);
@@ -846,6 +868,7 @@
 			isa = PBXGroup;
 			children = (
 				0017ED242BF17A38008B3D76 /* Sampled.app */,
+				00EF74E92E8DD70800EA0D19 /* SampledTests.xctest */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -2328,14 +2351,38 @@
 			packageProductDependencies = (
 				00C7BCCB2CE003730094F057 /* Algorithms */,
 				00C7BCF92CE006310094F057 /* SampledFFmpeg */,
-				00693F3C2E52CA71008C7A38 /* GRDB */,
 				00EE810C2E5831D100F705C5 /* IdentifiedCollections */,
 				0040AFCF2E7605F400F33735 /* Defaults */,
 				0040AFD22E76063500F33735 /* FractionalIndex */,
+				00EF74A12E8DD2FA00EA0D19 /* GRDB */,
+				00EF74A42E8DD33800EA0D19 /* PropertyBased */,
 			);
 			productName = Forward;
 			productReference = 0017ED242BF17A38008B3D76 /* Sampled.app */;
 			productType = "com.apple.product-type.application";
+		};
+		00EF74E82E8DD70800EA0D19 /* SampledTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 00EF74EF2E8DD70800EA0D19 /* Build configuration list for PBXNativeTarget "SampledTests" */;
+			buildPhases = (
+				00EF74E52E8DD70800EA0D19 /* Sources */,
+				00EF74E62E8DD70800EA0D19 /* Frameworks */,
+				00EF74E72E8DD70800EA0D19 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				00EF74EE2E8DD70800EA0D19 /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				00EF74EA2E8DD70800EA0D19 /* SampledTests */,
+			);
+			name = SampledTests;
+			packageProductDependencies = (
+			);
+			productName = SampledTests;
+			productReference = 00EF74E92E8DD70800EA0D19 /* SampledTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
 		};
 /* End PBXNativeTarget section */
 
@@ -2344,11 +2391,15 @@
 			isa = PBXProject;
 			attributes = {
 				BuildIndependentTargetsInParallel = 1;
-				LastSwiftUpdateCheck = 1540;
+				LastSwiftUpdateCheck = 2610;
 				LastUpgradeCheck = 2600;
 				TargetAttributes = {
 					0017ED232BF17A38008B3D76 = {
 						CreatedOnToolsVersion = 15.4;
+					};
+					00EF74E82E8DD70800EA0D19 = {
+						CreatedOnToolsVersion = 26.1;
+						TestTargetID = 0017ED232BF17A38008B3D76;
 					};
 				};
 			};
@@ -2363,16 +2414,18 @@
 			mainGroup = 0017ED1B2BF17A38008B3D76;
 			packageReferences = (
 				00D98C3F2CAE5B180008E0F1 /* XCRemoteSwiftPackageReference "swift-algorithms" */,
-				00693F3B2E52CA71008C7A38 /* XCRemoteSwiftPackageReference "GRDB" */,
 				00EE810B2E5831D100F705C5 /* XCRemoteSwiftPackageReference "swift-identified-collections" */,
 				0040AFCE2E7605F400F33735 /* XCRemoteSwiftPackageReference "Defaults" */,
 				0040AFD12E76063500F33735 /* XCRemoteSwiftPackageReference "FractionalIndex" */,
+				00EF74A02E8DD2FA00EA0D19 /* XCRemoteSwiftPackageReference "GRDB.swift" */,
+				00EF74A32E8DD33800EA0D19 /* XCRemoteSwiftPackageReference "swift-property-based" */,
 			);
 			productRefGroup = 0017ED252BF17A38008B3D76 /* Products */;
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
 				0017ED232BF17A38008B3D76 /* Sampled */,
+				00EF74E82E8DD70800EA0D19 /* SampledTests */,
 			);
 		};
 /* End PBXProject section */
@@ -2386,6 +2439,13 @@
 				00D98E5D2CAF3D060008E0F1 /* Preview Assets.xcassets in Resources */,
 				00BDFB332CB42B7C009D66A8 /* Localizable.xcstrings in Resources */,
 				00D98E5E2CAF3D060008E0F1 /* Assets.xcassets in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		00EF74E72E8DD70800EA0D19 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -2532,7 +2592,22 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		00EF74E52E8DD70800EA0D19 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		00EF74EE2E8DD70800EA0D19 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 0017ED232BF17A38008B3D76 /* Sampled */;
+			targetProxy = 00EF74ED2E8DD70800EA0D19 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
 		0017ED312BF17A3D008B3D76 /* Debug */ = {
@@ -2574,6 +2649,7 @@
 				DEVELOPMENT_TEAM = UYJ357XWK6;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				ENABLE_TESTABILITY = YES;
+				ENABLE_TESTING_SEARCH_PATHS = YES;
 				ENABLE_USER_SCRIPT_SANDBOXING = YES;
 				GCC_C_LANGUAGE_STANDARD = gnu17;
 				GCC_DYNAMIC_NO_PIC = NO;
@@ -2589,6 +2665,7 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
+				LIBRARY_SEARCH_PATHS = "$(PROJECT_DIR)/SampledFFmpeg/Sources/CFFmpeg/$(CURRENT_ARCH)/lib";
 				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
 				MACOSX_DEPLOYMENT_TARGET = 14.4;
 				MERGED_BINARY_TYPE = automatic;
@@ -2644,6 +2721,7 @@
 				DEVELOPMENT_TEAM = UYJ357XWK6;
 				ENABLE_NS_ASSERTIONS = NO;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTING_SEARCH_PATHS = YES;
 				ENABLE_USER_SCRIPT_SANDBOXING = YES;
 				GCC_C_LANGUAGE_STANDARD = gnu17;
 				GCC_NO_COMMON_BLOCKS = YES;
@@ -2653,6 +2731,7 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
+				LIBRARY_SEARCH_PATHS = "$(PROJECT_DIR)/SampledFFmpeg/Sources/CFFmpeg/$(CURRENT_ARCH)/lib";
 				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
 				MACOSX_DEPLOYMENT_TARGET = 14.4;
 				MERGED_BINARY_TYPE = automatic;
@@ -2690,10 +2769,7 @@
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
-				LIBRARY_SEARCH_PATHS = (
-					"$(inherited)",
-					"$(PROJECT_DIR)/SampledFFmpeg/Sources/CFFmpeg/$(CURRENT_ARCH)/lib",
-				);
+				LIBRARY_SEARCH_PATHS = "$(inherited)";
 				MACOSX_DEPLOYMENT_TARGET = 15.0;
 				MARKETING_VERSION = 0.1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.kyleerhabor.Sampled;
@@ -2725,15 +2801,56 @@
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
-				LIBRARY_SEARCH_PATHS = (
-					"$(inherited)",
-					"$(PROJECT_DIR)/SampledFFmpeg/Sources/CFFmpeg/$(CURRENT_ARCH)/lib",
-				);
+				LIBRARY_SEARCH_PATHS = "$(inherited)";
 				MACOSX_DEPLOYMENT_TARGET = 15.0;
 				MARKETING_VERSION = 0.1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.kyleerhabor.Sampled;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = YES;
+			};
+			name = Release;
+		};
+		00EF74F02E8DD70800EA0D19 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = UYJ357XWK6;
+				FRAMEWORK_SEARCH_PATHS = "$(inherited)";
+				GENERATE_INFOPLIST_FILE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 15.7;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.kyleerhabor.SampledTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				STRING_CATALOG_GENERATE_SYMBOLS = NO;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Sampled.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Sampled";
+			};
+			name = Debug;
+		};
+		00EF74F12E8DD70800EA0D19 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = UYJ357XWK6;
+				FRAMEWORK_SEARCH_PATHS = "$(inherited)";
+				GENERATE_INFOPLIST_FILE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 15.7;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.kyleerhabor.SampledTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				STRING_CATALOG_GENERATE_SYMBOLS = NO;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Sampled.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Sampled";
 			};
 			name = Release;
 		};
@@ -2758,6 +2875,15 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
+		00EF74EF2E8DD70800EA0D19 /* Build configuration list for PBXNativeTarget "SampledTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				00EF74F02E8DD70800EA0D19 /* Debug */,
+				00EF74F12E8DD70800EA0D19 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
 /* End XCConfigurationList section */
 
 /* Begin XCRemoteSwiftPackageReference section */
@@ -2777,14 +2903,6 @@
 				revision = 2e84e529881039b3917319a3d126ba78b94b8bc5;
 			};
 		};
-		00693F3B2E52CA71008C7A38 /* XCRemoteSwiftPackageReference "GRDB" */ = {
-			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = "https://github.com/groue/GRDB.swift";
-			requirement = {
-				kind = revision;
-				revision = 8ba1bc9a96afc731a000fd4136dd13a5a46297bd;
-			};
-		};
 		00D98C3F2CAE5B180008E0F1 /* XCRemoteSwiftPackageReference "swift-algorithms" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/apple/swift-algorithms.git";
@@ -2801,6 +2919,22 @@
 				revision = 322d9ffeeba85c9f7c4984b39422ec7cc3c56597;
 			};
 		};
+		00EF74A02E8DD2FA00EA0D19 /* XCRemoteSwiftPackageReference "GRDB.swift" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/groue/GRDB.swift.git";
+			requirement = {
+				kind = revision;
+				revision = db695cf7dc2632c263bcf0b26f118074feb2697a;
+			};
+		};
+		00EF74A32E8DD33800EA0D19 /* XCRemoteSwiftPackageReference "swift-property-based" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/x-sheep/swift-property-based.git";
+			requirement = {
+				kind = revision;
+				revision = 695120fe95d7f81c0baf556f63ad2468d7ed965d;
+			};
+		};
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
@@ -2813,11 +2947,6 @@
 			isa = XCSwiftPackageProductDependency;
 			package = 0040AFD12E76063500F33735 /* XCRemoteSwiftPackageReference "FractionalIndex" */;
 			productName = FractionalIndex;
-		};
-		00693F3C2E52CA71008C7A38 /* GRDB */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = 00693F3B2E52CA71008C7A38 /* XCRemoteSwiftPackageReference "GRDB" */;
-			productName = GRDB;
 		};
 		00C7BCCB2CE003730094F057 /* Algorithms */ = {
 			isa = XCSwiftPackageProductDependency;
@@ -2832,6 +2961,16 @@
 			isa = XCSwiftPackageProductDependency;
 			package = 00EE810B2E5831D100F705C5 /* XCRemoteSwiftPackageReference "swift-identified-collections" */;
 			productName = IdentifiedCollections;
+		};
+		00EF74A12E8DD2FA00EA0D19 /* GRDB */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 00EF74A02E8DD2FA00EA0D19 /* XCRemoteSwiftPackageReference "GRDB.swift" */;
+			productName = GRDB;
+		};
+		00EF74A42E8DD33800EA0D19 /* PropertyBased */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 00EF74A32E8DD33800EA0D19 /* XCRemoteSwiftPackageReference "swift-property-based" */;
+			productName = PropertyBased;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};
