@@ -9,6 +9,7 @@
 /* Begin PBXBuildFile section */
 		0040AFD02E7605F400F33735 /* Defaults in Frameworks */ = {isa = PBXBuildFile; productRef = 0040AFCF2E7605F400F33735 /* Defaults */; };
 		0040AFD32E76063500F33735 /* FractionalIndex in Frameworks */ = {isa = PBXBuildFile; productRef = 0040AFD22E76063500F33735 /* FractionalIndex */; };
+		00747F2C2E94A3DE0024DCBE /* PropertyBased in Frameworks */ = {isa = PBXBuildFile; productRef = 00747F2B2E94A3DE0024DCBE /* PropertyBased */; };
 		00BDFB332CB42B7C009D66A8 /* Localizable.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = 00BDFB322CB42B7C009D66A8 /* Localizable.xcstrings */; };
 		00C7BCCC2CE003730094F057 /* Algorithms in Frameworks */ = {isa = PBXBuildFile; productRef = 00C7BCCB2CE003730094F057 /* Algorithms */; };
 		00C7BCFA2CE006310094F057 /* SampledFFmpeg in Frameworks */ = {isa = PBXBuildFile; productRef = 00C7BCF92CE006310094F057 /* SampledFFmpeg */; };
@@ -19,7 +20,6 @@
 		00D98EC72CAF47690008E0F1 /* LICENSE in Resources */ = {isa = PBXBuildFile; fileRef = 00D98EC62CAF47690008E0F1 /* LICENSE */; };
 		00EE810D2E5831D100F705C5 /* IdentifiedCollections in Frameworks */ = {isa = PBXBuildFile; productRef = 00EE810C2E5831D100F705C5 /* IdentifiedCollections */; };
 		00EF74A22E8DD2FA00EA0D19 /* GRDB in Frameworks */ = {isa = PBXBuildFile; productRef = 00EF74A12E8DD2FA00EA0D19 /* GRDB */; };
-		00EF74A52E8DD33800EA0D19 /* PropertyBased in Frameworks */ = {isa = PBXBuildFile; productRef = 00EF74A42E8DD33800EA0D19 /* PropertyBased */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -831,7 +831,6 @@
 				00EE810D2E5831D100F705C5 /* IdentifiedCollections in Frameworks */,
 				00C7BCFA2CE006310094F057 /* SampledFFmpeg in Frameworks */,
 				00C7BCCC2CE003730094F057 /* Algorithms in Frameworks */,
-				00EF74A52E8DD33800EA0D19 /* PropertyBased in Frameworks */,
 				00EF74A22E8DD2FA00EA0D19 /* GRDB in Frameworks */,
 				0040AFD32E76063500F33735 /* FractionalIndex in Frameworks */,
 				0040AFD02E7605F400F33735 /* Defaults in Frameworks */,
@@ -842,6 +841,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				00747F2C2E94A3DE0024DCBE /* PropertyBased in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -2355,7 +2355,6 @@
 				0040AFCF2E7605F400F33735 /* Defaults */,
 				0040AFD22E76063500F33735 /* FractionalIndex */,
 				00EF74A12E8DD2FA00EA0D19 /* GRDB */,
-				00EF74A42E8DD33800EA0D19 /* PropertyBased */,
 			);
 			productName = Forward;
 			productReference = 0017ED242BF17A38008B3D76 /* Sampled.app */;
@@ -2379,6 +2378,7 @@
 			);
 			name = SampledTests;
 			packageProductDependencies = (
+				00747F2B2E94A3DE0024DCBE /* PropertyBased */,
 			);
 			productName = SampledTests;
 			productReference = 00EF74E92E8DD70800EA0D19 /* SampledTests.xctest */;
@@ -2461,18 +2461,20 @@
 			);
 			inputPaths = (
 				"$(SRCROOT)/Tools/build-ogg.sh",
+				"$(SRCROOT)/Tools/scripts/xcode.sh",
 				"$(SRCROOT)/Tools/scripts/build/ogg.sh",
-				"$(SRCROOT)/Tools/download-deps.sh",
+				"$(SRCROOT)/Tools/scripts/build.sh",
+				"$(SRCROOT)/Tools/scripts/build/ogg/core.sh",
+				"$(SRCROOT)/Tools/scripts/core.sh",
 			);
 			name = "C: Build Ogg";
 			outputFileListPaths = (
 			);
 			outputPaths = (
-				"$(DERIVED_FILE_DIR)/SampledFFmpeg/Sources/CFFmpeg/$(CURRENT_ARCH)/include/ogg",
-				"$(DERIVED_FILE_DIR)/SampledFFmpeg/Sources/CFFmpeg/$(CURRENT_ARCH)/lib/libogg.*",
-				"$(DERIVED_FILE_DIR)/SampledFFmpeg/Sources/CFFmpeg/$(CURRENT_ARCH)/lib/pkgconfig/ogg.pc",
-				"$(DERIVED_FILE_DIR)/SampledFFmpeg/Sources/CFFmpeg/$(CURRENT_ARCH)/share/aclocal/ogg.m4",
-				"$(DERIVED_FILE_DIR)/SampledFFmpeg/Sources/CFFmpeg/$(CURRENT_ARCH)/share/doc/libogg",
+				"$(DERIVED_FILE_DIR)/SampledFFmpeg/Sources/CFFmpeg/fat/include/ogg",
+				"$(DERIVED_FILE_DIR)/SampledFFmpeg/Sources/CFFmpeg/fat/lib/libogg.*",
+				"$(DERIVED_FILE_DIR)/SampledFFmpeg/Sources/CFFmpeg/fat/lib/pkgconfig/ogg.pc",
+				"$(DERIVED_FILE_DIR)/SampledFFmpeg/Sources/CFFmpeg/fat/share/doc/libogg",
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
@@ -2487,6 +2489,8 @@
 			);
 			inputPaths = (
 				"$(SRCROOT)/Tools/download-deps.sh",
+				"$(SRCROOT)/Tools/scripts/core.sh",
+				"$(SRCROOT)/Tools/scripts/build.sh",
 			);
 			name = "C: Download Dependencies";
 			outputFileListPaths = (
@@ -2507,17 +2511,19 @@
 			);
 			inputPaths = (
 				"$(SRCROOT)/Tools/build-opus.sh",
+				"$(SRCROOT)/Tools/scripts/xcode.sh",
 				"$(SRCROOT)/Tools/scripts/build/opus.sh",
-				"$(SRCROOT)/Tools/download-deps.sh",
+				"$(SRCROOT)/Tools/scripts/build.sh",
+				"$(SRCROOT)/Tools/scripts/build/opus/core.sh",
+				"$(SRCROOT)/Tools/scripts/core.sh",
 			);
 			name = "C: Build Opus";
 			outputFileListPaths = (
 			);
 			outputPaths = (
-				"$(DERIVED_FILE_DIR)/SampledFFmpeg/Sources/CFFmpeg/$(CURRENT_ARCH)/include/opus",
-				"$(DERIVED_FILE_DIR)/SampledFFmpeg/Sources/CFFmpeg/$(CURRENT_ARCH)/lib/libopus.*",
-				"$(DERIVED_FILE_DIR)/SampledFFmpeg/Sources/CFFmpeg/$(CURRENT_ARCH)/include/pkgconfig/opus.pc",
-				"$(DERIVED_FILE_DIR)/SampledFFmpeg/Sources/CFFmpeg/$(CURRENT_ARCH)/share/aclocal/opus.m4",
+				"$(DERIVED_FILE_DIR)/SampledFFmpeg/Sources/CFFmpeg/fat/include/opus",
+				"$(DERIVED_FILE_DIR)/SampledFFmpeg/Sources/CFFmpeg/fat/lib/libopus.*",
+				"$(DERIVED_FILE_DIR)/SampledFFmpeg/Sources/CFFmpeg/fat/include/pkgconfig/opus.pc",
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
@@ -2532,24 +2538,54 @@
 			);
 			inputPaths = (
 				"$(SRCROOT)/Tools/build-ffmpeg.sh",
+				"$(SRCROOT)/Tools/scripts/xcode.sh",
 				"$(SRCROOT)/Tools/scripts/build/ffmpeg.sh",
-				"$(SRCROOT)/Tools/download-deps.sh",
+				"$(SRCROOT)/Tools/scripts/build.sh",
+				"$(SRCROOT)/Tools/scripts/build/ffmpeg/core.sh",
+				"$(SRCROOT)/Tools/scripts/core.sh",
 			);
 			name = "C: Build FFmpeg";
 			outputFileListPaths = (
 			);
 			outputPaths = (
-				"$(DERIVED_FILE_DIR)/SampledFFmpeg/Sources/CFFmpeg/$(CURRENT_ARCH)/bin/ff*",
-				"$(DERIVED_FILE_DIR)/SampledFFmpeg/Sources/CFFmpeg/$(CURRENT_ARCH)/include/libav*",
-				"$(DERIVED_FILE_DIR)/SampledFFmpeg/Sources/CFFmpeg/$(CURRENT_ARCH)/include/libsw*",
-				"$(DERIVED_FILE_DIR)/SampledFFmpeg/Sources/CFFmpeg/$(CURRENT_ARCH)/lib/libav*.a",
-				"$(DERIVED_FILE_DIR)/SampledFFmpeg/Sources/CFFmpeg/$(CURRENT_ARCH)/lib/libsw*.a",
-				"$(DERIVED_FILE_DIR)/SampledFFmpeg/Sources/CFFmpeg/$(CURRENT_ARCH)/lib/pkgconfig/libav*.pc",
-				"$(DERIVED_FILE_DIR)/SampledFFmpeg/Sources/CFFmpeg/$(CURRENT_ARCH)/lib/pkgconfig/libsw*.pc",
 				"$(DERIVED_FILE_DIR)/SampledFFmpeg/Sources/CFFmpeg/$(CURRENT_ARCH)/share/ffmpeg",
 				"$(DERIVED_FILE_DIR)/SampledFFmpeg/Sources/CFFmpeg/$(CURRENT_ARCH)/share/man1/ff*.1",
 				"$(DERIVED_FILE_DIR)/SampledFFmpeg/Sources/CFFmpeg/$(CURRENT_ARCH)/share/man3/libav*.3",
 				"$(DERIVED_FILE_DIR)/SampledFFmpeg/Sources/CFFmpeg/$(CURRENT_ARCH)/share/man3/libsw*.3",
+				"$(DERIVED_FILE_DIR)/SampledFFmpeg/Sources/CFFmpeg/$(CURRENT_ARCH)/bin/ffmpeg",
+				"$(DERIVED_FILE_DIR)/SampledFFmpeg/Sources/CFFmpeg/$(CURRENT_ARCH)/bin/ffplay",
+				"$(DERIVED_FILE_DIR)/SampledFFmpeg/Sources/CFFmpeg/$(CURRENT_ARCH)/bin/ffprobe",
+				"$(DERIVED_FILE_DIR)/SampledFFmpeg/Sources/CFFmpeg/$(CURRENT_ARCH)/include/libavcodec",
+				"$(DERIVED_FILE_DIR)/SampledFFmpeg/Sources/CFFmpeg/$(CURRENT_ARCH)/include/libavdevice",
+				"$(DERIVED_FILE_DIR)/SampledFFmpeg/Sources/CFFmpeg/$(CURRENT_ARCH)/include/libavfilter",
+				"$(DERIVED_FILE_DIR)/SampledFFmpeg/Sources/CFFmpeg/$(CURRENT_ARCH)/include/libavformat",
+				"$(DERIVED_FILE_DIR)/SampledFFmpeg/Sources/CFFmpeg/$(CURRENT_ARCH)/include/libavutil",
+				"$(DERIVED_FILE_DIR)/SampledFFmpeg/Sources/CFFmpeg/$(CURRENT_ARCH)/include/libswresample",
+				"$(DERIVED_FILE_DIR)/SampledFFmpeg/Sources/CFFmpeg/$(CURRENT_ARCH)/include/libswscale",
+				"$(DERIVED_FILE_DIR)/SampledFFmpeg/Sources/CFFmpeg/$(CURRENT_ARCH)/lib/libavcodec.a",
+				"$(DERIVED_FILE_DIR)/SampledFFmpeg/Sources/CFFmpeg/$(CURRENT_ARCH)/lib/libavdevice.a",
+				"$(DERIVED_FILE_DIR)/SampledFFmpeg/Sources/CFFmpeg/$(CURRENT_ARCH)/lib/libavfilter.a",
+				"$(DERIVED_FILE_DIR)/SampledFFmpeg/Sources/CFFmpeg/$(CURRENT_ARCH)/lib/libavformat.a",
+				"$(DERIVED_FILE_DIR)/SampledFFmpeg/Sources/CFFmpeg/$(CURRENT_ARCH)/lib/libavutil.a",
+				"$(DERIVED_FILE_DIR)/SampledFFmpeg/Sources/CFFmpeg/$(CURRENT_ARCH)/lib/libswresample.a",
+				"$(DERIVED_FILE_DIR)/SampledFFmpeg/Sources/CFFmpeg/$(CURRENT_ARCH)/lib/libswscale.a",
+				"$(DERIVED_FILE_DIR)/SampledFFmpeg/Sources/CFFmpeg/$(CURRENT_ARCH)/lib/pkgconfig/libavcodec.pc",
+				"$(DERIVED_FILE_DIR)/SampledFFmpeg/Sources/CFFmpeg/$(CURRENT_ARCH)/lib/pkgconfig/libavdevice.pc",
+				"$(DERIVED_FILE_DIR)/SampledFFmpeg/Sources/CFFmpeg/$(CURRENT_ARCH)/lib/pkgconfig/libavfilter.pc",
+				"$(DERIVED_FILE_DIR)/SampledFFmpeg/Sources/CFFmpeg/$(CURRENT_ARCH)/lib/pkgconfig/libavformat.pc",
+				"$(DERIVED_FILE_DIR)/SampledFFmpeg/Sources/CFFmpeg/$(CURRENT_ARCH)/lib/pkgconfig/libavutil.pc",
+				"$(DERIVED_FILE_DIR)/SampledFFmpeg/Sources/CFFmpeg/$(CURRENT_ARCH)/lib/pkgconfig/libswresample.pc",
+				"$(DERIVED_FILE_DIR)/SampledFFmpeg/Sources/CFFmpeg/$(CURRENT_ARCH)/lib/pkgconfig/libswscale.pc",
+				"$(DERIVED_FILE_DIR)/SampledFFmpeg/Sources/CFFmpeg/$(CURRENT_ARCH)/share/man1/ffmpeg*.1",
+				"$(DERIVED_FILE_DIR)/SampledFFmpeg/Sources/CFFmpeg/$(CURRENT_ARCH)/share/man1/ffplay*.1",
+				"$(DERIVED_FILE_DIR)/SampledFFmpeg/Sources/CFFmpeg/$(CURRENT_ARCH)/share/man1/ffprobe*.1",
+				"$(DERIVED_FILE_DIR)/SampledFFmpeg/Sources/CFFmpeg/$(CURRENT_ARCH)/share/man3/libavcodec.3",
+				"$(DERIVED_FILE_DIR)/SampledFFmpeg/Sources/CFFmpeg/$(CURRENT_ARCH)/share/man3/libavdevice.3",
+				"$(DERIVED_FILE_DIR)/SampledFFmpeg/Sources/CFFmpeg/$(CURRENT_ARCH)/share/man3/libavfilter.3",
+				"$(DERIVED_FILE_DIR)/SampledFFmpeg/Sources/CFFmpeg/$(CURRENT_ARCH)/share/man3/libavformat.3",
+				"$(DERIVED_FILE_DIR)/SampledFFmpeg/Sources/CFFmpeg/$(CURRENT_ARCH)/share/man3/libavutil.3",
+				"$(DERIVED_FILE_DIR)/SampledFFmpeg/Sources/CFFmpeg/$(CURRENT_ARCH)/share/man3/libswresample.3",
+				"$(DERIVED_FILE_DIR)/SampledFFmpeg/Sources/CFFmpeg/$(CURRENT_ARCH)/share/man3/libswscale.3",
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
@@ -2563,17 +2599,20 @@
 			inputFileListPaths = (
 			);
 			inputPaths = (
-				"$(SRCROOT)/Tools/build-vorbis.sh",
+				"$(SRCROOT)/Tools/build-ogg.sh",
+				"$(SRCROOT)/Tools/scripts/xcode.sh",
 				"$(SRCROOT)/Tools/scripts/build/vorbis.sh",
-				"$(SRCROOT)/Tools/download-deps.sh",
+				"$(SRCROOT)/Tools/scripts/build.sh",
+				"$(SRCROOT)/Tools/scripts/build/vorbis/core.sh",
+				"$(SRCROOT)/Tools/scripts/core.sh",
 			);
 			name = "C: Build Vorbis";
 			outputFileListPaths = (
 			);
 			outputPaths = (
-				"$(DERIVED_FILE_DIR)/SampledFFmpeg/Sources/CFFmpeg/$(CURRENT_ARCH)/include/vorbis",
-				"$(DERIVED_FILE_DIR)/SampledFFmpeg/Sources/CFFmpeg/$(CURRENT_ARCH)/lib/libvorbis*.*",
-				"$(DERIVED_FILE_DIR)/SampledFFmpeg/Sources/CFFmpeg/$(CURRENT_ARCH)/lib/pkgconfig/vorbis*.pc",
+				"$(DERIVED_FILE_DIR)/SampledFFmpeg/Sources/CFFmpeg/fat/include/vorbis",
+				"$(DERIVED_FILE_DIR)/SampledFFmpeg/Sources/CFFmpeg/fat/lib/libvorbis*.*",
+				"$(DERIVED_FILE_DIR)/SampledFFmpeg/Sources/CFFmpeg/fat/lib/pkgconfig/vorbis*.pc",
 				"$(DERIVED_FILE_DIR)/SampledFFmpeg/Sources/CFFmpeg/$(CURRENT_ARCH)/doc/libvorbis*",
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -2665,7 +2704,10 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
-				LIBRARY_SEARCH_PATHS = "$(PROJECT_DIR)/SampledFFmpeg/Sources/CFFmpeg/$(CURRENT_ARCH)/lib";
+				LIBRARY_SEARCH_PATHS = (
+					"$(PROJECT_DIR)/SampledFFmpeg/Sources/CFFmpeg/$(CURRENT_ARCH)/lib",
+					"$(PROJECT_DIR)/SampledFFmpeg/Sources/CFFmpeg/fat/lib",
+				);
 				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
 				MACOSX_DEPLOYMENT_TARGET = 14.4;
 				MERGED_BINARY_TYPE = automatic;
@@ -2731,7 +2773,10 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
-				LIBRARY_SEARCH_PATHS = "$(PROJECT_DIR)/SampledFFmpeg/Sources/CFFmpeg/$(CURRENT_ARCH)/lib";
+				LIBRARY_SEARCH_PATHS = (
+					"$(PROJECT_DIR)/SampledFFmpeg/Sources/CFFmpeg/$(CURRENT_ARCH)/lib",
+					"$(PROJECT_DIR)/SampledFFmpeg/Sources/CFFmpeg/fat/lib",
+				);
 				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
 				MACOSX_DEPLOYMENT_TARGET = 14.4;
 				MERGED_BINARY_TYPE = automatic;
@@ -2948,6 +2993,11 @@
 			package = 0040AFD12E76063500F33735 /* XCRemoteSwiftPackageReference "FractionalIndex" */;
 			productName = FractionalIndex;
 		};
+		00747F2B2E94A3DE0024DCBE /* PropertyBased */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 00EF74A32E8DD33800EA0D19 /* XCRemoteSwiftPackageReference "swift-property-based" */;
+			productName = PropertyBased;
+		};
 		00C7BCCB2CE003730094F057 /* Algorithms */ = {
 			isa = XCSwiftPackageProductDependency;
 			package = 00D98C3F2CAE5B180008E0F1 /* XCRemoteSwiftPackageReference "swift-algorithms" */;
@@ -2966,11 +3016,6 @@
 			isa = XCSwiftPackageProductDependency;
 			package = 00EF74A02E8DD2FA00EA0D19 /* XCRemoteSwiftPackageReference "GRDB.swift" */;
 			productName = GRDB;
-		};
-		00EF74A42E8DD33800EA0D19 /* PropertyBased */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = 00EF74A32E8DD33800EA0D19 /* XCRemoteSwiftPackageReference "swift-property-based" */;
-			productName = PropertyBased;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};

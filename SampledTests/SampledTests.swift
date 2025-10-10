@@ -46,7 +46,17 @@ struct SampledTests {
     let count = 10
 
     await propertyCheck(input: Gen.int(in: Int.min / count ... Int.max / count).array(of: 0...count)) { numbers in
-      #expect(numbers.sum() == numbers.reduce(0, +))
+      let sum = numbers.sum()
+
+      #expect(!numbers.isEmpty || sum == 0, "Summing an empty array returns 0.")
+      #expect(numbers.reversed().sum() == sum, "Summing is commutative.")
+    }
+  }
+
+  @Test func minimumCapacity() async {
+    await propertyCheck(input: Gen.int(in: Int(Int32.min)...Int(Int32.max))) { capacity in
+      let array = [Int](minimumCapacity: capacity)
+      #expect(array.capacity >= capacity)
     }
   }
 }

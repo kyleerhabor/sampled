@@ -1,6 +1,6 @@
 # Sampled
 
-The universal music player.
+A macOS app empowering you to listen to music on your own terms.
 
 ## Rationale
 

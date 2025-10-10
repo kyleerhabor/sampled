@@ -27,10 +27,12 @@ prefixarch () {
   echo "$PREFIX/$arch"
 }
 
+PREFIX_FAT="$(prefixarch fat)"
 NCPU="$(sysctl -n hw.ncpu)"
 NJOB="$(max 1 "$(($NCPU / 2))")"
 
 runmake () {
   make -j"$NJOB"
   make install
+  make distclean
 }
