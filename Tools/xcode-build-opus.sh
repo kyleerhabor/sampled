@@ -1,6 +1,6 @@
 #!/bin/sh
 
-#  build-opus.sh
+#  xcode-build-opus.sh
 #  Sampled
 #
 #  Created by Kyle Erhabor on 10/10/25.

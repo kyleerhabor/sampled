@@ -2460,12 +2460,7 @@
 			inputFileListPaths = (
 			);
 			inputPaths = (
-				"$(SRCROOT)/Tools/build-ogg.sh",
-				"$(SRCROOT)/Tools/scripts/xcode.sh",
-				"$(SRCROOT)/Tools/scripts/build/ogg.sh",
-				"$(SRCROOT)/Tools/scripts/build.sh",
-				"$(SRCROOT)/Tools/scripts/build/ogg/core.sh",
-				"$(SRCROOT)/Tools/scripts/core.sh",
+				"$(SRCROOT)/Tools",
 			);
 			name = "C: Build Ogg";
 			outputFileListPaths = (
@@ -2478,7 +2473,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "./Tools/build-ogg.sh\n";
+			shellScript = "./Tools/xcode-build-ogg.sh\n";
 		};
 		00672AF72CB764F400948CAB /* C: Download Dependencies */ = {
 			isa = PBXShellScriptBuildPhase;
@@ -2488,9 +2483,7 @@
 			inputFileListPaths = (
 			);
 			inputPaths = (
-				"$(SRCROOT)/Tools/download-deps.sh",
-				"$(SRCROOT)/Tools/scripts/core.sh",
-				"$(SRCROOT)/Tools/scripts/build.sh",
+				"$(SRCROOT)/Tools",
 			);
 			name = "C: Download Dependencies";
 			outputFileListPaths = (
@@ -2510,12 +2503,7 @@
 			inputFileListPaths = (
 			);
 			inputPaths = (
-				"$(SRCROOT)/Tools/build-opus.sh",
-				"$(SRCROOT)/Tools/scripts/xcode.sh",
-				"$(SRCROOT)/Tools/scripts/build/opus.sh",
-				"$(SRCROOT)/Tools/scripts/build.sh",
-				"$(SRCROOT)/Tools/scripts/build/opus/core.sh",
-				"$(SRCROOT)/Tools/scripts/core.sh",
+				"$(SRCROOT)/Tools",
 			);
 			name = "C: Build Opus";
 			outputFileListPaths = (
@@ -2527,7 +2515,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "./Tools/build-opus.sh\n";
+			shellScript = "./Tools/xcode-build-opus.sh\n";
 		};
 		00672AF92CB7658A00948CAB /* C: Build FFmpeg */ = {
 			isa = PBXShellScriptBuildPhase;
@@ -2537,12 +2525,7 @@
 			inputFileListPaths = (
 			);
 			inputPaths = (
-				"$(SRCROOT)/Tools/build-ffmpeg.sh",
-				"$(SRCROOT)/Tools/scripts/xcode.sh",
-				"$(SRCROOT)/Tools/scripts/build/ffmpeg.sh",
-				"$(SRCROOT)/Tools/scripts/build.sh",
-				"$(SRCROOT)/Tools/scripts/build/ffmpeg/core.sh",
-				"$(SRCROOT)/Tools/scripts/core.sh",
+				"$(SRCROOT)/Tools",
 			);
 			name = "C: Build FFmpeg";
 			outputFileListPaths = (
@@ -2589,7 +2572,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "./Tools/build-ffmpeg.sh\n";
+			shellScript = "./Tools/xcode-build-ffmpeg.sh\n";
 		};
 		00C7BC742CDF22FD0094F057 /* C: Build Vorbis */ = {
 			isa = PBXShellScriptBuildPhase;
@@ -2599,12 +2582,7 @@
 			inputFileListPaths = (
 			);
 			inputPaths = (
-				"$(SRCROOT)/Tools/build-ogg.sh",
-				"$(SRCROOT)/Tools/scripts/xcode.sh",
-				"$(SRCROOT)/Tools/scripts/build/vorbis.sh",
-				"$(SRCROOT)/Tools/scripts/build.sh",
-				"$(SRCROOT)/Tools/scripts/build/vorbis/core.sh",
-				"$(SRCROOT)/Tools/scripts/core.sh",
+				"$(SRCROOT)/Tools",
 			);
 			name = "C: Build Vorbis";
 			outputFileListPaths = (
@@ -2617,7 +2595,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "./Tools/build-vorbis.sh\n";
+			shellScript = "./Tools/xcode-build-vorbis.sh\n";
 		};
 /* End PBXShellScriptBuildPhase section */
 

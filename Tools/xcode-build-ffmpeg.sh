@@ -1,6 +1,6 @@
 #!/bin/sh
 
-#  build-ffmpeg.sh
+#  xcode-build-ffmpeg.sh
 #  Sampled
 #
 #  Created by Kyle Erhabor on 10/10/25.
