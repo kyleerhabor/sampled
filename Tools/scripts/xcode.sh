@@ -16,7 +16,7 @@ homebrew_prefix () {
   fi
 }
 
-if ! command -v brew; then
+if ! command -v brew > /dev/null; then
   HOMEBREW_PREFIX="$(homebrew_prefix /opt/homebrew)"
 
   if [ -z "$HOMEBREW_PREFIX" ]; then
