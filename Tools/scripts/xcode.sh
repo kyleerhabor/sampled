@@ -7,7 +7,25 @@
 #
 
 # We're using sh, so we don't have whatever Zsh or Bash sources.
-export PATH="$(env brew --prefix)/bin:$PATH"
+
+homebrew_prefix () {
+  local prefix="$1"
+
+  if [ -x "$prefix/bin/brew" ]; then
+    echo "$prefix"
+  fi
+}
+
+if ! command -v brew; then
+  HOMEBREW_PREFIX="$(homebrew_prefix /opt/homebrew)"
+
+  if [ -z "$HOMEBREW_PREFIX" ]; then
+    echo "Homebrew not found" >&2
+    exit 1
+  fi
+
+  eval "$("$HOMEBREW_PREFIX/bin/brew" shellenv)"
+fi
 
 if [ "$CONFIGURATION" = "Release" ]; then
   export EXTRA_CFLAGS="-O3"
