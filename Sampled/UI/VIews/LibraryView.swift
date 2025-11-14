@@ -300,10 +300,34 @@ func race(
 actor AudioPlayer {
   private let engine: AVAudioEngine
   private var players: Set<AVAudioPlayerNode>
+  private var currentPlayer: AVAudioPlayerNode?
 
   init() {
     self.engine = AVAudioEngine()
     self.players = []
+  }
+  
+  func stop() {
+    // Stop all current players
+    for player in players {
+      player.stop()
+      engine.detach(player)
+    }
+    players.removeAll()
+    currentPlayer = nil
+    engine.stop()
+  }
+  
+  var isPlaying: Bool {
+    currentPlayer?.isPlaying ?? false
+  }
+  
+  func pause() {
+    currentPlayer?.pause()
+  }
+  
+  func resume() {
+    currentPlayer?.play()
   }
 
   static private func read(info: AudioPlayerItem.Info, buffers: inout [Data]) -> AVAudioPCMBuffer? {
@@ -392,10 +416,16 @@ actor AudioPlayer {
   }
 
   func play(item: AudioPlayerItem) async {
+    // Stop any currently playing audio first
+    stop()
+    
     let info = await item.info
     let player = AVAudioPlayerNode()
     engine.attach(player)
     engine.connect(player, to: engine.mainMixerNode, format: info.format)
+    
+    players.insert(player)
+    currentPlayer = player
 
     Task {
       await play(player: player, item: item, info: info)
@@ -627,82 +657,91 @@ struct LibraryView: View {
   @State private var infoTrack = LibraryInfoTrackModel()
   @State private var searchText = ""
   @State private var isInspectorPresented = false
+  @State private var currentPlayingTrack: LibraryTrackModel?
+  @State private var isPlaying = false
 
   var body: some View {
-    ScrollViewReader { proxy in
-      Table(library.tracks, selection: $selection) {
-        TableColumn("Library.Column.TrackNumber.Name") { track in
-          LibraryTrackPositionItemView(item: track.trackNumber ?? 0)
-            .visible(track.trackNumber != nil)
+    VStack(spacing: 0) {
+      HStack(spacing: 0) {
+        ScrollViewReader { proxy in
+          Table(library.tracks, selection: $selection) {
+            TableColumn("Library.Column.TrackNumber.Name") { track in
+              LibraryTrackPositionItemView(item: track.trackNumber ?? 0)
+                .visible(track.trackNumber != nil)
+            }
+            .width(ideal: 50)
+            .alignment(.numeric)
+            
+            TableColumn("Library.Column.DiscNumber.Name") { track in
+              LibraryTrackPositionItemView(item: track.discNumber ?? 0)
+                .visible(track.discNumber != nil)
+            }
+            .width(ideal: 50)
+            .alignment(.numeric)
+            
+            TableColumn("Library.Column.Title.Name") { track in
+              Text(track.title ?? "")
+            }
+            
+            TableColumn("Library.Column.Artist.Name") { track in
+              Text(track.artistName ?? "")
+            }
+            
+            TableColumn("Library.Column.Album.Name") { track in
+              Text(track.albumName ?? "")
+            }
+            
+            TableColumn("Library.Column.AlbumArtist.Name") { track in
+              Text(track.albumArtistName ?? "")
+            }
+            
+            TableColumn("Library.Column.AlbumYear.Name") { track in
+              LibraryAlbumYearView(albumDate: track.albumDate ?? .distantFuture)
+                .visible(track.albumDate != nil)
+            }
+            .alignment(.numeric)
+            
+            TableColumn("Library.Column.Duration.Name") { track in
+              LibraryTrackDurationView(duration: track.duration)
+            }
+            .width(ideal: 60)
+            .alignment(.numeric)
+            
+            TableColumn("Library.Column.Liked.Name") { track in
+              Image(systemName: "heart.fill")
+                .controlSize(.small)
+                .foregroundStyle(.pink)
+                .visible(track.isLiked)
+            }
+            .width(ideal: 40)
+          }
+          .searchable(text: $searchText) {
+            // TODO: Figure out why this is slow.
+            ForEach(library.searchTracks) { track in
+              LibrarySearchSuggestionView(track: track, selection: $selection, proxy: proxy)
+            }
+          }
         }
-        .alignment(.numeric)
-
-        TableColumn("Library.Column.DiscNumber.Name") { track in
-          LibraryTrackPositionItemView(item: track.discNumber ?? 0)
-            .visible(track.discNumber != nil)
-        }
-        .alignment(.numeric)
-
-        TableColumn("Library.Column.Title.Name") { track in
-          Text(track.title ?? "")
-        }
-
-        TableColumn("Library.Column.Artist.Name") { track in
-          Text(track.artistName ?? "")
-        }
-
-        TableColumn("Library.Column.Album.Name") { track in
-          Text(track.albumName ?? "")
-        }
-
-        TableColumn("Library.Column.AlbumArtist.Name") { track in
-          Text(track.albumArtistName ?? "")
-        }
-
-        TableColumn("Library.Column.AlbumYear.Name") { track in
-          LibraryAlbumYearView(albumDate: track.albumDate ?? .distantFuture)
-            .visible(track.albumDate != nil)
-        }
-        .alignment(.numeric)
-
-        TableColumn("Library.Column.Duration.Name") { track in
-          LibraryTrackDurationView(duration: track.duration)
-        }
-        .alignment(.numeric)
-
-        TableColumn("Library.Column.Liked.Name") { track in
-          Image(systemName: "heart.fill")
-            .controlSize(.small)
-            .visible(track.isLiked)
-        }
-      }
-      .searchable(text: $searchText) {
-        // TODO: Figure out why this is slow.
-        ForEach(library.searchTracks) { track in
-          LibrarySearchSuggestionView(track: track, selection: $selection, proxy: proxy)
-        }
-      }
-    }
-    .contextMenu { ids in
-      var isLiked: Bool {
-        ids.isNonEmptySubset(of: library.likedTrackIDs)
-      }
-
-      Button(isLiked ? "Library.Track.Unlike" : "Library.Track.Like") {
-        Task {
-          await library.setLiked(!isLiked, for: library.tracks.filter(ids: ids))
-        }
-      }
-
-      Button("Finder.Item.Show") {
-        let urls = library.tracks.filter(ids: ids).map(\.source.url)
-
-        NSWorkspace.shared.activateFileViewerSelecting(urls)
-      }
-    } primaryAction: { ids in
-      Task {
-        await library.queue(tracks: ids)
-      }
+        .contextMenu { ids in
+          var isLiked: Bool {
+            ids.isNonEmptySubset(of: library.likedTrackIDs)
+          }
+          
+          Button(isLiked ? "Library.Track.Unlike" : "Library.Track.Like") {
+            Task {
+              await library.setLiked(!isLiked, for: library.tracks.filter(ids: ids))
+            }
+          }
+          
+          Button("Finder.Item.Show") {
+            let urls = library.tracks.filter(ids: ids).map(\.source.url)
+            
+            NSWorkspace.shared.activateFileViewerSelecting(urls)
+          }
+        } primaryAction: { ids in
+          Task {
+            await library.queue(tracks: ids)
+          }
 //      guard let track = library.tracks.filter(ids: ids).first else {
 //        return
 //      }
@@ -759,14 +798,24 @@ struct LibraryView: View {
         }
       }
     }
-    .toolbar {
-      ToolbarItem(id: "\(Bundle.appID).library-up-next") {
-        // TODO: Localize.
-        Button("Inspect", systemImage: "list.number") {
-          isInspectorPresented.toggle()
+      .toolbar {
+        ToolbarItem(id: "\(Bundle.appID).library-up-next") {
+          // TODO: Localize.
+          Button("Inspect", systemImage: "list.number") {
+            isInspectorPresented.toggle()
+          }
+        }
+        
+        ToolbarItem(id: "\(Bundle.appID).history") {
+          Button {
+            NSWorkspace.shared.open(URL(string: "sampled://history")!)
+          } label: {
+            Label("History", systemImage: "clock")
+          }
+          .keyboardShortcut("h", modifiers: [.command, .shift])
+          .help("Show play history (⌘⇧H)")
         }
       }
-    }
     .task {
       await library.load()
     }
@@ -774,10 +823,30 @@ struct LibraryView: View {
       await library.search(text: searchText, imageSize: 32)
     }
     .onChange(of: selection) {
+      // Stop playback if selection changes to a different track
+      if let currentTrack = currentPlayingTrack,
+         !selection.contains(currentTrack.id) {
+        Task {
+          await player.stop()
+          isPlaying = false
+        }
+      }
+      
       let tracks = library.tracks.filter(ids: selection)
       // Would reducing once optimize the performance?
       infoTrack.title = tracks.reduce(.empty) { $0.reduce(nextValue: $1.title) }
       infoTrack.duration = tracks.reduce(.empty) { $0.reduce(nextValue: $1.duration) }
+      
+      // Calculate total and average duration for multiple selections
+      if tracks.count > 1 {
+        let totalSeconds = tracks.map { $0.duration.components.seconds }.reduce(0, +)
+        infoTrack.totalDuration = Duration.seconds(totalSeconds)
+        infoTrack.averageDuration = Duration.seconds(totalSeconds / Int64(tracks.count))
+      } else {
+        infoTrack.totalDuration = nil
+        infoTrack.averageDuration = nil
+      }
+      
       infoTrack.artistName = tracks.reduce(.empty) { $0.reduce(nextValue: $1.artistName) }
       infoTrack.albumName = tracks.reduce(.empty) { $0.reduce(nextValue: $1.albumName) }
       infoTrack.albumArtistName = tracks.reduce(.empty) { $0.reduce(nextValue: $1.albumArtistName) }
@@ -803,15 +872,55 @@ struct LibraryView: View {
       infoTrack.discNumber = tracks.reduce(.empty) { $0.reduce(nextValue: $1.discNumber) }
       infoTrack.discTotal = tracks.reduce(.empty) { $0.reduce(nextValue: $1.discTotal) }
     }
+      }
+      
+      // Combined player - only show when track(s) selected
+      if !selection.isEmpty {
+        Divider()
+        
+        CombinedPlayerView(
+          track: infoTrack,
+          isPlaying: isPlaying,
+          onPlayTapped: {
+            Task {
+              await playSelected()
+            }
+          },
+          onPrevious: {
+            // TODO: Implement previous
+          },
+          onNext: {
+            // TODO: Implement next
+          }
+        )
+        .transition(.move(edge: .bottom).combined(with: .opacity))
+      }
+    }
   }
-
-//  nonisolated static private func play(track: LibraryTrack) async {
-//    let source = track.source
-//    let item = AudioPlayerItem(url: source.url)
-//
-//    await source.accessingSecurityScopedResource {
-//      await item.install()
-//      await player.play(item: item)
-//    }
-//  }
+  
+  private func playSelected() async {
+    // If already playing the current selection, toggle pause/resume
+    if isPlaying, let currentTrack = currentPlayingTrack,
+       let firstID = selection.first,
+       currentTrack.id == firstID {
+      await player.pause()
+      isPlaying = false
+      return
+    }
+    
+    guard let firstID = selection.first,
+          let track = library.tracks[id: firstID] else {
+      return
+    }
+    
+    currentPlayingTrack = track
+    isPlaying = true
+    let source = track.source
+    let item = AudioPlayerItem(url: source.url)
+    
+    await source.accessingSecurityScopedResource { @Sendable in
+      await item.install()
+      await player.play(item: item)
+    }
+  }
 }
