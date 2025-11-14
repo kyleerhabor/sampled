@@ -173,21 +173,30 @@ struct LibraryInfoView: View {
 
   var body: some View {
     VStack(spacing: 0) {
-      // TODO: Configure to scale to fill while respecting bounds.
-      //
-      // For some reason, setting contentMode to .fill causes square images to extend past the bounds. This doesn't
-      // occur for .fit, but won't act appropriately at different dimensions (or if space is reduced).
       let image = switch libraryInfoTrack.albumArtwork {
         case .empty, .mixed: NSImage()
         case let .value(artwork): artwork?.image ?? NSImage()
       }
 
-      Image(nsImage: image)
-        .resizable()
-        .aspectRatio(1, contentMode: .fit)
+      ZStack {
+        // Blurred background for small images or to fill space
+        Image(nsImage: image)
+          .resizable()
+          .aspectRatio(contentMode: .fill)
+          .blur(radius: 40)
+          .opacity(0.6)
+        
+        // Main image - scales down large images, centers small ones
+        Image(nsImage: image)
+          .resizable()
+          .aspectRatio(contentMode: .fit)
+      }
+      .frame(height: 320)
+      .clipped()
+      .shadow(color: .black.opacity(0.2), radius: 8, y: 2)
 
-
-      Grid(alignment: .centerFirstTextBaseline, verticalSpacing: 0) {
+      ScrollView(showsIndicators: false) {
+        Grid(alignment: .centerFirstTextBaseline, verticalSpacing: 0) {
         Divider()
           .ignoresSafeArea(edges: .horizontal)
 
@@ -274,34 +283,38 @@ struct LibraryInfoView: View {
 
         LibraryInfoTagView {
           LibraryInfoTagNameView {
-            Text("LibraryInfo.Tag.DiscNumber.Name")
-          }
-
-          LibraryInfoTagValueView {
-            LibraryInfoPositionTagView(number: libraryInfoTrack.discNumber, total: libraryInfoTrack.discTotal)
-          }
-        }
-
-        LibraryInfoTagView {
-          LibraryInfoTagNameView {
             Text("LibraryInfo.Tag.Duration.Name")
           }
 
           LibraryInfoTagValueView {
-            // It may be required to move away from this empty-value-mixed structure to display a mixed duration. We can
-            // compose it (e.g., having another property for mixed data), but I'm not sure if that's the best way to
-            // represent this. We could represent it like how Toggle's isMixed property is just an add-on to the general
-            // data.
             LibraryInfoTagValueContentView(property: libraryInfoTrack.duration) { duration in
               LibraryTrackDurationView(duration: duration)
             } mixed: {
-              LibraryInfoTagValueMixedNumberView()
+              if let total = libraryInfoTrack.totalDuration, let average = libraryInfoTrack.averageDuration {
+                VStack(alignment: .leading, spacing: 2) {
+                  HStack(spacing: 4) {
+                    Text("Total:")
+                      .foregroundStyle(.secondary)
+                    LibraryTrackDurationView(duration: total)
+                  }
+                  HStack(spacing: 4) {
+                    Text("Avg:")
+                      .foregroundStyle(.secondary)
+                    LibraryTrackDurationView(duration: average)
+                  }
+                }
+                .font(.caption2)
+              } else {
+                LibraryInfoTagValueMixedNumberView()
+              }
             }
           }
         }
       }
       .safeAreaPadding(.horizontal, 12)
+      .safeAreaPadding(.vertical, 8)
+      }
     }
-    .containerBackground(.ultraThickMaterial, for: .window)
+    .background(.ultraThickMaterial)
   }
 }

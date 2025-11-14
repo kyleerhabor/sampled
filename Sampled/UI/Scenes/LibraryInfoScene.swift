@@ -12,15 +12,10 @@ struct LibraryInfoScene: Scene {
   @State private var defaultLibraryInfoTrack = LibraryInfoTrackModel()
 
   var body: some Scene {
-    // TODO: Size to content size.
     UtilityWindow("LibraryInfo.Window.Title", id: "library-info") {
       LibraryInfoView()
         .environment(libraryInfoTrack ?? defaultLibraryInfoTrack)
-        .frame(
-          width: 224, // 192 - 256
-          height: 496, // 480 - 512
-          alignment: .top
-        )
+        .frame(width: 320, height: 480)
     }
     .keyboardShortcut(.libraryInfo)
     .windowResizability(.contentSize)

@@ -827,19 +827,7 @@ final class LibraryModel {
           .including(
             required: LibraryTrackRecord.library
               .forKey(LibraryModelQueueTrackInfo.CodingKeys.library)
-              .select(Column.rowID, LibraryRecord.Columns.currentQueue)
-              .including(
-                optional: LibraryRecord.currentQueueAssociation
-                  .forKey(LibraryModelQueueTrackLibraryInfo.CodingKeys.currentQueue)
-                  .select(Column.rowID)
-                  .including(
-                    // TODO: Don't request all items to get the latest position.
-                    all: LibraryQueueRecord.items
-                      .forKey(LibraryModelQueueTrackLibraryCurrentQueueInfo.CodingKeys.items)
-                      .select(LibraryQueueItemRecord.Columns.position)
-                      .order(LibraryQueueItemRecord.Columns.position),
-                  ),
-              ),
+              .select(Column.rowID, LibraryRecord.Columns.currentQueue),
           )
           .asRequest(of: LibraryModelQueueTrackInfo.self)
           .fetchAll(db)
@@ -849,7 +837,26 @@ final class LibraryModel {
         var iterator = tracks.makeIterator()
 
         if let track = iterator.next() {
-          var position = try generateKeyBetween(a: track.library.currentQueue?.items.last?.item.position, b: nil)
+          // Get the latest position from the current queue if it exists
+          let latestPosition: String? = if let queueID = track.library.library.currentQueue {
+            // Query for the item with the highest position in this queue using a SQL join
+            try String.fetchOne(
+              db,
+              sql: """
+                SELECT library_queue_items.position
+                FROM library_queue_items
+                JOIN item_library_queues ON item_library_queues.item = library_queue_items.rowid
+                WHERE item_library_queues.queue = ?
+                ORDER BY library_queue_items.position DESC
+                LIMIT 1
+                """,
+              arguments: [queueID]
+            )
+          } else {
+            nil
+          }
+          
+          var position = try generateKeyBetween(a: latestPosition, b: nil)
           var item = LibraryQueueItemRecord(
             rowID: nil,
             track: track.track.rowID,
@@ -858,7 +865,9 @@ final class LibraryModel {
 
           try item.insert(db)
 
-          var queue = track.library.currentQueue?.queue ?? LibraryQueueRecord(rowID: nil, currentItem: item.rowID)
+          // Create or use existing queue
+          let now = Date()
+          var queue = LibraryQueueRecord(rowID: track.library.library.currentQueue, currentItem: item.rowID, createdAt: now, modifiedAt: now)
           try queue.upsert(db)
 
           var itemLibraryQueue = ItemLibraryQueueRecord(

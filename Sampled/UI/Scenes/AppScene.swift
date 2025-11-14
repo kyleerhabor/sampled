@@ -15,7 +15,7 @@ struct AppScene: Scene {
     LibraryScene()
       .environment(library)
 
-    LibraryInfoScene()
+    HistoryScene()
 
     SettingsScene()
       .environment(settings)
