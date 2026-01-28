@@ -221,7 +221,7 @@ extension URLBookmark {
   init(url: URL, options: URL.BookmarkCreationOptions, relativeTo relative: URL?) throws {
     self.init(
       url: url,
-      bookmark: try Bookmark(url: url, options: options, relativeTo: relative)
+      bookmark: try Bookmark(url: url, options: options, relativeTo: relative),
     )
   }
 }
