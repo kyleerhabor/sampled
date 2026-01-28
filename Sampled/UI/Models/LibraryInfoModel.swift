@@ -48,6 +48,8 @@ extension LibraryInfoTrackModelAlbumArtwork: Equatable {
 class LibraryInfoTrackModel {
   var title: LibraryInfoTrackModelProperty<String?>
   var duration: LibraryInfoTrackModelProperty<Duration>
+  var totalDuration: Duration?
+  var averageDuration: Duration?
   var artistName: LibraryInfoTrackModelProperty<String?>
   var albumName: LibraryInfoTrackModelProperty<String?>
   var albumArtistName: LibraryInfoTrackModelProperty<String?>
@@ -61,6 +63,8 @@ class LibraryInfoTrackModel {
   init(
     title: LibraryInfoTrackModelProperty<String?> = .empty,
     duration: LibraryInfoTrackModelProperty<Duration> = .empty,
+    totalDuration: Duration? = nil,
+    averageDuration: Duration? = nil,
     artistName: LibraryInfoTrackModelProperty<String?> = .empty,
     albumName: LibraryInfoTrackModelProperty<String?> = .empty,
     albumArtistName: LibraryInfoTrackModelProperty<String?> = .empty,
@@ -82,5 +86,7 @@ class LibraryInfoTrackModel {
     self.discNumber = discNumber
     self.discTotal = discTotal
     self.duration = duration
+    self.totalDuration = totalDuration
+    self.averageDuration = averageDuration
   }
 }

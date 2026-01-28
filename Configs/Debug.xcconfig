@@ -1,0 +1,50 @@
+//
+//  Debug.xcconfig
+//  Sampled
+//
+//  Build optimization settings for faster debug builds
+//
+
+// Enable incremental builds
+SWIFT_COMPILATION_MODE = incremental
+
+// Use single-file compilation for faster incremental builds
+SWIFT_WHOLE_MODULE_OPTIMIZATION = NO
+
+// Reduce debug information for faster linking
+DEBUG_INFORMATION_FORMAT = dwarf
+
+// Disable building for multiple architectures in debug
+ONLY_ACTIVE_ARCH = YES
+
+// Enable parallel build tasks
+SWIFT_ENABLE_BATCH_MODE = YES
+
+// Optimize build system performance
+CLANG_INDEX_STORE_ENABLE = NO
+
+// Disable unnecessary optimizations
+GCC_OPTIMIZATION_LEVEL = 0
+SWIFT_OPTIMIZATION_LEVEL = -Onone
+
+// Skip install phase in debug
+SKIP_INSTALL = YES
+
+// Reduce warning processing overhead
+GCC_WARN_INHIBIT_ALL_WARNINGS = NO
+
+// Enable faster linking
+LD_RUNPATH_SEARCH_PATHS = $(inherited) @executable_path/../Frameworks
+
+// Disable code coverage in debug
+CLANG_ENABLE_CODE_COVERAGE = NO
+
+// Disable address sanitizer in debug (enable only when needed)
+ENABLE_ADDRESS_SANITIZER = NO
+ENABLE_THREAD_SANITIZER = NO
+
+// Fast module building
+SWIFT_ENABLE_INCREMENTAL_COMPILATION = YES
+
+// Build active architecture only
+VALID_ARCHS = $(ARCHS_STANDARD)
