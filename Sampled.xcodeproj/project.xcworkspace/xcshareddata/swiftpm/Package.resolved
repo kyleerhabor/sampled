@@ -1,14 +1,6 @@
 {
-  "originHash" : "87683b9dd2e1dbdcfbd6600b49723bef8eeadbc0bd1d1a452f22b1463188a5b4",
+  "originHash" : "699e99e41a6168e98332b4ce08d4cdca77633f464ffd6c3472edf6074e2921bc",
   "pins" : [
-    {
-      "identity" : "defaults",
-      "kind" : "remoteSourceControl",
-      "location" : "https://github.com/sindresorhus/Defaults.git",
-      "state" : {
-        "revision" : "00c82eff4550c87cf9c547d7e5493a6a97837061"
-      }
-    },
     {
       "identity" : "fractionalindex",
       "kind" : "remoteSourceControl",
@@ -65,15 +57,6 @@
       "location" : "https://github.com/x-sheep/swift-property-based.git",
       "state" : {
         "revision" : "695120fe95d7f81c0baf556f63ad2468d7ed965d"
-      }
-    },
-    {
-      "identity" : "swift-syntax",
-      "kind" : "remoteSourceControl",
-      "location" : "https://github.com/swiftlang/swift-syntax",
-      "state" : {
-        "revision" : "f99ae8aa18f0cf0d53481901f88a0991dc3bd4a2",
-        "version" : "601.0.1"
       }
     }
   ],

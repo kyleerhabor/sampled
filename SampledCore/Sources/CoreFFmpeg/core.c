@@ -1,11 +1,11 @@
 //
-//  ffmpeg.c
-//  
+//  core.c
+//
 //
 //  Created by Kyle Erhabor on 5/18/24.
 //
 
-#include "ffmpeg.h"
+#include "core.h"
 #include "libavutil/avutil.h"
 #include "libavutil/error.h"
 

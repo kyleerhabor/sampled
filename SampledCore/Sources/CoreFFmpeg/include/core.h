@@ -1,12 +1,12 @@
 //
-//  ffmpeg.h
+//  core.h
 //  
 //
 //  Created by Kyle Erhabor on 5/18/24.
 //
 
-#ifndef ffmpeg_h
-#define ffmpeg_h
+#ifndef core_h
+#define core_h
 
 #include <stdio.h>
 
@@ -18,4 +18,6 @@ const int FFAVERROR_EISDIR;
 const int FFAVERROR_EAGAIN;
 const int64_t FFAV_NOPTS_VALUE;
 
-#endif /* ffmpeg_h */
+
+
+#endif /* core_h */

@@ -1,0 +1,214 @@
+---
+Name: CFFmpeg
+Functions:
+  - Name: av_find_best_stream
+    SwiftName: AVFormatContext.findBestStream(_:type:wantedStream:relatedStream:decoder:flags:)
+    Parameters:
+      - Position: 0
+        Nullability: N
+      - Position: 1
+        Nullability: N
+      - Position: 2
+        Nullability: N
+      - Position: 3
+        Nullability: N
+      - Position: 4
+        Nullability: O
+      - Position: 5
+        Nullability: N
+  - Name: av_frame_alloc
+    SwiftName: AVFrame.allocate()
+    ResultType: AVFrame* _Nullable
+  - Name: av_frame_free
+    SwiftName: AVFrame.free(_:)
+    Parameters:
+      - Position: 0
+        Nullability: O
+  - Name: av_freep
+    SwiftName: freeAllocation(_:)
+    Parameters:
+      - Position: 0
+        Nullability: O
+  - Name: av_get_bits_per_pixel
+    SwiftName: AVPixFmtDescriptor.bitsPerPixel(_:)
+    Parameters:
+      - Position: 0
+        Nullability: N
+  - Name: av_get_bytes_per_sample
+    SwiftName: AVSampleFormat.bytesPerSample(_:)
+  - Name: av_malloc
+    SwiftName: allocate(size:)
+    ResultType: void* _Nullable
+  - Name: av_log_get_level
+    SwiftName: getLogLevel()
+  - Name: av_log_set_callback
+    SwiftName: setLogCallback(callback:)
+    Parameters:
+      - Position: 0
+        Nullability: N
+        Type: void (*)(void* _Nonnull, int, const char* _Nonnull, va_list _Nonnull)
+  - Name: av_log_set_level
+    SwiftName: setLogLevel(level:)
+  - Name: av_packet_alloc
+    SwiftName: AVPacket.allocate()
+    ResultType: AVPacket* _Nullable
+  - Name: av_packet_free
+    SwiftName: AVPacket.free(_:)
+    Parameters:
+      - Position: 0
+        Nullability: O
+  - Name: av_packet_from_data
+    SwiftName: AVPacket.fromData(_:data:size:)
+    Parameters:
+      - Position: 0
+        Nullability: N
+      - Position: 1
+        Nullability: N
+      - Position: 2
+        Nullability: N
+  - Name: av_packet_unref
+    SwiftName: AVPacket.unreference(_:)
+  - Name: av_pix_fmt_desc_get
+    SwiftName: AVPixelFormat.descriptor(_:)
+    ResultType: AVPixFmtDescriptor const* _Nullable
+  - Name: av_read_frame
+    SwiftName: AVFormatContext.readFrame(_:packet:)
+    Parameters:
+      - Position: 0
+        Nullability: N
+      - Position: 1
+        Nullability: N
+  - Name: av_sample_fmt_is_planar
+    SwiftName: AVSampleFormat.isPlanar(_:)
+  - Name: avcodec_alloc_context3
+    SwiftName: AVCodecContext.allocate(codec:)
+    Parameters:
+      - Position: 0
+        Nullability: O
+    ResultType: AVCodecContext* _Nullable
+  - Name: avcodec_find_decoder
+    SwiftName: findDecoder(id:)
+    ResultType: AVCodec const* _Nullable
+  - Name: avcodec_free_context
+    SwiftName: AVCodecContext.free(_:)
+    Parameters:
+      - Position: 0
+        Nullability: O
+  - Name: avcodec_get_name
+    SwiftName: codecName(id:)
+    ResultType: char const* _Nonnull
+  - Name: avcodec_open2
+    SwiftName: AVCodecContext.open(_:codec:options:)
+    Parameters:
+      - Position: 0
+        Nullability: N
+      - Position: 1
+        Nullability: O
+      - Position: 2
+        Nullability: O
+  - Name: avcodec_parameters_to_context
+    SwiftName: AVCodecContext.copyParameters(_:parameters:)
+    Parameters:
+      - Position: 0
+        Nullability: N
+      - Position: 1
+        Nullability: N
+  - Name: avcodec_receive_frame
+    SwiftName: AVCodecContext.receiveFrame(_:frame:)
+    Parameters:
+      - Position: 0
+        Nullability: N
+      - Position: 1
+        Nullability: N
+  - Name: avcodec_send_packet
+    SwiftName: AVCodecContext.sendPacket(_:packet:)
+    Parameters:
+      - Position: 0
+        Nullability: N
+      - Position: 1
+        Nullability: O
+  - Name: avformat_alloc_context
+    SwiftName: AVFormatContext.allocate()
+    ResultType: AVFormatContext* _Nullable
+  - Name: avformat_close_input
+    SwiftName: AVFormatContext.closeInput(_:)
+    Parameters:
+      - Position: 0
+        Nullability: O
+  - Name: avformat_find_stream_info
+    SwiftName: AVFormatContext.findStreamInfo(_:options:)
+    Parameters:
+      - Position: 0
+        Nullability: N
+      - Position: 1
+        Nullability: O
+  - Name: avformat_free_context
+    SwiftName: AVFormatContext.free(_:)
+    Parameters:
+      - Position: 0
+        Nullability: O
+  - Name: avformat_open_input
+    SwiftName: AVFormatContext.openInput(_:url:format:options:)
+    Parameters:
+      - Position: 0
+        Nullability: N
+      - Position: 1
+        Nullability: N
+      - Position: 2
+        Nullability: O
+      - Position: 3
+        Nullability: O
+  - Name: sws_alloc_context
+    SwiftName: SwsContext.allocate()
+    ResultType: SwsContext* _Nullable
+  - Name: sws_free_context
+    SwiftName: SwsContext.free(_:)
+    Parameters:
+      - Position: 0
+        Nullability: O
+  - Name: swr_alloc
+    SwiftName: allocateResampleContext()
+    ResultType: SwrContext* _Nullable
+  - Name: swr_alloc_set_opts2
+    SwiftName: allocateResampleContext(_:destinationChannelLayout:destinationSampleFormat:destinationSampleRate:sourceChannelLayout:sourceSampleFormat:sourceSampleRate:logOffset:logContext:)
+    Parameters:
+      - Position: 0
+        Nullability: O
+      - Position: 1
+        Nullability: N
+      - Position: 4
+        Nullability: N
+      - Position: 8
+        Nullability: O
+  - Name: swr_config_frame
+    SwiftName: configureResampleContextFrame(_:destination:source:)
+    Parameters:
+      - Position: 0
+        Nullability: N
+      - Position: 1
+        Nullability: O
+      - Position: 2
+        Nullability: O
+  - Name: swr_convert_frame
+    SwiftName: convertResampleContextFrame(_:destination:source:)
+    Parameters:
+      - Position: 0
+        Nullability: N
+      - Position: 1
+        Nullability: O
+      - Position: 2
+        Nullability: O
+  - Name: swr_free
+    SwiftName: freeResampleContext(_:)
+    Parameters:
+      - Position: 0
+        Nullability: O
+  - Name: sws_scale_frame
+    SwiftName: SwsContext.scaleFrame(_:destination:source:)
+    Parameters:
+      - Position: 0
+        Nullability: N
+      - Position: 1
+        Nullability: N
+      - Position: 2
+        Nullability: N

@@ -7,7 +7,7 @@
 
 import CFFmpeg
 import CoreFFmpeg
-import SampledFFmpeg
+import SampledCore
 import Algorithms
 import AppKit
 import CoreGraphics
@@ -25,7 +25,7 @@ func read(frame: UnsafePointer<AVFrame>!, pixelFormatDescriptor: UnsafePointer<A
   // This function also carries the assumption that all the data is in the first element (i.e., AV_PIX_FMT_RGBA).
   let buffer = frame.pointee.buf.0!
   let data = Data(bytes: buffer.pointee.data, count: buffer.pointee.size)
-  let bitsPerPixel = Int(av_get_bits_per_pixel(pixelFormatDescriptor))
+  let bitsPerPixel = Int(AVPixFmtDescriptor.bitsPerPixel(pixelFormatDescriptor))
 
   guard let provider = CGDataProvider(data: data as CFData) else {
     return nil
@@ -48,15 +48,15 @@ func read(frame: UnsafePointer<AVFrame>!, pixelFormatDescriptor: UnsafePointer<A
 
 // TODO: Rename.
 func read(
-  packet: UnsafeMutablePointer<AVPacket>!,
-  data: UnsafeMutablePointer<UInt8>!,
+  packet: UnsafeMutablePointer<AVPacket>,
+  data: consuming UnsafeMutablePointer<UInt8>,
   bytes: Int32,
-  codec: UnsafePointer<AVCodec>!,
-  frame: UnsafeMutablePointer<AVFrame>!,
+  codec: UnsafePointer<AVCodec>,
+  frame: UnsafeMutablePointer<AVFrame>,
 ) throws(FFError) {
   try packetFromData(packet, data: data, size: bytes)
 
-  let codecContext = FFCodecContext(codec: codec)
+  let codecContext = CodecContext(codec: codec)
   try openCodec(codecContext.context, codec: codec)
   try sendPacket(codecContext.context, packet: packet)
   try receiveFrame(codecContext.context, frame: frame)
@@ -66,15 +66,16 @@ func read(
 func read(
   frame: UnsafeMutablePointer<AVFrame>!,
   scaleFrame: UnsafeMutablePointer<AVFrame>!,
-  scaleContext: UnsafeMutablePointer<SwsContext>!,
+  scaleContext: UnsafeMutablePointer<SwsContext>,
 ) throws(FFError) -> CGImage? {
-  let pixelFormat = AV_PIX_FMT_RGBA
-  let pixelFormatDescriptor = av_pix_fmt_desc_get(pixelFormat)
+  let pixelFormat = PixelFormat.rgba
+  let pixelFormatDescriptor = AVPixelFormat.descriptor(AVPixelFormat(pixelFormat))
   scaleFrame.pointee.format = pixelFormat.rawValue
+  try Sampled.scaleFrame(scaleContext, source: frame, destination: scaleFrame)
 
-  try SampledFFmpeg.scaleFrame(scaleContext, source: frame, destination: scaleFrame)
+  let image = read(frame: scaleFrame, pixelFormatDescriptor: pixelFormatDescriptor)
 
-  return read(frame: scaleFrame, pixelFormatDescriptor: pixelFormatDescriptor)
+  return image
 }
 
 enum LibraryModelEventStreamElement {
@@ -427,20 +428,19 @@ final class LibraryModel {
     return await resampleImage(data: albumArtworkData, format: albumArtworkFormat, length: length)
   }
 
-  nonisolated private func readLoadPacket(data: Data, codecID: AVCodecID) -> CGImage? {
-    let allocatedMemory = allocateMemory(bytes: data.count)
-    let allocated = data.withUnsafeBytes { data in
-      allocatedMemory!.initializeMemory(
-        as: UInt8.self,
-        from: data.baseAddress!.assumingMemoryBound(to: UInt8.self),
-        count: data.count,
-      )
+  nonisolated private func readLoadPacket(data: Data, codecID: CodecID) -> CGImage? {
+    guard let allocated = Allocation(bytes: data.count).initialize(span: data.span) else {
+      return nil
     }
 
-    let packet = FFPacket()
-    let frame = FFFrame()
-    let scaleFrame = FFFrame()
-    let scaleContext = FFScaleContext()
+    defer {
+      allocated.deinitialize(count: data.count)
+    }
+
+    let packet = Packet()
+    let frame = Frame()
+    let scaleFrame = Frame()
+    let scaleContext = ScaleContext()
 
     do {
       try Sampled.read(
@@ -448,7 +448,7 @@ final class LibraryModel {
         data: allocated,
         // This is safe since it's from AVPacket.size, which is int.
         bytes: Int32(data.count),
-        codec: avcodec_find_decoder(codecID),
+        codec: findDecoder(id: AVCodecID(codecID))!,
         frame: frame.frame,
       )
     } catch {
@@ -537,10 +537,10 @@ final class LibraryModel {
       }
       .removeDuplicates()
 
-    let conn: DatabasePool
+    let connection: DatabasePool
 
     do {
-      conn = try await connection()
+      connection = try await databaseConnection()
     } catch {
       Logger.model.error("Could not create database connection: \(error)")
 
@@ -548,7 +548,7 @@ final class LibraryModel {
     }
 
     do {
-      for try await configuration in observation.values(in: conn) {
+      for try await configuration in observation.values(in: connection) {
         guard let configuration else {
           continue
         }
@@ -579,7 +579,7 @@ final class LibraryModel {
 
         guard hashed == configuration.mainLibrary.bookmark.bookmark.hash! else {
           do {
-            try await conn.write { db in
+            try await connection.write { db in
               var bookmark = BookmarkRecord(
                 data: assigned.data,
                 options: options,
@@ -650,7 +650,7 @@ final class LibraryModel {
 
         guard tracks.allSatisfy({ $0.track.bookmark.bookmark.hash == $0.bookmark.hash }) else {
           do {
-            try await conn.write { db in
+            try await connection.write { db in
               try tracks.forEach { track in
                 var bookmark = track.bookmark
                 try bookmark.upsert(db)
@@ -812,7 +812,7 @@ final class LibraryModel {
     let conn: DatabasePool
 
     do {
-      conn = try await connection()
+      conn = try await databaseConnection()
     } catch {
       Logger.model.error("Could not create database connection: \(error)")
 
@@ -866,8 +866,7 @@ final class LibraryModel {
           try item.insert(db)
 
           // Create or use existing queue
-          let now = Date()
-          var queue = LibraryQueueRecord(rowID: track.library.library.currentQueue, currentItem: item.rowID, createdAt: now, modifiedAt: now)
+          var queue = LibraryQueueRecord(rowID: track.library.library.currentQueue, currentItem: item.rowID)
           try queue.upsert(db)
 
           var itemLibraryQueue = ItemLibraryQueueRecord(
@@ -923,22 +922,21 @@ final class LibraryModel {
 
   nonisolated private func readImagePacket(
     data: Data,
-    codecID: AVCodecID,
+    codecID: CodecID,
     imageLength: Int32,
   ) -> CGImage? {
-    let allocatedMemory = allocateMemory(bytes: data.count)
-    let allocated = data.withUnsafeBytes { data in
-      allocatedMemory!.initializeMemory(
-        as: UInt8.self,
-        from: data.baseAddress!.assumingMemoryBound(to: UInt8.self),
-        count: data.count,
-      )
+    guard let allocated = Allocation(bytes: data.count).initialize(span: data.span) else {
+      return nil
     }
 
-    let packet = FFPacket()
-    let frame = FFFrame()
-    let scaleFrame = FFFrame()
-    let scaleContext = FFScaleContext()
+    defer {
+      allocated.deinitialize(count: data.count)
+    }
+
+    let packet = Packet()
+    let frame = Frame()
+    let scaleFrame = Frame()
+    let scaleContext = ScaleContext()
 
     do {
       try Sampled.read(
@@ -946,7 +944,7 @@ final class LibraryModel {
         data: allocated,
         // This is safe since it's from AVPacket.size, which is int.
         bytes: Int32(data.count),
-        codec: avcodec_find_decoder(codecID),
+        codec: findDecoder(id: AVCodecID(codecID))!,
         frame: frame.frame,
       )
     } catch {
@@ -1031,7 +1029,7 @@ final class LibraryModel {
     let conn: DatabasePool
 
     do {
-      conn = try await connection()
+      conn = try await databaseConnection()
     } catch {
       Logger.model.error("Could not create database connection: \(error)")
 
@@ -1252,7 +1250,7 @@ final class LibraryModel {
     let conn: DatabasePool
 
     do {
-      conn = try await connection()
+      conn = try await databaseConnection()
     } catch {
       Logger.model.error("Could not create database connection: \(error)")
 

@@ -6,35 +6,59 @@
 //
 
 import CFFmpeg
-import SampledFFmpeg
+import SampledCore
 import Algorithms
-import Defaults
 import Foundation
 import GRDB
 import OSLog
+
+// MARK: - Foundation
+
+extension URL {
+  static let dataDirectory = Self.applicationSupportDirectory.appending(
+    components: Bundle.appID,
+    directoryHint: .isDirectory,
+  )
+
+  static let databaseFile = Self.dataDirectory
+    .appending(components: "Database", "Data", directoryHint: .notDirectory)
+    .appendingPathExtension("sqlite3")
+}
+
+// MARK: -
 
 extension Logger {
   static let data = Self(subsystem: Bundle.appID, category: "Data")
 }
 
-extension URL {
-  #if DEBUG
-  static let dataDirectory = Self.applicationSupportDirectory.appending(
-    components: Bundle.appID, "DebugData",
-    directoryHint: .isDirectory,
-  )
+actor Once<Value, each Argument> where Value: Sendable {
+  private let body: (repeat each Argument) async throws -> Value
+  private var task: Task<Value, any Error>?
 
-  #else
-  static let dataDirectory = Self.applicationSupportDirectory.appending(
-    components: Bundle.appID, "Data",
-    directoryHint: .isDirectory,
-  )
+  init(_ body: @escaping (repeat each Argument) async throws -> Value) {
+    self.body = body
+  }
 
-  #endif
+  func callAsFunction(_ args: repeat each Argument) async throws -> Value {
+    if let task = self.task {
+      return try await task.value
+    }
 
-  static let databaseFile = Self.dataDirectory
-    .appending(component: "Data", directoryHint: .notDirectory)
-    .appendingPathExtension("sqlite")
+    let task = Task {
+      try await self.body(repeat each args)
+    }
+
+    self.task = task
+
+    do {
+      return try await task.value
+    } catch {
+      // Try again on the next call.
+      self.task = nil
+
+      throw error
+    }
+  }
 }
 
 extension DatabaseValueConvertible {
@@ -43,32 +67,6 @@ extension DatabaseValueConvertible {
     let results = try Self.fetchAll(db, sql: sql, arguments: arguments)
 
     return results
-  }
-}
-
-extension GRDB.Configuration {
-  static var standard: Self {
-    var configuration = Self()
-
-    #if DEBUG
-    configuration.publicStatementArguments = true
-    configuration.prepareDatabase { db in
-      db.trace(options: .profile) { trace in
-        Logger.data.debug("SQL> \(trace)")
-      }
-    }
-
-    #endif
-
-    configuration.prepareDatabase { db in
-      guard !db.configuration.readonly else {
-        return
-      }
-
-      try db.execute(literal: "VACUUM")
-    }
-
-    return configuration
   }
 }
 
@@ -88,7 +86,7 @@ private func readAttachedPicturePacket(
   stream.pointee.discard = AVDISCARD_NONE
 
   while true {
-    try readFrame(context, into: packet)
+    try readFrame(context, packet: packet)
 
     if packet.pointee.stream_index == stream.pointee.index {
       break
@@ -115,15 +113,15 @@ private func read(
   }
 
   let stream = formatContext.pointee.streams[Int(streami)]!
-  let codecContext = FFCodecContext(codec: decoder)
-  try copyCodecParameters(codecContext.context, params: stream.pointee.codecpar)
+  let codecContext = CodecContext(codec: decoder)
+  try copyCodecParameters(codecContext.context, parameters: stream.pointee.codecpar)
   try openCodec(codecContext.context, codec: decoder)
 
   let attachedPicture = try readAttachedPicturePacket(formatContext, stream: stream, packet: packet)
-  let codecID = stream.pointee.codecpar.pointee.codec_id
+  let codecID = CodecID(stream.pointee.codecpar.pointee.codec_id)
 
   guard let format = LibraryTrackAlbumArtworkFormat(codecID: codecID) else {
-    Logger.model.log("Could not create library track album artwork format from codec ID \(codecID.rawValue) (\(String(cString: avcodec_get_name(codecID))))")
+    Logger.model.log("Could not create library track album artwork format from codec ID \(codecID.rawValue) (\(String(cString: codecID.name))))")
 
     return nil
   }
@@ -166,6 +164,17 @@ extension DatabaseLoadConfigurationInfo: Decodable {
 
 extension DatabaseLoadConfigurationInfo: Equatable, FetchableRecord {}
 
+struct LoadTrack {
+  let track: LibraryTrackRecord
+  let bookmark: BookmarkRecord
+  let artwork: LibraryTrackAlbumArtworkRecord
+}
+
+struct LoadPosition {
+  let number: Int
+  let total: Int?
+}
+
 private func load(enumerator: FileManager.DirectoryEnumerator, relativeTo relative: URL) -> [URLBookmark] {
   var contents = [URLBookmark]()
 
@@ -183,7 +192,7 @@ private func load(enumerator: FileManager.DirectoryEnumerator, relativeTo relati
   return contents
 }
 
-private func load(connection: DatabasePool) async {
+private func load(connection: some DatabaseWriter) async {
   let observation = ValueObservation
     .trackingConstantRegion { db in
       try ConfigurationRecord
@@ -295,13 +304,6 @@ private func load(connection: DatabasePool) async {
       Task {
         // TODO: Handle tracks that are removed from the library.
         for await element in stream.stream {
-          // TODO: Extract.
-          struct Track {
-            let track: LibraryTrackRecord
-            let bookmark: BookmarkRecord
-            let artwork: LibraryTrackAlbumArtworkRecord
-          }
-
           let source = URLSource(url: assigned.url, options: bookmarkOptions)
           let tracks = source.accessingSecurityScopedResource {
             var urbs = [URLBookmark]()
@@ -346,45 +348,37 @@ private func load(connection: DatabasePool) async {
                 }
             }
 
-            return urbs.compactMap { urb -> Track? in
-              let formatContext = FFFormatContext()
+            return urbs.compactMap { urb -> LoadTrack? in
+              let formatContext = FormatContext()
 
               do {
-                return try openingInput(
-                  &formatContext.context,
-                  at: urb.url.pathString,
-                ) { formatContext -> Track? in
+                return try formatContext.openingInput(at: urb.url.pathString) { formatContext -> LoadTrack? in
                   do {
                     // We need this for formats like FLAC.
-                    try findStreamInfo(formatContext)
+                    try findStreamInfo(formatContext.context)
                   } catch {
                     Logger.model.log("Could not find stream information from file at URL '\(urb.url.pathString)': \(error)")
 
                     return nil
                   }
 
+                  var decoder: UnsafePointer<AVCodec>!
                   let streami: Int32
 
                   do {
-                    streami = try findBestStream(formatContext, type: .audio, decoder: nil)
+                    streami = try findBestStream(formatContext.context, type: .audio, decoder: &decoder)
                   } catch {
                     Logger.model.log("Could not find best stream from file at URL '\(urb.url.pathString)': \(error)")
 
                     return nil
                   }
 
-                  let stream = formatContext!.pointee.streams[Int(streami)]!
+                  let stream = formatContext.context.pointee.streams[Int(streami)]!
 
-                  guard let duration = duration(stream: stream, formatContext: formatContext) else {
+                  guard let duration = duration(stream: stream, formatContext: formatContext.context) else {
                     Logger.model.log("Could not parse duration of stream \(stream.pointee.index) from file at URL '\(urb.url.pathString)'")
 
                     return nil
-                  }
-
-                  // TODO: Extract.
-                  struct Position {
-                    let number: Int
-                    let total: Int?
                   }
 
                   var title: String?
@@ -392,18 +386,18 @@ private func load(connection: DatabasePool) async {
                   var albumName: String?
                   var albumArtistName: String?
                   var albumDate: Date?
-                  var track: Position?
+                  var track: LoadPosition?
                   var trackTotal: Int?
-                  var disc: Position?
+                  var disc: LoadPosition?
                   var discTotal: Int?
 
                   chain(
-                    FFDictionaryIterator(formatContext!.pointee.metadata),
+                    FFDictionaryIterator(formatContext.context.pointee.metadata),
                     FFDictionaryIterator(stream.pointee.metadata),
                   )
                   .uniqued(on: \.pointee.key)
                   .forEach { tag in
-                    func position(from value: String) -> Position? {
+                    func position(from value: String) -> LoadPosition? {
                       let components = value.split(separator: "/", maxSplits: 1)
                       let number: Int
                       let total: Int?
@@ -428,7 +422,7 @@ private func load(connection: DatabasePool) async {
                           unreachable()
                       }
 
-                      return Position(number: number, total: total)
+                      return LoadPosition(number: number, total: total)
                     }
 
                     let key = String(cString: tag.pointee.key)
@@ -462,11 +456,11 @@ private func load(connection: DatabasePool) async {
                     }
                   }
 
-                  let packet = FFPacket()
+                  let packet = Packet()
                   let artwork: LibraryTrackAlbumArtworkRecord?
 
                   do {
-                    artwork = try read(formatContext, packet: packet.packet)
+                    artwork = try read(formatContext.context, packet: packet.packet)
                   } catch {
                     // TODO: Elaborate.
                     Logger.model.error("\(error)")
@@ -479,7 +473,7 @@ private func load(connection: DatabasePool) async {
                     return nil
                   }
 
-                  return Track(
+                  return LoadTrack(
                     track: LibraryTrackRecord(
                       bookmark: nil,
                       title: title,
@@ -694,19 +688,7 @@ private func load(connection: DatabasePool) async {
   }
 }
 
-let connection = Once {
-  let url = URL.databaseFile
-  let configuration = GRDB.Configuration.standard
-  let connection: DatabasePool
-
-  do {
-    connection = try DatabasePool(path: url.pathString, configuration: configuration)
-  } catch let error as DatabaseError where error.resultCode == .SQLITE_CANTOPEN {
-    try FileManager.default.createDirectory(at: url.deletingLastPathComponent(), withIntermediateDirectories: true)
-
-    connection = try DatabasePool(path: url.pathString, configuration: configuration)
-  }
-
+func createSchema(_ connection: some DatabaseWriter) async throws {
   var migrator = DatabaseMigrator()
   migrator.registerMigration("v1") { db in
     // TODO: Clarify uniqueness constraints and their affects on associated tables.
@@ -907,13 +889,61 @@ let connection = Once {
   if try await connection.read(migrator.hasSchemaChanges) {
     try await connection.erase()
 
-    // It's a little annoying that we're letting Defaults leak into data, which is for UI.
-    Defaults.reset(.libraryFolderURL)
+    // It's a little annoying that we're letting defaults leak into data, which is for UI.
+    UserDefaults.standard.removeObject(forKey: DefaultsStorageKeys.libraryFolder.name)
   }
 
   #endif
 
   try migrator.migrate(connection)
+}
+
+extension GRDB.Configuration {
+  static var standard: Self {
+    var configuration = Self()
+
+    #if DEBUG
+    configuration.publicStatementArguments = true
+
+    #endif
+
+    configuration.prepareDatabase { db in
+      #if DEBUG
+      db.trace(options: .profile) { trace in
+        Logger.data.debug("SQL> \(trace)")
+      }
+
+      #endif
+
+      guard !db.configuration.readonly else {
+        return
+      }
+
+      // This will execute twice: once for creating the database connection, and another for schema migration.
+      try db.execute(literal: "VACUUM")
+    }
+
+    return configuration
+  }
+}
+
+func createDatabaseConnection(at url: URL, configuration: GRDB.Configuration) throws -> DatabasePool {
+  let path = url.pathString
+
+  do {
+    return try DatabasePool(path: path, configuration: configuration)
+  } catch let error as DatabaseError where error.resultCode == .SQLITE_CANTOPEN {
+    try FileManager.default.createDirectory(at: url.deletingLastPathComponent(), withIntermediateDirectories: true)
+
+    return try DatabasePool(path: path, configuration: configuration)
+  }
+}
+
+let databaseConnection = Once {
+  let url = URL.databaseFile
+  let configuration = GRDB.Configuration.standard
+  let connection = try createDatabaseConnection(at: url, configuration: configuration)
+  try await createSchema(connection)
 
   Task {
     await load(connection: connection)

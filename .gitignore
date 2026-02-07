@@ -1,12 +1,13 @@
 # FFmpeg
 deps/
 ffbuild/
-SampledFFmpeg/Sources/CFFmpeg/*/bin
-SampledFFmpeg/Sources/CFFmpeg/*/include/*
-!SampledFFmpeg/Sources/CFFmpeg/*/include/libav.h
-!SampledFFmpeg/Sources/CFFmpeg/*/include/module.modulemap
-SampledFFmpeg/Sources/CFFmpeg/*/lib
-SampledFFmpeg/Sources/CFFmpeg/*/share
+SampledCore/Sources/CFFmpeg/*/bin
+SampledCore/Sources/CFFmpeg/*/include/*
+!SampledCore/Sources/CFFmpeg/*/include/libav.h
+!SampledCore/Sources/CFFmpeg/*/include/module.modulemap
+!SampledCore/Sources/CFFmpeg/*/include/CFFmpeg.apinotes
+SampledCore/Sources/CFFmpeg/*/lib
+SampledCore/Sources/CFFmpeg/*/share
 
 # Xcode
 xcuserdata/

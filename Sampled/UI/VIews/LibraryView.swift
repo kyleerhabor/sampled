@@ -6,9 +6,10 @@
 //
 
 import CFFmpeg
-import SampledFFmpeg
+import SampledCore
 import Algorithms
 @preconcurrency import AVFoundation
+import IdentifiedCollections
 import OSLog
 import SwiftUI
 import Synchronization
@@ -21,67 +22,70 @@ import Synchronization
 let libraryContentTypes: [UTType] = [.item, .folder]
 
 // TODO: Replace with dispatch queue or some other lock
-//
-// Actors are just not it.
 actor AudioPlayerItem {
+  private static let resampleSampleFormat = SampleFormat.floatPlanar
+  private static let resampleSampleFormatBytesPerSample = resampleSampleFormat.bytesPerSample!
   private let url: URL
-  private let formatContext: FFFormatContext
+  private var formatContext: FormatContext
   private var codecContext: FFCodecContext?
-  private let resampleContext: FFResampleContext
-  private let packet: FFPacket
-  private let frame: FFFrame
-  private let resampleFrame: FFFrame
+  private let resampleContext: ResampleContext
+  private let packet: Packet
+  private let frame: Frame
+  private let resampleFrame: Frame
   private var streami: Int32?
 
   init(url: URL) {
     self.url = url
-    self.formatContext = FFFormatContext()
-    self.resampleContext = FFResampleContext()
-    self.packet = FFPacket()
-    self.frame = FFFrame()
-    self.resampleFrame = FFFrame()
+    self.formatContext = FormatContext()
+    self.resampleContext = ResampleContext()
+    self.packet = Packet()
+    self.frame = Frame()
+    self.resampleFrame = Frame()
+    self.resampleFrame.frame.pointee.format = Self.resampleSampleFormat.rawValue
   }
 
   func install() {
     do {
-      try openInput(&formatContext.context, at: url.pathString)
+      // I think we're forgetting to close this.
+      try openInput(self.formatContext.context, at: url.pathString)
     } catch {
-      Logger.ffmpeg.error("\(error)")
+      Logger.model.error("\(error)")
 
       return
     }
 
     do {
-      try findStreamInfo(formatContext.context)
+      try findStreamInfo(self.formatContext.context)
     } catch {
-      Logger.ffmpeg.error("\(error)")
+      Logger.model.error("\(error)")
 
       return
     }
 
+    // This really doesn't need to be implicitly optional.
     var decoder: UnsafePointer<AVCodec>!
     let streami: Int32
 
     do {
-      streami = try findBestStream(formatContext.context, type: .audio, decoder: &decoder)
+      streami = try findBestStream(self.formatContext.context, type: .audio, decoder: &decoder)
     } catch {
-      Logger.ffmpeg.error("\(error)")
+      Logger.model.error("\(error)")
 
       return
     }
 
     self.streami = streami
 
-    let stream = formatContext.context.pointee.streams[Int(streami)]!
+    let stream = self.formatContext.context.pointee.streams[Int(streami)]!
     let codecContext = FFCodecContext(codec: decoder)
     codecContext.context.pointee.pkt_timebase = stream.pointee.time_base
 
     self.codecContext = codecContext
 
     do {
-      try copyCodecParameters(codecContext.context, params: stream.pointee.codecpar)
+      try copyCodecParameters(codecContext.context, parameters: stream.pointee.codecpar)
     } catch {
-      Logger.ffmpeg.error("\(error)")
+      Logger.model.error("\(error)")
 
       return
     }
@@ -89,7 +93,7 @@ actor AudioPlayerItem {
     do {
       try openCodec(codecContext.context, codec: decoder)
     } catch {
-      Logger.ffmpeg.error("\(error)")
+      Logger.model.error("\(error)")
 
       return
     }
@@ -138,78 +142,54 @@ actor AudioPlayerItem {
     return layout
   }
 
+  static func bufferCount(channelCount: Int32) -> Int32 {
+    if Self.resampleSampleFormat.isPlanar {
+      return channelCount
+    }
+
+    return 1
+  }
+
   func resampleReadFrame(
-    source frame: UnsafePointer<AVFrame>!,
-    channelLayout: AVChannelLayout,
-    sampleRate: Int32,
-    format: AVSampleFormat,
+    source frame: UnsafePointer<AVFrame>?,
     buffers: inout [Data]
   ) throws(FFError) {
-    try SampledFFmpeg.resampleFrame(
-      resampleContext.context,
+    try convertResampleContextFrame(
+      self.resampleContext.context,
       source: frame,
-      destination: resampleFrame.frame,
-      channelLayout: channelLayout,
-      sampleRate: sampleRate,
-      sampleFormat: format.rawValue
+      destination: self.resampleFrame.frame,
     )
 
-    let stride = resampleFrame.frame.pointee.nb_samples * av_get_bytes_per_sample(format)
-    let bufferCount = bufferCount(sampleFormat: format, channelCount: channelLayout.nb_channels)
+    let stride = self.resampleFrame.frame.pointee.nb_samples * Self.resampleSampleFormatBytesPerSample
+    let bufferCount = Self.bufferCount(channelCount: self.resampleFrame.frame.pointee.ch_layout.nb_channels)
     let range = 0..<Int(bufferCount)
-
     range.forEach { i in
-      buffers[i].append(resampleFrame.frame.pointee.extended_data[i]!, count: Int(stride))
+      buffers[i].append(self.resampleFrame.frame.pointee.extended_data[i]!, count: Int(stride))
     }
   }
 
-  func readFrame(
-    channelLayout: AVChannelLayout,
-    sampleRate: Int32,
-    format: AVSampleFormat,
-    buffers: inout [Data]
-  ) throws(FFError) {
-    try configureResampler(resampleContext.context, source: frame.frame, destination: resampleFrame.frame)
-    try resampleReadFrame(
-      source: frame.frame,
-      channelLayout: channelLayout,
-      sampleRate: sampleRate,
-      format: format,
-      buffers: &buffers
+  func readFrame(channelLayout: AVChannelLayout, sampleRate: Int32, buffers: inout [Data]) throws(FFError) {
+    self.resampleFrame.frame.pointee.ch_layout = channelLayout
+    self.resampleFrame.frame.pointee.sample_rate = sampleRate
+    try configureResampleContextFrame(
+      self.resampleContext.context,
+      source: self.frame.frame,
+      destination: self.resampleFrame.frame,
     )
 
-    av_frame_unref(resampleFrame.frame)
-
-    do {
-      // I *believe* this is how you retrieve the remaining samples in the FIFO buffer.
-      try resampleReadFrame(
-        source: nil,
-        channelLayout: channelLayout,
-        sampleRate: sampleRate,
-        format: format,
-        buffers: &buffers
-      )
-    } catch let error where error.code == .outputChanged {
-      Logger.ffmpeg.info("Dropped.")
-      // Fallthough
-      //
-      // Resampling WAVE seems to always produce this error. I assume no data is in the FIFO buffer, and therefore it
-      // appears the output has (somehow) changed. I'm not exactly sure why, but I am sure this fallthrough produces no
-      // known issues.
-    }
+    try resampleReadFrame(source: frame.frame, buffers: &buffers)
+    try resampleReadFrame(source: nil, buffers: &buffers)
   }
 
   func read() throws(FFError) -> [Data] {
-    let format = AV_SAMPLE_FMT_FLTP
-    let bytesPerSample = av_get_bytes_per_sample(format)
     let context = codecContext!.context!
     let channelLayout = context.pointee.ch_layout
     let sampleRate = context.pointee.sample_rate
     let channelCount = channelLayout.nb_channels
     // Longer is better for energy impact
-    let seconds = 4
-    let capacity = Int(context.pointee.sample_rate * bytesPerSample * channelCount) * seconds
-    let bufferCount = bufferCount(sampleFormat: format, channelCount: channelCount)
+    let seconds = /*4*/ 1 * 60 * 60
+    let capacity = Int(context.pointee.sample_rate * Self.resampleSampleFormatBytesPerSample * channelCount) * seconds
+    let bufferCount = Self.bufferCount(channelCount: channelCount)
     var buffers = [Data](
       repeating: Data(capacity: capacity / Int(bufferCount)),
       count: Int(bufferCount)
@@ -217,13 +197,13 @@ actor AudioPlayerItem {
 
     while true {
       do {
-        try SampledFFmpeg.readFrame(formatContext.context, into: packet.packet)
+        try Sampled.readFrame(self.formatContext.context, packet: self.packet.packet)
       } catch let error where error.code == .endOfFile {
         break
       }
 
       defer {
-        av_packet_unref(packet.packet)
+        AVPacket.unreference(packet.packet)
       }
 
       guard packet.packet.pointee.stream_index == streami else {
@@ -239,7 +219,7 @@ actor AudioPlayerItem {
           break
         }
 
-        try readFrame(channelLayout: channelLayout, sampleRate: sampleRate, format: format, buffers: &buffers)
+        try readFrame(channelLayout: channelLayout, sampleRate: sampleRate, buffers: &buffers)
       }
 
       if buffers.map(\.count).sum() >= capacity {
@@ -257,7 +237,7 @@ actor AudioPlayerItem {
         return buffers
       }
 
-      try readFrame(channelLayout: channelLayout, sampleRate: sampleRate, format: format, buffers: &buffers)
+      try readFrame(channelLayout: channelLayout, sampleRate: sampleRate, buffers: &buffers)
     }
   }
 
@@ -357,7 +337,7 @@ actor AudioPlayer {
     do {
       buffers = try await item.read()
     } catch {
-      Logger.ffmpeg.error("\(error)")
+      Logger.model.error("\(error)")
 
       return nil
     }
@@ -367,10 +347,7 @@ actor AudioPlayer {
     }
 
     #if DEBUG
-    let url = URL.applicationSupportDirectory.appending(
-      components: Bundle.appID, "audio.raw",
-      directoryHint: .notDirectory
-    )
+    let url = URL.dataDirectory.appending(components: "audio.raw", directoryHint: .notDirectory)
 
     do {
       try FileManager.default.createDirectory(at: url.deletingLastPathComponent(), withIntermediateDirectories: true)
@@ -379,7 +356,10 @@ actor AudioPlayer {
       let buffer = buffers.reduce(into: Data()) { partialResult, buffer in
         let count = Int(buffer.mDataByteSize)
 
-        partialResult.append(UnsafePointer(buffer.mData!.bindMemory(to: UInt8.self, capacity: count)), count: count)
+        partialResult.append(
+          UnsafePointer(buffer.mData!.bindMemory(to: UInt8.self, capacity: count)),
+          count: count,
+        )
       }
 
       try buffer.write(to: url)
@@ -398,6 +378,8 @@ actor AudioPlayer {
     info: AudioPlayerItem.Info
   ) async {
     while let buffer = await Self.read(item: item, info: info) {
+      continue
+
       await player.scheduleBuffer(buffer)
     }
   }
@@ -749,7 +731,7 @@ struct LibraryView: View {
 //      Task {
 //        await Self.play(track: track)
 //      }
-    }
+        }
 //    .safeAreaInset(edge: .bottom, spacing: 0) {
 //      VStack(spacing: 0) {
 //        Divider()
@@ -766,118 +748,118 @@ struct LibraryView: View {
 //      }
 //      .background(in: .rect)
 //    }
-    .focusedSceneValue(infoTrack)
-    .inspector(isPresented: $isInspectorPresented) {
-      List(library.queuedItems) { item in
-        Label {
-          VStack(alignment: .leading) {
-            Text(item.track.title, default: "Library.UpNext.Item.Title.Unknown")
-              .lineLimit(1)
+        .focusedSceneValue(infoTrack)
+        .inspector(isPresented: $isInspectorPresented) {
+          List(library.queuedItems) { item in
+            Label {
+              VStack(alignment: .leading) {
+                Text(item.track.title, default: "Library.UpNext.Item.Title.Unknown")
+                  .lineLimit(1)
 
-            Text(item.track.artistName, default: "Library.UpNext.Item.Artist.Unknown")
-              .lineLimit(1)
-              .font(.callout)
-              .foregroundStyle(.secondary)
+                Text(item.track.artistName, default: "Library.UpNext.Item.Artist.Unknown")
+                  .lineLimit(1)
+                  .font(.callout)
+                  .foregroundStyle(.secondary)
+              }
+            } icon: {
+              LibraryImageView(id: item.track.albumArtworkHash) { length in
+                await library.resampleImage(track: item.track, length: length)
+              }
+            }
+            .labelStyle(ListLabelStyle())
+            .frame(height: 36)
           }
-        } icon: {
-          LibraryImageView(id: item.track.albumArtworkHash) { length in
-            await library.resampleImage(track: item.track, length: length)
-          }
-        }
-        .labelStyle(ListLabelStyle())
-        .frame(height: 36)
-      }
-      .scrollContentBackground(.hidden)
-      .overlay {
-        if library.queuedItems.isEmpty {
-          ContentUnavailableView {
-            Text("Library.UpNext.Empty.Title")
-          } description: {
-            Text("Library.UpNext.Empty.Description")
-          }
-        }
-      }
-    }
-      .toolbar {
-        ToolbarItem(id: "\(Bundle.appID).library-up-next") {
-          // TODO: Localize.
-          Button("Inspect", systemImage: "list.number") {
-            isInspectorPresented.toggle()
+          .scrollContentBackground(.hidden)
+          .overlay {
+            if library.queuedItems.isEmpty {
+              ContentUnavailableView {
+                Text("Library.UpNext.Empty.Title")
+              } description: {
+                Text("Library.UpNext.Empty.Description")
+              }
+            }
           }
         }
-        
-        ToolbarItem(id: "\(Bundle.appID).history") {
-          Button {
-            NSWorkspace.shared.open(URL(string: "sampled://history")!)
-          } label: {
-            Label("History", systemImage: "clock")
+        .toolbar {
+          ToolbarItem(id: "\(Bundle.appID).library-up-next") {
+            // TODO: Localize.
+            Button("Inspect", systemImage: "list.number") {
+              isInspectorPresented.toggle()
+            }
           }
-          .keyboardShortcut("h", modifiers: [.command, .shift])
-          .help("Show play history (⌘⇧H)")
-        }
-      }
-    .task {
-      await library.load()
-    }
-    .task(id: searchText) {
-      await library.search(text: searchText, imageSize: 32)
-    }
-    .onChange(of: selection) {
-      // Stop playback if selection changes to a different track
-      if let currentTrack = currentPlayingTrack,
-         !selection.contains(currentTrack.id) {
-        Task {
-          await player.stop()
-          isPlaying = false
-        }
-      }
-      
-      let tracks = library.tracks.filter(ids: selection)
-      // Would reducing once optimize the performance?
-      infoTrack.title = tracks.reduce(.empty) { $0.reduce(nextValue: $1.title) }
-      infoTrack.duration = tracks.reduce(.empty) { $0.reduce(nextValue: $1.duration) }
-      
-      // Calculate total and average duration for multiple selections
-      if tracks.count > 1 {
-        let totalSeconds = tracks.map { $0.duration.components.seconds }.reduce(0, +)
-        infoTrack.totalDuration = Duration.seconds(totalSeconds)
-        infoTrack.averageDuration = Duration.seconds(totalSeconds / Int64(tracks.count))
-      } else {
-        infoTrack.totalDuration = nil
-        infoTrack.averageDuration = nil
-      }
-      
-      infoTrack.artistName = tracks.reduce(.empty) { $0.reduce(nextValue: $1.artistName) }
-      infoTrack.albumName = tracks.reduce(.empty) { $0.reduce(nextValue: $1.albumName) }
-      infoTrack.albumArtistName = tracks.reduce(.empty) { $0.reduce(nextValue: $1.albumArtistName) }
-      infoTrack.albumDate = tracks.reduce(.empty) { $0.reduce(nextValue: $1.albumDate) }
-      infoTrack.albumArtwork = tracks.reduce(.empty) { partialResult, track in
-        let image: LibraryInfoTrackModelAlbumArtwork?
 
-        if let albumArtworkImage = track.albumArtworkImage,
-           let albumArtworkHash = track.albumArtworkHash {
-          image = LibraryInfoTrackModelAlbumArtwork(
-            image: albumArtworkImage,
-            hash: albumArtworkHash,
-          )
-        } else {
-          image = nil
+          ToolbarItem(id: "\(Bundle.appID).history") {
+            Button {
+              NSWorkspace.shared.open(URL(string: "sampled://history")!)
+            } label: {
+              Label("History", systemImage: "clock")
+            }
+            .keyboardShortcut("h", modifiers: [.command, .shift])
+            .help("Show play history (⌘⇧H)")
+          }
         }
+        .task {
+          await library.load()
+        }
+        .task(id: searchText) {
+          await library.search(text: searchText, imageSize: 32)
+        }
+        .onChange(of: selection) {
+          // Stop playback if selection changes to a different track
+          if let currentTrack = currentPlayingTrack,
+             !selection.contains(currentTrack.id) {
+            Task {
+              await player.stop()
+              isPlaying = false
+            }
+          }
 
-        return partialResult.reduce(nextValue: image)
+          let tracks = library.tracks.filter(ids: selection)
+          // Would reducing once optimize the performance?
+          infoTrack.title = tracks.reduce(.empty) { $0.reduce(nextValue: $1.title) }
+          infoTrack.duration = tracks.reduce(.empty) { $0.reduce(nextValue: $1.duration) }
+
+          // Calculate total and average duration for multiple selections
+          if tracks.count > 1 {
+            let totalSeconds = tracks.map { $0.duration.components.seconds }.reduce(0, +)
+            infoTrack.totalDuration = Duration.seconds(totalSeconds)
+            infoTrack.averageDuration = Duration.seconds(totalSeconds / Int64(tracks.count))
+          } else {
+            infoTrack.totalDuration = nil
+            infoTrack.averageDuration = nil
+          }
+
+          infoTrack.artistName = tracks.reduce(.empty) { $0.reduce(nextValue: $1.artistName) }
+          infoTrack.albumName = tracks.reduce(.empty) { $0.reduce(nextValue: $1.albumName) }
+          infoTrack.albumArtistName = tracks.reduce(.empty) { $0.reduce(nextValue: $1.albumArtistName) }
+          infoTrack.albumDate = tracks.reduce(.empty) { $0.reduce(nextValue: $1.albumDate) }
+          infoTrack.albumArtwork = tracks.reduce(.empty) { partialResult, track in
+            let image: LibraryInfoTrackModelAlbumArtwork?
+
+            if let albumArtworkImage = track.albumArtworkImage,
+               let albumArtworkHash = track.albumArtworkHash {
+              image = LibraryInfoTrackModelAlbumArtwork(
+                image: albumArtworkImage,
+                hash: albumArtworkHash,
+              )
+            } else {
+              image = nil
+            }
+
+            return partialResult.reduce(nextValue: image)
+          }
+
+          infoTrack.trackNumber = tracks.reduce(.empty) { $0.reduce(nextValue: $1.trackNumber) }
+          infoTrack.trackTotal = tracks.reduce(.empty) { $0.reduce(nextValue: $1.trackTotal) }
+          infoTrack.discNumber = tracks.reduce(.empty) { $0.reduce(nextValue: $1.discNumber) }
+          infoTrack.discTotal = tracks.reduce(.empty) { $0.reduce(nextValue: $1.discTotal) }
+        }
       }
 
-      infoTrack.trackNumber = tracks.reduce(.empty) { $0.reduce(nextValue: $1.trackNumber) }
-      infoTrack.trackTotal = tracks.reduce(.empty) { $0.reduce(nextValue: $1.trackTotal) }
-      infoTrack.discNumber = tracks.reduce(.empty) { $0.reduce(nextValue: $1.discNumber) }
-      infoTrack.discTotal = tracks.reduce(.empty) { $0.reduce(nextValue: $1.discTotal) }
-    }
-      }
-      
       // Combined player - only show when track(s) selected
       if !selection.isEmpty {
         Divider()
-        
+
         CombinedPlayerView(
           track: infoTrack,
           isPlaying: isPlaying,

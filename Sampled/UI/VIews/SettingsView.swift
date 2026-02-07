@@ -5,9 +5,9 @@
 //  Created by Kyle Erhabor on 10/18/24.
 //
 
-import Defaults
 import OSLog
 import SwiftUI
+import UniformTypeIdentifiers
 
 extension EnvironmentValues {
   @Entry var settingsWidth = CGFloat.zero
@@ -97,22 +97,22 @@ struct SettingsView: View {
   static let contentWidth: CGFloat = 448 // 384 - 512
 
   @Environment(SettingsModel.self) private var settings
-  @Default(.libraryFolderURL) private var libraryFolder
+  @AppStorage(DefaultsStorageKeys.libraryFolder) private var libraryFolder
   @State private var isFileImporterPresented = false
 
   var body: some View {
     Form {
       GroupBox("Settings.Item.LibraryFolder.Title") {
         VStack(alignment: .leading) {
-          if let libraryFolder {
-            Text(libraryFolder.pathString)
+          if self.libraryFolder != .file {
+            Text(self.libraryFolder.pathString)
               .monospaced()
 
             HStack {
               Spacer()
 
               Button("Settings.Item.LibraryFolder.Change") {
-                isFileImporterPresented = true
+                self.isFileImporterPresented = true
               }
             }
           } else {
@@ -120,7 +120,7 @@ struct SettingsView: View {
               Text("Settings.Item.LibraryFolder.Unavailable")
             } actions: {
               Button("Settings.Item.LibraryFolder.Unavailable.Action.Set") {
-                isFileImporterPresented = true
+                self.isFileImporterPresented = true
               }
             }
           }

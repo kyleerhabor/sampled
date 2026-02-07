@@ -1,0 +1,9 @@
+//
+//  Sampled.xcconfig
+//  Sampled
+//
+//  Created by Kyle Erhabor on 2/5/26.
+//
+
+ORGANIZATION_ID = com.kyleerhabor
+DEFAULTS_ORGANIZATION_ID = com_kyleerhabor

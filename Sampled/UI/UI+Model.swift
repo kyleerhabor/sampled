@@ -5,9 +5,13 @@
 //  Created by Kyle Erhabor on 8/19/25.
 //
 
-import CFFmpeg
 import CryptoKit
 import Foundation
+import OSLog
+
+extension Logger {
+  static let model = Self(subsystem: Bundle.appID, category: "Model")
+}
 
 // In Info structs, CodingKeys with a prefixed string value are there to disambiguate it from the returned rows when
 // decoding.
@@ -17,7 +21,7 @@ func hash(data: some DataProtocol) -> Data {
 }
 
 extension LibraryTrackAlbumArtworkFormat {
-  init?(codecID: AVCodecID) {
+  init?(codecID: CodecID) {
     switch codecID {
       case .png: self = .png
       case .mjpeg: self = .jpeg
@@ -25,7 +29,7 @@ extension LibraryTrackAlbumArtworkFormat {
     }
   }
 
-  var codecID: AVCodecID {
+  var codecID: CodecID {
     switch self {
       case .png: .png
       case .jpeg: .mjpeg

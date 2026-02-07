@@ -16,6 +16,9 @@ build () {
 
   local arch_flags="$(prefix "-arch" "$ARCHS")"
   pushd "$CWD/$OPUSDIR"
+  # TODO: Move to download.
+  #
+  # This may download data, which is undesirable during a build.
   ./autogen.sh
 
   PKG_CONFIG_PATH="$CWD/$prefix/lib/pkgconfig:$PKG_CONFIG_PATH" \

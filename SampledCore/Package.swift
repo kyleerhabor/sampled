@@ -1,4 +1,4 @@
-// swift-tools-version: 6.0
+// swift-tools-version: 6.2.3
 // The swift-tools-version declares the minimum version of Swift required to build this package.
 
 import PackageDescription
@@ -10,16 +10,19 @@ let arch = "arm64"
 let arch = "x86_64"
 
 #else
-fatalError("unknown architecture")
+fatalError("Unknown architecture")
 
 #endif
 
 let package = Package(
-  name: "SampledFFmpeg",
+  name: "SampledCore",
   platforms: [.macOS(.v15)],
-  products: [.library(name: "SampledFFmpeg", targets: ["SampledFFmpeg"])],
+  products: [.library(name: "SampledCore", targets: ["SampledCore"])],
   targets: [
-    .target(name: "SampledFFmpeg", dependencies: ["CoreFFmpeg"]),
+    // TODO: Remove.
+    //
+    // We only need CFFmpeg and CoreFFmpeg.
+    .target(name: "SampledCore", dependencies: ["CoreFFmpeg"]),
     .target(name: "CoreFFmpeg", dependencies: ["CFFmpeg"]),
     .target(
       name: "CFFmpeg",

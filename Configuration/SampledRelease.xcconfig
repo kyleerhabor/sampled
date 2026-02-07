@@ -1,0 +1,11 @@
+//
+//  SampledRelease.xcconfig
+//  Sampled
+//
+//  Created by Kyle Erhabor on 2/5/26.
+//
+
+#include "./Sampled.xcconfig"
+
+PRODUCT_BUNDLE_IDENTIFIER = $(ORGANIZATION_ID).Sampled
+DEFAULTS_PRODUCT_BUNDLE_IDENTIFIER = $(DEFAULTS_ORGANIZATION_ID)_Sampled

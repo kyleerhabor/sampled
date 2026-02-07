@@ -273,8 +273,6 @@ extension LibraryQueueItemRecord: TableRecord {
 struct LibraryQueueRecord {
   var rowID: RowID?
   let currentItem: RowID?
-  let createdAt: Date?
-  let modifiedAt: Date?
 }
 
 extension LibraryQueueRecord: Equatable {}
@@ -282,15 +280,11 @@ extension LibraryQueueRecord: Equatable {}
 extension LibraryQueueRecord: Codable {
   enum CodingKeys: String, CodingKey {
     case rowID = "rowid",
-         currentItem = "current_item",
-         createdAt = "created_at",
-         modifiedAt = "modified_at"
+         currentItem = "current_item"
   }
 
   enum Columns {
     static let currentItem = Column(CodingKeys.currentItem)
-    static let createdAt = Column(CodingKeys.createdAt)
-    static let modifiedAt = Column(CodingKeys.modifiedAt)
   }
 }
 

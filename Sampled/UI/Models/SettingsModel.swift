@@ -5,7 +5,6 @@
 //  Created by Kyle Erhabor on 8/19/25.
 //
 
-import Defaults
 import GRDB
 import Observation
 import OSLog
@@ -66,7 +65,7 @@ class SettingsModel {
     let conn: DatabasePool
 
     do {
-      conn = try await connection()
+      conn = try await databaseConnection()
     } catch {
       // TODO: Log.
       Logger.model.error("\(error)")
@@ -104,7 +103,7 @@ class SettingsModel {
           continue
         }
 
-        Defaults[.libraryFolderURL] = assigned.url
+        UserDefaults.standard.set(assigned.url, forKey: DefaultsStorageKeys.libraryFolder.name)
 
         let hashed = hash(data: assigned.data)
 
@@ -162,12 +161,12 @@ class SettingsModel {
       return
     }
 
-    Defaults[.libraryFolderURL] = urb.url
+    UserDefaults.standard.set(urb.url, forKey: DefaultsStorageKeys.libraryFolder.name)
 
     let conn: DatabasePool
 
     do {
-      conn = try await connection()
+      conn = try await databaseConnection()
     } catch {
       // TODO: Log.
       Logger.model.error("\(error)")

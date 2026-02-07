@@ -5,20 +5,28 @@
 //  Created by Kyle Erhabor on 10/18/24.
 //
 
-import Defaults
+import Foundation
 import OSLog
 import SwiftUI
 
-extension Logger {
-  static let ui = Self(subsystem: Bundle.appID, category: "UI")
-  static let model = Self(subsystem: Bundle.appID, category: "Model")
-  static let ffmpeg = Self(subsystem: Bundle.appID, category: "FFmpeg")
+// MARK: - Foundation
+
+extension URL {
+  static let file = URL(string: "file:")!
 }
+
+// MARK: - Core Graphics
 
 extension CGSize {
   var length: Double {
     max(self.width, self.height)
   }
+}
+
+// MARK: -
+
+extension Logger {
+  static let ui = Self(subsystem: Bundle.appID, category: "UI")
 }
 
 struct StorageKey<Value> {
@@ -34,20 +42,18 @@ extension StorageKey {
 
 extension StorageKey: Sendable where Value: Sendable {}
 
-enum StorageKeys {}
-
 extension AppStorage {
-  init(_ key: StorageKey<Value>) where Value == Bool {
+  // For some reason, init(wrappedValue:_:store:) doesn't recognize URL? as Value.
+  init(_ key: StorageKey<Value>) where Value == URL {
     self.init(wrappedValue: key.defaultValue, key.name)
   }
 }
 
-extension Defaults.Keys {
-  // Defaults does not allow periods in key names, meaning unless we want to munge it, we can't qualify it with our
-  // bundle ID.
+enum DefaultsStorageKeys {
+  private static let appID = Bundle.main.object(forInfoDictionaryKey: "DEFAULTS_PRODUCT_BUNDLE_IDENTIFIER") as! String
 
   /// The URL to the user's library folder.
   ///
   /// This is sourced from SQLite but exists so SwiftUI can render it without fetching from the database.
-  static let libraryFolderURL = Key("library-folder-url", default: nil as URL?, suite: .default)
+  static let libraryFolder = StorageKey("\(Self.appID)_library_folder", defaultValue: URL.file)
 }

@@ -68,39 +68,6 @@ extension Set {
   }
 }
 
-public actor Once<Value> where Value: Sendable {
-  public typealias Producer = () async throws -> Value
-
-  private let producer: Producer
-  private var task: Task<Value, any Error>?
-
-  public init(_ producer: @escaping Producer) {
-    self.producer = producer
-  }
-
-  public func callAsFunction() async throws -> Value {
-    if let task {
-      return try await task.value
-    }
-
-    let task = Task {
-      try await producer()
-    }
-
-    self.task = task
-
-    do {
-      return try await task.value
-    } catch {
-      // Try again on the next invocation.
-      self.task = nil
-
-      throw error
-    }
-  }
-}
-
-
 // MARK: - Darwin
 
 extension Bundle {
