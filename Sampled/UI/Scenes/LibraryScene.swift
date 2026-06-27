@@ -8,7 +8,10 @@
 import SwiftUI
 
 struct LibraryScene: Scene {
+  static let id = "library"
+
   var body: some Scene {
+    // TODO: Support multiple libraries.
     Window("Library.Window.Title", id: "library") {
       LibraryView()
     }

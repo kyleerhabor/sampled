@@ -9,148 +9,19 @@ import GRDB
 import Observation
 import OSLog
 
-struct SettingsModelLoadConfigurationMainLibraryBookmarkInfo {
-  let bookmark: BookmarkRecord
-}
-
-extension SettingsModelLoadConfigurationMainLibraryBookmarkInfo: Equatable, Decodable, FetchableRecord {}
-
-struct SettingsModelLoadConfigurationMainLibraryInfo {
-  let library: LibraryRecord
-  let bookmark: SettingsModelLoadConfigurationMainLibraryBookmarkInfo
-}
-
-extension SettingsModelLoadConfigurationMainLibraryInfo: Decodable {
-  enum CodingKeys: String, CodingKey {
-    case library,
-         bookmark = "_bookmark"
-  }
-}
-
-extension SettingsModelLoadConfigurationMainLibraryInfo: Equatable, FetchableRecord {}
-
-struct SettingsModelLoadConfigurationInfo {
-  let mainLibrary: SettingsModelLoadConfigurationMainLibraryInfo
-}
-
-extension SettingsModelLoadConfigurationInfo: Decodable {
-  enum CodingKeys: CodingKey {
-    case mainLibrary
-  }
-}
-
-extension SettingsModelLoadConfigurationInfo: Equatable, FetchableRecord {}
-
 @Observable
 @MainActor
 class SettingsModel {
-  func load() async {
-    let observation = ValueObservation
-      .trackingConstantRegion { db in
-        try ConfigurationRecord
-          .including(
-            required: ConfigurationRecord.mainLibraryAssociation
-              .forKey(SettingsModelLoadConfigurationInfo.CodingKeys.mainLibrary)
-              .including(
-                required: LibraryRecord.bookmarkAssociation
-                  .forKey(SettingsModelLoadConfigurationMainLibraryInfo.CodingKeys.bookmark)
-                  .select(Column.rowID, BookmarkRecord.Columns.data, BookmarkRecord.Columns.options, BookmarkRecord.Columns.hash),
-              ),
-          )
-          .asRequest(of: SettingsModelLoadConfigurationInfo.self)
-          .fetchOne(db)
-      }
-      .removeDuplicates()
-
-    let conn: DatabasePool
-
-    do {
-      conn = try await databaseConnection()
-    } catch {
-      // TODO: Log.
-      Logger.model.error("\(error)")
-
-      return
-    }
-
-    do {
-      for try await configuration in observation.values(in: conn) {
-        guard let configuration else {
-          continue
-        }
-
-        let data = configuration.mainLibrary.bookmark.bookmark.data!
-        let options = configuration.mainLibrary.bookmark.bookmark.options!
-        let assigned: AssignedBookmark
-
-        do {
-          assigned = try AssignedBookmark(
-            data: data,
-            options: URL.BookmarkResolutionOptions(options),
-            relativeTo: nil,
-          ) { url in
-            let source = URLSource(url: url, options: options)
-            let data = try source.accessingSecurityScopedResource {
-              try source.url.bookmarkData(options: source.options)
-            }
-
-            return data
-          }
-        } catch {
-          // TODO: Log.
-          Logger.model.error("\(error)")
-
-          continue
-        }
-
-        UserDefaults.standard.set(assigned.url, forKey: DefaultsStorageKeys.libraryFolder.name)
-
-        let hashed = hash(data: assigned.data)
-
-        guard hashed == configuration.mainLibrary.bookmark.bookmark.hash! else {
-          do {
-            try await conn.write { db in
-              var bookmark = BookmarkRecord(
-                data: assigned.data,
-                options: options,
-                hash: hashed,
-                relative: nil,
-              )
-
-              try bookmark.upsert(db)
-
-              let library = LibraryRecord(
-                rowID: configuration.mainLibrary.library.rowID,
-                bookmark: bookmark.rowID,
-                currentQueue: nil,
-              )
-
-              try library.update(db, columns: [LibraryRecord.Columns.bookmark])
-            }
-          } catch {
-            // TODO: Log.
-            Logger.model.error("\(error)")
-          }
-
-          continue
-        }
-      }
-    } catch {
-      // TODO: Log.
-      Logger.model.error("\(error)")
-
-      return
-    }
-  }
-
   func setLibraryFolder(url: URL) async {
-    let urb: URLBookmark
+    UserDefaults.standard.set(url, forKey: StorageKeys.libraryFolder.name)
+
+    let bookmark: Bookmark
 
     do {
-      urb = try url.accessingSecurityScopedResource {
-        try URLBookmark(
+      bookmark = try await url.accessingSecurityScopedResource {
+        try await Bookmark(
           url: url,
-          options: [.withSecurityScope, .securityScopeAllowOnlyReadAccess, .withoutImplicitSecurityScope],
+          options: [.withSecurityScope, .securityScopeAllowOnlyReadAccess],
           relativeTo: nil,
         )
       }
@@ -161,40 +32,58 @@ class SettingsModel {
       return
     }
 
-    UserDefaults.standard.set(urb.url, forKey: DefaultsStorageKeys.libraryFolder.name)
-
-    let conn: DatabasePool
+    let connection: DatabasePool
 
     do {
-      conn = try await databaseConnection()
+      connection = try await databaseConnection()
     } catch {
-      // TODO: Log.
-      Logger.model.error("\(error)")
+      Logger.model.error("Could not create database connection: \(error)")
 
       return
     }
 
     do {
-      try await conn.write { db in
-        var bookmark = BookmarkRecord(
-          data: urb.bookmark.data,
-          options: urb.bookmark.options,
-          hash: hash(data: urb.bookmark.data),
-          relative: nil,
-        )
-
+      try await connection.write { db in
+        var bookmark = BookmarkRecord(data: bookmark.data, options: bookmark.options)
         try bookmark.upsert(db)
 
-        var library = LibraryRecord(bookmark: bookmark.rowID, currentQueue: nil)
-        try library.upsert(db)
+        var fileBookmark = FileBookmarkRecord(bookmark: bookmark.rowID, relative: nil)
+        try fileBookmark.upsert(db)
+
+//        let libraryID = try LibraryRecord
+//          .filter(key: [LibraryRecord.Columns.fileBookmark.name: fileBookmark.rowID])
+//          .selectPrimaryKey(as: RowID.self)
+//          .fetchOne(db)
+//
+//        let library: LibraryRecord
+//
+//        if let id = libraryID {
+//          library = LibraryRecord(rowID: id, fileBookmark: fileBookmark.rowID, currentQueue: nil)
+//          try library.update(db, columns: [LibraryRecord.Columns.fileBookmark])
+//        } else {
+//          var lib = LibraryRecord(fileBookmark: fileBookmark.rowID, currentQueue: nil)
+//          try lib.insert(db)
+//
+//          library = lib
+//        }
+        let library = try LibraryRecord
+          .filter(key: [LibraryRecord.Columns.fileBookmark.name: fileBookmark.rowID])
+          .fetchOne(db) ?? LibraryRecord(fileBookmark: fileBookmark.rowID, currentQueue: nil)
+
+        var lib = LibraryRecord(
+          rowID: library.rowID,
+          fileBookmark: fileBookmark.rowID,
+          currentQueue: library.currentQueue,
+        )
+
+        try lib.upsert(db)
 
         let configuration = try ConfigurationRecord.find(db)
-        var config = ConfigurationRecord(rowID: configuration.rowID, mainLibrary: library.rowID)
+        var config = ConfigurationRecord(rowID: configuration.rowID, mainLibrary: lib.rowID)
         try config.upsert(db)
       }
     } catch {
-      // TODO: Log.
-      Logger.model.error("\(error)")
+      Logger.model.error("Could not write to database: \(error)")
 
       return
     }

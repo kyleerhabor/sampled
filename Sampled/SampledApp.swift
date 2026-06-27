@@ -15,12 +15,12 @@ struct SampledApp: App {
 
   var body: some Scene {
     AppScene()
-      .defaultAppStorage(.default)
+      .environment(self.delegate)
   }
 
   init() {
     setLogLevel(level: LogLevel.verbose.rawValue)
-    setLogCallback { @Sendable avclass, level, format, arguments in
+    setLogCallback { @Sendable _, level, format, arguments in
       guard level <= getLogLevel() else {
         return
       }

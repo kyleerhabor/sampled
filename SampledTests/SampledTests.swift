@@ -55,7 +55,7 @@ struct SampledTests {
 
   @Test func minimumCapacity() async {
     await propertyCheck(input: Gen.int(in: Int(Int32.min)...Int(Int32.max))) { capacity in
-      let array = [Int](minimumCapacity: capacity)
+      let array = [Int](reservingCapacity: capacity)
       #expect(array.capacity >= capacity)
     }
   }

@@ -17,7 +17,15 @@ fatalError("Unknown architecture")
 let package = Package(
   name: "SampledCore",
   platforms: [.macOS(.v15)],
-  products: [.library(name: "SampledCore", targets: ["SampledCore"])],
+  products: [
+    .library(name: "SampledCore", targets: ["SampledCore"]),
+    .library(name: "SampledOpenSubsonicAPI", targets: ["SampledOpenSubsonicAPI"]),
+  ],
+  dependencies: [
+    .package(url: "https://github.com/apple/swift-openapi-generator", revision: "83e8301d6d62c423f8e11d6fcb0c8276d4dbb032"),
+    .package(url: "https://github.com/apple/swift-openapi-runtime", revision: "f039fa6d6338aab5164f3d1be16281524c9a8f89"),
+    .package(url: "https://github.com/apple/swift-openapi-urlsession", revision: "576a65b4ffb8c12ddad4950dc21eea2ef071bec2"),
+  ],
   targets: [
     // TODO: Remove.
     //
@@ -28,13 +36,20 @@ let package = Package(
       name: "CFFmpeg",
       path: "Sources/CFFmpeg/\(arch)",
       exclude: ["share"],
-      linkerSettings: [
-        .linkedLibrary("bz2"),
-        .linkedLibrary("iconv"),
-        .linkedLibrary("z"),
-        // Libraries of interest
-        .linkedLibrary("opus"),
-      ],
+      linkerSettings: [.linkedLibrary("iconv")],
     ),
+    .target(
+      name: "SampledOpenSubsonicAPI",
+      dependencies: [
+        .product(name: "OpenAPIRuntime", package: "swift-openapi-runtime"),
+        .product(name: "OpenAPIURLSession", package: "swift-openapi-urlsession"),
+      ],
+      resources: [
+        .process("openapi.json"),
+      ],
+      plugins: [
+        .plugin(name: "OpenAPIGenerator", package: "swift-openapi-generator"),
+      ],
+    )
   ],
 )

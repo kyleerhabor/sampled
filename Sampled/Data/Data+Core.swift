@@ -132,38 +132,6 @@ private func read(
   return LibraryTrackAlbumArtworkRecord(data: Data(data), hash: hash, format: format)
 }
 
-struct DatabaseLoadConfigurationMainLibraryBookmarkInfo {
-  let bookmark: BookmarkRecord
-}
-
-extension DatabaseLoadConfigurationMainLibraryBookmarkInfo: Equatable, Decodable, FetchableRecord {}
-
-struct DatabaseLoadConfigurationMainLibraryInfo {
-  let library: LibraryRecord
-  let bookmark: DatabaseLoadConfigurationMainLibraryBookmarkInfo
-}
-
-extension DatabaseLoadConfigurationMainLibraryInfo: Decodable {
-  enum CodingKeys: String, CodingKey {
-    case library,
-         bookmark = "_bookmark"
-  }
-}
-
-extension DatabaseLoadConfigurationMainLibraryInfo: Equatable, FetchableRecord {}
-
-struct DatabaseLoadConfigurationInfo {
-  let mainLibrary: DatabaseLoadConfigurationMainLibraryInfo
-}
-
-extension DatabaseLoadConfigurationInfo: Decodable {
-  enum CodingKeys: CodingKey {
-    case mainLibrary
-  }
-}
-
-extension DatabaseLoadConfigurationInfo: Equatable, FetchableRecord {}
-
 struct LoadTrack {
   let track: LibraryTrackRecord
   let bookmark: BookmarkRecord
@@ -175,12 +143,12 @@ struct LoadPosition {
   let total: Int?
 }
 
-private func load(enumerator: FileManager.DirectoryEnumerator, relativeTo relative: URL) -> [URLBookmark] {
-  var contents = [URLBookmark]()
+nonisolated(nonsending) private func load(contents: some Sequence<URL>, relativeTo relative: URL) async -> [URLBookmark] {
+  var urbs = [URLBookmark]()
 
-  for case let content as URL in enumerator {
+  for content in contents {
     do {
-      contents.append(try URLBookmark(url: content, options: [], relativeTo: relative))
+      urbs.append(try await URLBookmark(url: content, options: [.withoutImplicitSecurityScope], relativeTo: relative))
     } catch {
       // TODO: Elaborate.
       Logger.model.error("\(error)")
@@ -189,33 +157,32 @@ private func load(enumerator: FileManager.DirectoryEnumerator, relativeTo relati
     }
   }
 
-  return contents
+  return urbs
 }
 
 private func load(connection: some DatabaseWriter) async {
   let observation = ValueObservation
     .trackingConstantRegion { db in
       try ConfigurationRecord
-        .select(ConfigurationRecord.Columns.mainLibrary)
+        .select(.rowID)
         .including(
-          required: ConfigurationRecord.mainLibraryAssociation
+          required: ConfigurationRecord.mainLibrary
             .forKey(DatabaseLoadConfigurationInfo.CodingKeys.mainLibrary)
-            .select(Column.rowID, LibraryRecord.Columns.bookmark)
+            .select(.rowID)
             .including(
-              required: LibraryRecord.bookmarkAssociation
-                .forKey(DatabaseLoadConfigurationMainLibraryInfo.CodingKeys.bookmark)
-                .select(
-                  Column.rowID,
-                  BookmarkRecord.Columns.data,
-                  BookmarkRecord.Columns.options,
-                  BookmarkRecord.Columns.hash,
-                ),
+              required: LibraryRecord.fileBookmark
+                .forKey(DatabaseLoadConfigurationMainLibraryInfo.CodingKeys.fileBookmark)
+                .select(.rowID)
+                .including(
+                  required: FileBookmarkRecord.bookmark
+                    .forKey(DatabaseLoadConfigurationMainLibraryFileBookmarkInfo.CodingKeys.bookmark)
+                    .select(.rowID, BookmarkRecord.Columns.data, BookmarkRecord.Columns.options),
+                )
             ),
         )
         .asRequest(of: DatabaseLoadConfigurationInfo.self)
         .fetchOne(db)
     }
-    .removeDuplicates()
 
   var stream = AsyncStream<LibraryModelEventStreamElement>.makeStream()
 
@@ -226,22 +193,15 @@ private func load(connection: some DatabaseWriter) async {
       }
 
       let id = configuration.mainLibrary.library.rowID!
-      let bookmarkOptions = configuration.mainLibrary.bookmark.bookmark.options!
+      let options = configuration.mainLibrary.fileBookmark.bookmark.bookmark.options!
       let assigned: AssignedBookmark
 
       do {
-        assigned = try AssignedBookmark(
-          data: configuration.mainLibrary.bookmark.bookmark.data!,
-          options: URL.BookmarkResolutionOptions(bookmarkOptions),
+        assigned = try await AssignedBookmark(
+          data: configuration.mainLibrary.fileBookmark.bookmark.bookmark.data!,
+          options: options,
           relativeTo: nil,
-        ) { url in
-          let source = URLSource(url: url, options: bookmarkOptions)
-          let data = try source.accessingSecurityScopedResource {
-            try source.url.bookmarkData(options: source.options)
-          }
-
-          return data
-        }
+        )
       } catch {
         // TODO: Elaborate.
         Logger.model.error("\(error)")
@@ -249,31 +209,23 @@ private func load(connection: some DatabaseWriter) async {
         continue
       }
 
-      let hashed = hash(data: assigned.data)
+      UserDefaults.standard.set(assigned.resolved.url, forKey: StorageKeys.libraryFolder.name)
 
-      guard hashed == configuration.mainLibrary.bookmark.bookmark.hash! else {
+      guard !assigned.resolved.isStale else {
         do {
           try await connection.write { db in
-            var bookmark = BookmarkRecord(
+            let bookmark = BookmarkRecord(
+              rowID: configuration.mainLibrary.fileBookmark.bookmark.bookmark.rowID,
               data: assigned.data,
-              options: bookmarkOptions,
-              hash: hashed,
-              relative: nil,
+              options: nil,
             )
 
-            try bookmark.upsert(db)
-
-            let library = LibraryRecord(
-              rowID: id,
-              bookmark: bookmark.rowID,
-              currentQueue: nil,
-            )
-
-            try library.update(db, columns: [LibraryRecord.Columns.bookmark])
+            // Is it possible for this to throw?
+            try bookmark.update(db, columns: [BookmarkRecord.Columns.data])
           }
         } catch {
           // TODO: Log.
-          Logger.model.error("\(error)")
+          Logger.model.error("Could not write to database: \(error)")
         }
 
         continue
@@ -286,7 +238,7 @@ private func load(connection: some DatabaseWriter) async {
       stream.continuation.yield(.initial)
 
       let eventStream = EventStream()
-      let eventStreamCreated = eventStream.create(forFileAt: assigned.url, latency: 1) { events in
+      let eventStreamCreated = eventStream.create(forFileAt: assigned.resolved.url, latency: 1) { events in
         stream.continuation.yield(.events(events))
       }
 
@@ -304,21 +256,26 @@ private func load(connection: some DatabaseWriter) async {
       Task {
         // TODO: Handle tracks that are removed from the library.
         for await element in stream.stream {
-          let source = URLSource(url: assigned.url, options: bookmarkOptions)
-          let tracks = source.accessingSecurityScopedResource {
+          let source = URLSource(url: assigned.resolved.url, options: options)
+          let tracks = await source.accessingSecurityScopedResource {
+            let directoryEnumerationOptions: FileManager.DirectoryEnumerationOptions = [
+              .skipsHiddenFiles,
+              .skipsPackageDescendants,
+            ]
+
             var urbs = [URLBookmark]()
 
             switch element {
               case .initial:
-                guard let enumerator = FileManager.default.enumerator(
-                  at: source.url,
-                  includingPropertiesForKeys: nil,
-                ) else {
+                guard let contents = FileManager.default.enumerate(
+                        at: source.url,
+                        options: directoryEnumerationOptions,
+                      ) else {
                   // TODO: Log.
                   break
                 }
 
-                urbs.append(contentsOf: load(enumerator: enumerator, relativeTo: source.url))
+                urbs.append(contentsOf: await load(contents: contents, relativeTo: source.url))
               case let .events(events):
                 // TODO: Coalesce.
                 //
@@ -329,22 +286,18 @@ private func load(connection: some DatabaseWriter) async {
                 for i in 0..<events.count {
                   let url = events.paths[i]
                   let flags = events.flags[i]
-                  var options = FileManager.DirectoryEnumerationOptions()
+                  var options = directoryEnumerationOptions
 
-                  if flags.contains(.mustScanSubdirectories) {
+                  if !flags.contains(.mustScanSubdirectories) {
                     options.insert(.skipsSubdirectoryDescendants)
                   }
 
-                  guard let enumerator = FileManager.default.enumerator(
-                    at: url,
-                    includingPropertiesForKeys: nil,
-                    options: options,
-                  ) else {
+                  guard let contents = FileManager.default.enumerate(at: source.url, options: options) else {
                     // TODO: Log.
                     continue
                   }
 
-                  urbs.append(contentsOf: load(enumerator: enumerator, relativeTo: source.url))
+                  urbs.append(contentsOf: await load(contents: contents, relativeTo: source.url))
                 }
             }
 
@@ -475,7 +428,7 @@ private func load(connection: some DatabaseWriter) async {
 
                   return LoadTrack(
                     track: LibraryTrackRecord(
-                      bookmark: nil,
+                      fileBookmark: nil,
                       title: title,
                       duration: duration,
                       isLiked: false,
@@ -492,8 +445,6 @@ private func load(connection: some DatabaseWriter) async {
                     bookmark: BookmarkRecord(
                       data: urb.bookmark.data,
                       options: urb.bookmark.options,
-                      hash: hash(data: urb.bookmark.data),
-                      relative: configuration.mainLibrary.bookmark.bookmark.rowID,
                     ),
                     artwork: artwork,
                   )
@@ -525,7 +476,7 @@ private func load(connection: some DatabaseWriter) async {
 
                 var track = LibraryTrackRecord(
                   rowID: track.track.rowID,
-                  bookmark: bookmark.rowID,
+                  fileBookmark: bookmark.rowID,
                   title: track.track.title,
                   duration: track.track.duration,
                   isLiked: track.track.isLiked,
@@ -682,10 +633,24 @@ private func load(connection: some DatabaseWriter) async {
       }
     }
   } catch {
-    Logger.model.error("Could not observe changes to library folder in database: \(error)")
+    Logger.model.error("Could not read from database: \(error)")
 
     return
   }
+}
+
+func createFileBookmarkSchemaAction(_ db: Database) throws {
+  try db.execute(
+    literal: """
+      CREATE TRIGGER \(sql: "\(FileBookmarkRecord.databaseTableName)_ad".quotedDatabaseIdentifier)
+      AFTER DELETE ON \(FileBookmarkRecord.self)
+      FOR EACH ROW
+      BEGIN
+        DELETE FROM \(BookmarkRecord.self)
+        WHERE \(BookmarkRecord.self).\(.rowID) = OLD.\(FileBookmarkRecord.Columns.bookmark);
+      END
+      """,
+  )
 }
 
 func createSchema(_ connection: some DatabaseWriter) async throws {
@@ -703,18 +668,23 @@ func createSchema(_ connection: some DatabaseWriter) async throws {
       table
         .column(BookmarkRecord.Columns.options.name, .integer)
         .notNull()
+    }
 
+    try db.create(table: FileBookmarkRecord.databaseTableName) { table in
+      table.primaryKey(Column.rowID.name, .integer)
       table
-        .column(BookmarkRecord.Columns.hash.name, .blob)
+        .column(FileBookmarkRecord.Columns.bookmark.name, .integer)
         .notNull()
         .unique()
+        .references(BookmarkRecord.databaseTableName)
 
       table
-        .column(BookmarkRecord.Columns.relative.name, .integer)
+        .column(FileBookmarkRecord.Columns.relative.name, .integer)
         .references(BookmarkRecord.databaseTableName)
         .indexed()
     }
 
+    try createFileBookmarkSchemaAction(db)
     try db.create(table: LibraryTrackAlbumArtworkRecord.databaseTableName) { table in
       table.primaryKey(Column.rowID.name, .integer)
       table
@@ -735,13 +705,12 @@ func createSchema(_ connection: some DatabaseWriter) async throws {
     try db.create(table: LibraryTrackRecord.databaseTableName) { table in
       table.primaryKey(Column.rowID.name, .integer)
       table
-        .column(LibraryTrackRecord.Columns.bookmark.name, .integer)
+        .column(LibraryTrackRecord.Columns.fileBookmark.name, .integer)
         .notNull()
         .unique()
-        .references(BookmarkRecord.databaseTableName)
+        .references(FileBookmarkRecord.databaseTableName)
 
       table.column(LibraryTrackRecord.Columns.title.name, .text)
-
       table
         .column(LibraryTrackRecord.Columns.duration.name, .integer)
         .notNull()
@@ -754,7 +723,6 @@ func createSchema(_ connection: some DatabaseWriter) async throws {
       table.column(LibraryTrackRecord.Columns.albumName.name, .text)
       table.column(LibraryTrackRecord.Columns.albumArtistName.name, .text)
       table.column(LibraryTrackRecord.Columns.albumDate.name, .text)
-
       table
         .column(LibraryTrackRecord.Columns.albumArtwork.name, .integer)
         .references(LibraryTrackAlbumArtworkRecord.databaseTableName)
@@ -799,10 +767,10 @@ func createSchema(_ connection: some DatabaseWriter) async throws {
     try db.create(table: LibraryRecord.databaseTableName) { table in
       table.primaryKey(Column.rowID.name, .integer)
       table
-        .column(LibraryRecord.Columns.bookmark.name, .integer)
+        .column(LibraryRecord.Columns.fileBookmark.name, .integer)
         .notNull()
         .unique()
-        .references(BookmarkRecord.databaseTableName)
+        .references(FileBookmarkRecord.databaseTableName)
 
       // TODO: Check that this exists in queue_libraries and corresponds to the library.
       table
@@ -890,7 +858,7 @@ func createSchema(_ connection: some DatabaseWriter) async throws {
     try await connection.erase()
 
     // It's a little annoying that we're letting defaults leak into data, which is for UI.
-    UserDefaults.standard.removeObject(forKey: DefaultsStorageKeys.libraryFolder.name)
+    UserDefaults.standard.removeObject(forKey: StorageKeys.libraryFolder.name)
   }
 
   #endif

@@ -18,6 +18,4 @@ const int FFAVERROR_EISDIR;
 const int FFAVERROR_EAGAIN;
 const int64_t FFAV_NOPTS_VALUE;
 
-
-
 #endif /* core_h */

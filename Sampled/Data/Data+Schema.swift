@@ -20,8 +20,6 @@ struct BookmarkRecord {
   var rowID: RowID?
   let data: Data?
   let options: URL.BookmarkCreationOptions?
-  let hash: Data?
-  let relative: RowID?
 }
 
 extension BookmarkRecord: Equatable, FetchableRecord {}
@@ -29,25 +27,20 @@ extension BookmarkRecord: Equatable, FetchableRecord {}
 extension BookmarkRecord: Codable {
   enum CodingKeys: String, CodingKey {
     case rowID = "rowid",
-         data, options, hash, relative
+         data, options
   }
 
   enum Columns {
     static let data = Column(CodingKeys.data)
     static let options = Column(CodingKeys.options)
-    static let hash = Column(CodingKeys.hash)
-    static let relative = Column(CodingKeys.relative)
   }
 
   init(from decoder: any Decoder) throws {
     let container = try decoder.container(keyedBy: CodingKeys.self)
-
     self.init(
       rowID: try container.decodeIfPresent(RowID.self, forKey: .rowID),
       data: try container.decodeIfPresent(Data.self, forKey: .data),
       options: try container.decodeIfPresent(URL.BookmarkCreationOptions.self, forKey: .options),
-      hash: try container.decodeIfPresent(Data.self, forKey: .hash),
-      relative: try container.decodeIfPresent(RowID.self, forKey: .relative),
     )
   }
 
@@ -56,8 +49,6 @@ extension BookmarkRecord: Codable {
     try container.encode(rowID, forKey: .rowID)
     try container.encode(data, forKey: .data)
     try container.encode(options, forKey: .options)
-    try container.encode(hash, forKey: .hash)
-    try container.encode(relative, forKey: .relative)
   }
 }
 
@@ -71,6 +62,53 @@ extension BookmarkRecord: TableRecord {
   static let databaseTableName = "bookmarks"
   static var databaseSelection: [any SQLSelectable] {
     Self.everyColumn
+  }
+}
+
+struct FileBookmarkRecord {
+  var rowID: RowID?
+  let bookmark: RowID?
+  let relative: RowID?
+
+  init(rowID: RowID? = nil, bookmark: RowID?, relative: RowID?) {
+    self.rowID = rowID
+    self.bookmark = bookmark
+    self.relative = relative
+  }
+}
+
+extension FileBookmarkRecord: Equatable, FetchableRecord {}
+
+extension FileBookmarkRecord: Codable {
+  enum CodingKeys: String, CodingKey {
+    case rowID = "rowid",
+         bookmark, relative
+  }
+
+  enum Columns {
+    static let bookmark = Column(CodingKeys.bookmark)
+    static let relative = Column(CodingKeys.relative)
+  }
+}
+
+extension FileBookmarkRecord: MutablePersistableRecord {
+  mutating func didInsert(_ inserted: InsertionSuccess) {
+    rowID = inserted.rowID
+  }
+}
+
+extension FileBookmarkRecord: TableRecord {
+  static let databaseTableName = "file_bookmarks"
+  static var databaseSelection: [any SQLSelectable] {
+    Self.everyColumn
+  }
+
+  static var bookmark: BelongsToAssociation<Self, BookmarkRecord> {
+    Self.belongsTo(BookmarkRecord.self, using: ForeignKey([Columns.bookmark]))
+  }
+
+  static var relative: BelongsToAssociation<Self, BookmarkRecord> {
+    Self.belongsTo(BookmarkRecord.self, using: ForeignKey([Columns.relative]))
   }
 }
 
@@ -117,7 +155,7 @@ extension LibraryTrackAlbumArtworkRecord: TableRecord {
 
 struct LibraryTrackRecord {
   var rowID: RowID?
-  let bookmark: RowID?
+  let fileBookmark: RowID?
   let title: String?
   let duration: Double?
   let isLiked: Bool?
@@ -137,7 +175,8 @@ struct LibraryTrackRecord {
 extension LibraryTrackRecord: Codable {
   enum CodingKeys: String, CodingKey {
     case rowID = "rowid",
-         bookmark, title, duration,
+         fileBookmark = "file_bookmark",
+         title, duration,
          isLiked = "is_liked",
          artistName = "artist_name",
          albumName = "album_name",
@@ -151,7 +190,7 @@ extension LibraryTrackRecord: Codable {
   }
 
   enum Columns {
-    static let bookmark = Column(CodingKeys.bookmark)
+    static let fileBookmark = Column(CodingKeys.fileBookmark)
     static let title = Column(CodingKeys.title)
     static let duration = Column(CodingKeys.duration)
     static let isLiked = Column(CodingKeys.isLiked)
@@ -185,11 +224,11 @@ extension LibraryTrackRecord: TableRecord {
     self.belongsTo(LibraryTrackFTRecord.self, using: ForeignKey([Column.rowID]))
   }
 
-  static var bookmarkAssociation: BelongsToAssociation<Self, BookmarkRecord> {
-    self.belongsTo(BookmarkRecord.self, using: ForeignKey([Columns.bookmark]))
+  static var fileBookmark: BelongsToAssociation<Self, FileBookmarkRecord> {
+    self.belongsTo(FileBookmarkRecord.self, using: ForeignKey([Columns.fileBookmark]))
   }
 
-  static var albumArtworkAssociation: BelongsToAssociation<Self, LibraryTrackAlbumArtworkRecord> {
+  static var albumArtwork: BelongsToAssociation<Self, LibraryTrackAlbumArtworkRecord> {
     self.belongsTo(LibraryTrackAlbumArtworkRecord.self, using: ForeignKey([Columns.albumArtwork]))
   }
 
@@ -268,6 +307,8 @@ extension LibraryQueueItemRecord: TableRecord {
   static var databaseSelection: [any SQLSelectable] {
     Self.everyColumn
   }
+
+  static let track = Self.belongsTo(LibraryTrackRecord.self, using: ForeignKey([Columns.track]))
 }
 
 struct LibraryQueueRecord {
@@ -305,25 +346,25 @@ extension LibraryQueueRecord: TableRecord {
   }
 
   static var items: HasManyThroughAssociation<Self, LibraryQueueItemRecord> {
-    Self.hasMany(LibraryQueueItemRecord.self, through: itemLibraryQueues, using: ItemLibraryQueueRecord.item)
+    Self.hasMany(LibraryQueueItemRecord.self, through: self.itemLibraryQueues, using: ItemLibraryQueueRecord.item)
   }
 }
 
 struct LibraryRecord {
   var rowID: RowID?
-  let bookmark: RowID?
+  let fileBookmark: RowID?
   let currentQueue: RowID?
 }
 
 extension LibraryRecord: Codable {
   enum CodingKeys: String, CodingKey {
     case rowID = "rowid",
-         bookmark,
+         fileBookmark = "file_bookmark",
          currentQueue = "current_queue"
   }
 
   enum Columns {
-    static let bookmark = Column(CodingKeys.bookmark)
+    static let fileBookmark = Column(CodingKeys.fileBookmark)
     static let currentQueue = Column(CodingKeys.currentQueue)
   }
 }
@@ -342,11 +383,11 @@ extension LibraryRecord: TableRecord {
     Self.everyColumn
   }
 
-  static var bookmarkAssociation: BelongsToAssociation<Self, BookmarkRecord> {
-    self.belongsTo(BookmarkRecord.self, using: ForeignKey([Columns.bookmark]))
+  static var fileBookmark: BelongsToAssociation<Self, FileBookmarkRecord> {
+    self.belongsTo(FileBookmarkRecord.self, using: ForeignKey([Columns.fileBookmark]))
   }
 
-  static var currentQueueAssociation: BelongsToAssociation<Self, LibraryQueueRecord> {
+  static var currentQueue: BelongsToAssociation<Self, LibraryQueueRecord> {
     self.belongsTo(LibraryQueueRecord.self, using: ForeignKey([Columns.currentQueue]))
   }
 
@@ -502,7 +543,7 @@ extension ConfigurationRecord: TableRecord {
     Self.everyColumn
   }
 
-  static var mainLibraryAssociation: BelongsToAssociation<Self, LibraryRecord> {
+  static var mainLibrary: BelongsToAssociation<Self, LibraryRecord> {
     self.belongsTo(LibraryRecord.self, using: ForeignKey([Columns.mainLibrary]))
   }
 }

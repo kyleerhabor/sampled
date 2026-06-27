@@ -8,8 +8,14 @@
 
 /* Begin PBXBuildFile section */
 		0013A0552F353DC300E715AD /* SampledCore in Frameworks */ = {isa = PBXBuildFile; productRef = 0013A0542F353DC300E715AD /* SampledCore */; };
+		0018CD3F2FAC1FFD00C305B0 /* Yams in Frameworks */ = {isa = PBXBuildFile; productRef = 0018CD3E2FAC1FFD00C305B0 /* Yams */; };
+		0018CE182FAC4BAF00C305B0 /* OpenAPIKit30 in Frameworks */ = {isa = PBXBuildFile; productRef = 0018CE172FAC4BAF00C305B0 /* OpenAPIKit30 */; };
 		0040AFD32E76063500F33735 /* FractionalIndex in Frameworks */ = {isa = PBXBuildFile; productRef = 0040AFD22E76063500F33735 /* FractionalIndex */; };
+		004D121F2FABE5AF0027B11D /* SampledOpenSubsonicAPI in Frameworks */ = {isa = PBXBuildFile; productRef = 004D121E2FABE5AF0027B11D /* SampledOpenSubsonicAPI */; };
+		004D12222FAC08CC0027B11D /* HTTPTypes in Frameworks */ = {isa = PBXBuildFile; productRef = 004D12212FAC08CC0027B11D /* HTTPTypes */; };
 		00747F2C2E94A3DE0024DCBE /* PropertyBased in Frameworks */ = {isa = PBXBuildFile; productRef = 00747F2B2E94A3DE0024DCBE /* PropertyBased */; };
+		0079496A2F38062600B43C11 /* Core.swift in Sources */ = {isa = PBXBuildFile; fileRef = 007949692F38062600B43C11 /* Core.swift */; };
+		008E48C82F464AB50058617B /* IdentifiedCollections in Frameworks */ = {isa = PBXBuildFile; productRef = 008E48C72F464AB50058617B /* IdentifiedCollections */; };
 		00BDFB332CB42B7C009D66A8 /* Localizable.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = 00BDFB322CB42B7C009D66A8 /* Localizable.xcstrings */; };
 		00C7BCCC2CE003730094F057 /* Algorithms in Frameworks */ = {isa = PBXBuildFile; productRef = 00C7BCCB2CE003730094F057 /* Algorithms */; };
 		00D98E5D2CAF3D060008E0F1 /* Preview Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 00D98E552CAF3D050008E0F1 /* Preview Assets.xcassets */; };
@@ -17,7 +23,6 @@
 		00D98E602CAF3D060008E0F1 /* SampledApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 00D98E5A2CAF3D050008E0F1 /* SampledApp.swift */; };
 		00D98E612CAF3D060008E0F1 /* Standard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 00D98E5B2CAF3D050008E0F1 /* Standard.swift */; };
 		00D98EC72CAF47690008E0F1 /* LICENSE in Resources */ = {isa = PBXBuildFile; fileRef = 00D98EC62CAF47690008E0F1 /* LICENSE */; };
-		00EE810D2E5831D100F705C5 /* IdentifiedCollections in Frameworks */ = {isa = PBXBuildFile; productRef = 00EE810C2E5831D100F705C5 /* IdentifiedCollections */; };
 		00EF74A22E8DD2FA00EA0D19 /* GRDB in Frameworks */ = {isa = PBXBuildFile; productRef = 00EF74A12E8DD2FA00EA0D19 /* GRDB */; };
 /* End PBXBuildFile section */
 
@@ -91,8 +96,12 @@
 		00139F442F35384400E715AD /* SampledCore */ = {isa = PBXFileReference; lastKnownFileType = wrapper; path = SampledCore; sourceTree = "<group>"; };
 		0017ED242BF17A38008B3D76 /* Sampled.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Sampled.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		005810632BF40688009CB589 /* .gitignore */ = {isa = PBXFileReference; lastKnownFileType = text; path = .gitignore; sourceTree = "<group>"; };
+		007949692F38062600B43C11 /* Core.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Core.swift; sourceTree = "<group>"; };
+		007EE47F2FF059DE00336A4F /* flake.lock */ = {isa = PBXFileReference; lastKnownFileType = text; path = flake.lock; sourceTree = "<group>"; };
+		007EE4802FF059DE00336A4F /* flake.nix */ = {isa = PBXFileReference; lastKnownFileType = text; path = flake.nix; sourceTree = "<group>"; };
+		008E494B2F464AFD0058617B /* CONTRIBUTING.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = CONTRIBUTING.md; sourceTree = "<group>"; xcLanguageSpecificationIdentifier = xcode.lang.markdown; };
 		009526B02BF7C6C6006CB1D1 /* libm.tbd */ = {isa = PBXFileReference; lastKnownFileType = "sourcecode.text-based-dylib-definition"; name = libm.tbd; path = usr/lib/libm.tbd; sourceTree = SDKROOT; };
-		00B31B092F36C6CB005D50F2 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
+		00B31B092F36C6CB005D50F2 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		00BDFB322CB42B7C009D66A8 /* Localizable.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; path = Localizable.xcstrings; sourceTree = "<group>"; };
 		00D98E542CAF3C060008E0F1 /* README.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = README.md; sourceTree = "<group>"; };
 		00D98E552CAF3D050008E0F1 /* Preview Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = "Preview Assets.xcassets"; sourceTree = "<group>"; };
@@ -120,8 +129,8 @@
 		00139FCC2F353A9000E715AD /* Configuration */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = Configuration; sourceTree = "<group>"; };
 		0013A04F2F353BB900E715AD /* Core */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = Core; sourceTree = "<group>"; };
 		0030BAB82CD17B8C0053BB6E /* Documentation */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = Documentation; sourceTree = "<group>"; };
-		0063653B2E5BC3E80053563E /* Standard */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = Standard; sourceTree = "<group>"; };
 		00693F3E2E52CDBE008C7A38 /* Data */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = Data; sourceTree = "<group>"; };
+		007EE4872FF059DE00336A4F /* nix */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = nix; sourceTree = "<group>"; };
 		00D98C492CAEE7050008E0F1 /* Tools */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = Tools; sourceTree = "<group>"; };
 		00D98EB82CAF3D3C0008E0F1 /* UI */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = UI; sourceTree = "<group>"; };
 		00EF74EA2E8DD70800EA0D19 /* SampledTests */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = SampledTests; sourceTree = "<group>"; };
@@ -132,10 +141,14 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				00EE810D2E5831D100F705C5 /* IdentifiedCollections in Frameworks */,
+				008E48C82F464AB50058617B /* IdentifiedCollections in Frameworks */,
+				0018CD3F2FAC1FFD00C305B0 /* Yams in Frameworks */,
 				00C7BCCC2CE003730094F057 /* Algorithms in Frameworks */,
+				004D12222FAC08CC0027B11D /* HTTPTypes in Frameworks */,
 				0013A0552F353DC300E715AD /* SampledCore in Frameworks */,
 				00EF74A22E8DD2FA00EA0D19 /* GRDB in Frameworks */,
+				004D121F2FABE5AF0027B11D /* SampledOpenSubsonicAPI in Frameworks */,
+				0018CE182FAC4BAF00C305B0 /* OpenAPIKit30 in Frameworks */,
 				0040AFD32E76063500F33735 /* FractionalIndex in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -155,7 +168,10 @@
 			isa = PBXGroup;
 			children = (
 				00D98E542CAF3C060008E0F1 /* README.md */,
+				008E494B2F464AFD0058617B /* CONTRIBUTING.md */,
 				00D98EC62CAF47690008E0F1 /* LICENSE */,
+				007EE4802FF059DE00336A4F /* flake.nix */,
+				007EE47F2FF059DE00336A4F /* flake.lock */,
 				005810632BF40688009CB589 /* .gitignore */,
 				00D98E5C2CAF3D050008E0F1 /* Sampled */,
 				00139F442F35384400E715AD /* SampledCore */,
@@ -163,6 +179,7 @@
 				00D98C492CAEE7050008E0F1 /* Tools */,
 				0030BAB82CD17B8C0053BB6E /* Documentation */,
 				00EF74EA2E8DD70800EA0D19 /* SampledTests */,
+				007EE4872FF059DE00336A4F /* nix */,
 				0017ED252BF17A38008B3D76 /* Products */,
 				00EF01A22BF32AAF008BF17B /* Frameworks */,
 			);
@@ -190,14 +207,14 @@
 		00D98E5C2CAF3D050008E0F1 /* Sampled */ = {
 			isa = PBXGroup;
 			children = (
-				00B31B092F36C6CB005D50F2 /* Info.plist */,
 				00D98E5A2CAF3D050008E0F1 /* SampledApp.swift */,
 				00D98E5B2CAF3D050008E0F1 /* Standard.swift */,
+				007949692F38062600B43C11 /* Core.swift */,
 				0013A04F2F353BB900E715AD /* Core */,
-				0063653B2E5BC3E80053563E /* Standard */,
 				00D98EB82CAF3D3C0008E0F1 /* UI */,
 				00693F3E2E52CDBE008C7A38 /* Data */,
 				00D98E562CAF3D050008E0F1 /* Preview Content */,
+				00B31B092F36C6CB005D50F2 /* Info.plist */,
 				00D98E572CAF3D050008E0F1 /* Assets.xcassets */,
 				00D98E592CAF3D050008E0F1 /* Sampled.entitlements */,
 				00BDFB322CB42B7C009D66A8 /* Localizable.xcstrings */,
@@ -252,10 +269,7 @@
 			isa = PBXNativeTarget;
 			buildConfigurationList = 0017ED332BF17A3D008B3D76 /* Build configuration list for PBXNativeTarget "Sampled" */;
 			buildPhases = (
-				0031693C2CE0587800541C0D /* C: Build Ogg */,
-				00C7BC742CDF22FD0094F057 /* C: Build Vorbis */,
-				00672AF82CB7657500948CAB /* C: Build Opus */,
-				00672AF92CB7658A00948CAB /* C: Build FFmpeg */,
+				0047204F2FEF708800A56A32 /* C: Build Dependencies */,
 				0017ED202BF17A38008B3D76 /* Sources */,
 				0017ED212BF17A38008B3D76 /* Frameworks */,
 				0017ED222BF17A38008B3D76 /* Resources */,
@@ -266,17 +280,20 @@
 			);
 			fileSystemSynchronizedGroups = (
 				0013A04F2F353BB900E715AD /* Core */,
-				0063653B2E5BC3E80053563E /* Standard */,
 				00693F3E2E52CDBE008C7A38 /* Data */,
 				00D98EB82CAF3D3C0008E0F1 /* UI */,
 			);
 			name = Sampled;
 			packageProductDependencies = (
 				00C7BCCB2CE003730094F057 /* Algorithms */,
-				00EE810C2E5831D100F705C5 /* IdentifiedCollections */,
 				0040AFD22E76063500F33735 /* FractionalIndex */,
 				00EF74A12E8DD2FA00EA0D19 /* GRDB */,
 				0013A0542F353DC300E715AD /* SampledCore */,
+				008E48C72F464AB50058617B /* IdentifiedCollections */,
+				004D121E2FABE5AF0027B11D /* SampledOpenSubsonicAPI */,
+				004D12212FAC08CC0027B11D /* HTTPTypes */,
+				0018CD3E2FAC1FFD00C305B0 /* Yams */,
+				0018CE172FAC4BAF00C305B0 /* OpenAPIKit30 */,
 			);
 			productName = Forward;
 			productReference = 0017ED242BF17A38008B3D76 /* Sampled.app */;
@@ -336,10 +353,13 @@
 			mainGroup = 0017ED1B2BF17A38008B3D76;
 			packageReferences = (
 				00D98C3F2CAE5B180008E0F1 /* XCRemoteSwiftPackageReference "swift-algorithms" */,
-				00EE810B2E5831D100F705C5 /* XCRemoteSwiftPackageReference "swift-identified-collections" */,
 				0040AFD12E76063500F33735 /* XCRemoteSwiftPackageReference "FractionalIndex" */,
 				00EF74A02E8DD2FA00EA0D19 /* XCRemoteSwiftPackageReference "GRDB.swift" */,
 				00EF74A32E8DD33800EA0D19 /* XCRemoteSwiftPackageReference "swift-property-based" */,
+				008E48C62F464AB50058617B /* XCRemoteSwiftPackageReference "swift-identified-collections" */,
+				004D12202FAC08CB0027B11D /* XCRemoteSwiftPackageReference "swift-http-types" */,
+				0018CD3D2FAC1FFC00C305B0 /* XCRemoteSwiftPackageReference "Yams" */,
+				0018CE162FAC4BAF00C305B0 /* XCRemoteSwiftPackageReference "OpenAPIKit" */,
 			);
 			productRefGroup = 0017ED252BF17A38008B3D76 /* Products */;
 			projectDirPath = "";
@@ -442,7 +462,7 @@
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXShellScriptBuildPhase section */
-		0031693C2CE0587800541C0D /* C: Build Ogg */ = {
+		0047204F2FEF708800A56A32 /* C: Build Dependencies */ = {
 			isa = PBXShellScriptBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -450,122 +470,15 @@
 			inputFileListPaths = (
 			);
 			inputPaths = (
-				"$(SRCROOT)/Tools",
 			);
-			name = "C: Build Ogg";
+			name = "C: Build Dependencies";
 			outputFileListPaths = (
 			);
 			outputPaths = (
-				"$(DERIVED_FILE_DIR)/SampledFFmpeg/Sources/CFFmpeg/fat/include/ogg",
-				"$(DERIVED_FILE_DIR)/SampledFFmpeg/Sources/CFFmpeg/fat/lib/libogg.*",
-				"$(DERIVED_FILE_DIR)/SampledFFmpeg/Sources/CFFmpeg/fat/lib/pkgconfig/ogg.pc",
-				"$(DERIVED_FILE_DIR)/SampledFFmpeg/Sources/CFFmpeg/fat/share/doc/libogg",
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "./Tools/xcode-build-ogg.sh\n";
-		};
-		00672AF82CB7657500948CAB /* C: Build Opus */ = {
-			isa = PBXShellScriptBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			inputFileListPaths = (
-			);
-			inputPaths = (
-				"$(SRCROOT)/Tools",
-			);
-			name = "C: Build Opus";
-			outputFileListPaths = (
-			);
-			outputPaths = (
-				"$(DERIVED_FILE_DIR)/SampledFFmpeg/Sources/CFFmpeg/fat/include/opus",
-				"$(DERIVED_FILE_DIR)/SampledFFmpeg/Sources/CFFmpeg/fat/lib/libopus.*",
-				"$(DERIVED_FILE_DIR)/SampledFFmpeg/Sources/CFFmpeg/fat/include/pkgconfig/opus.pc",
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-			shellPath = /bin/sh;
-			shellScript = "./Tools/xcode-build-opus.sh\n";
-		};
-		00672AF92CB7658A00948CAB /* C: Build FFmpeg */ = {
-			isa = PBXShellScriptBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			inputFileListPaths = (
-			);
-			inputPaths = (
-				"$(SRCROOT)/Tools",
-			);
-			name = "C: Build FFmpeg";
-			outputFileListPaths = (
-			);
-			outputPaths = (
-				"$(DERIVED_FILE_DIR)/SampledFFmpeg/Sources/CFFmpeg/$(CURRENT_ARCH)/share/ffmpeg",
-				"$(DERIVED_FILE_DIR)/SampledFFmpeg/Sources/CFFmpeg/$(CURRENT_ARCH)/share/man1/ff*.1",
-				"$(DERIVED_FILE_DIR)/SampledFFmpeg/Sources/CFFmpeg/$(CURRENT_ARCH)/share/man3/libav*.3",
-				"$(DERIVED_FILE_DIR)/SampledFFmpeg/Sources/CFFmpeg/$(CURRENT_ARCH)/share/man3/libsw*.3",
-				"$(DERIVED_FILE_DIR)/SampledFFmpeg/Sources/CFFmpeg/$(CURRENT_ARCH)/bin/ffmpeg",
-				"$(DERIVED_FILE_DIR)/SampledFFmpeg/Sources/CFFmpeg/$(CURRENT_ARCH)/bin/ffplay",
-				"$(DERIVED_FILE_DIR)/SampledFFmpeg/Sources/CFFmpeg/$(CURRENT_ARCH)/bin/ffprobe",
-				"$(DERIVED_FILE_DIR)/SampledFFmpeg/Sources/CFFmpeg/$(CURRENT_ARCH)/include/libavcodec",
-				"$(DERIVED_FILE_DIR)/SampledFFmpeg/Sources/CFFmpeg/$(CURRENT_ARCH)/include/libavdevice",
-				"$(DERIVED_FILE_DIR)/SampledFFmpeg/Sources/CFFmpeg/$(CURRENT_ARCH)/include/libavfilter",
-				"$(DERIVED_FILE_DIR)/SampledFFmpeg/Sources/CFFmpeg/$(CURRENT_ARCH)/include/libavformat",
-				"$(DERIVED_FILE_DIR)/SampledFFmpeg/Sources/CFFmpeg/$(CURRENT_ARCH)/include/libavutil",
-				"$(DERIVED_FILE_DIR)/SampledFFmpeg/Sources/CFFmpeg/$(CURRENT_ARCH)/include/libswresample",
-				"$(DERIVED_FILE_DIR)/SampledFFmpeg/Sources/CFFmpeg/$(CURRENT_ARCH)/include/libswscale",
-				"$(DERIVED_FILE_DIR)/SampledFFmpeg/Sources/CFFmpeg/$(CURRENT_ARCH)/lib/libavcodec.a",
-				"$(DERIVED_FILE_DIR)/SampledFFmpeg/Sources/CFFmpeg/$(CURRENT_ARCH)/lib/libavdevice.a",
-				"$(DERIVED_FILE_DIR)/SampledFFmpeg/Sources/CFFmpeg/$(CURRENT_ARCH)/lib/libavfilter.a",
-				"$(DERIVED_FILE_DIR)/SampledFFmpeg/Sources/CFFmpeg/$(CURRENT_ARCH)/lib/libavformat.a",
-				"$(DERIVED_FILE_DIR)/SampledFFmpeg/Sources/CFFmpeg/$(CURRENT_ARCH)/lib/libavutil.a",
-				"$(DERIVED_FILE_DIR)/SampledFFmpeg/Sources/CFFmpeg/$(CURRENT_ARCH)/lib/libswresample.a",
-				"$(DERIVED_FILE_DIR)/SampledFFmpeg/Sources/CFFmpeg/$(CURRENT_ARCH)/lib/libswscale.a",
-				"$(DERIVED_FILE_DIR)/SampledFFmpeg/Sources/CFFmpeg/$(CURRENT_ARCH)/lib/pkgconfig/libavcodec.pc",
-				"$(DERIVED_FILE_DIR)/SampledFFmpeg/Sources/CFFmpeg/$(CURRENT_ARCH)/lib/pkgconfig/libavdevice.pc",
-				"$(DERIVED_FILE_DIR)/SampledFFmpeg/Sources/CFFmpeg/$(CURRENT_ARCH)/lib/pkgconfig/libavfilter.pc",
-				"$(DERIVED_FILE_DIR)/SampledFFmpeg/Sources/CFFmpeg/$(CURRENT_ARCH)/lib/pkgconfig/libavformat.pc",
-				"$(DERIVED_FILE_DIR)/SampledFFmpeg/Sources/CFFmpeg/$(CURRENT_ARCH)/lib/pkgconfig/libavutil.pc",
-				"$(DERIVED_FILE_DIR)/SampledFFmpeg/Sources/CFFmpeg/$(CURRENT_ARCH)/lib/pkgconfig/libswresample.pc",
-				"$(DERIVED_FILE_DIR)/SampledFFmpeg/Sources/CFFmpeg/$(CURRENT_ARCH)/lib/pkgconfig/libswscale.pc",
-				"$(DERIVED_FILE_DIR)/SampledFFmpeg/Sources/CFFmpeg/$(CURRENT_ARCH)/share/man1/ffmpeg*.1",
-				"$(DERIVED_FILE_DIR)/SampledFFmpeg/Sources/CFFmpeg/$(CURRENT_ARCH)/share/man1/ffplay*.1",
-				"$(DERIVED_FILE_DIR)/SampledFFmpeg/Sources/CFFmpeg/$(CURRENT_ARCH)/share/man1/ffprobe*.1",
-				"$(DERIVED_FILE_DIR)/SampledFFmpeg/Sources/CFFmpeg/$(CURRENT_ARCH)/share/man3/libavcodec.3",
-				"$(DERIVED_FILE_DIR)/SampledFFmpeg/Sources/CFFmpeg/$(CURRENT_ARCH)/share/man3/libavdevice.3",
-				"$(DERIVED_FILE_DIR)/SampledFFmpeg/Sources/CFFmpeg/$(CURRENT_ARCH)/share/man3/libavfilter.3",
-				"$(DERIVED_FILE_DIR)/SampledFFmpeg/Sources/CFFmpeg/$(CURRENT_ARCH)/share/man3/libavformat.3",
-				"$(DERIVED_FILE_DIR)/SampledFFmpeg/Sources/CFFmpeg/$(CURRENT_ARCH)/share/man3/libavutil.3",
-				"$(DERIVED_FILE_DIR)/SampledFFmpeg/Sources/CFFmpeg/$(CURRENT_ARCH)/share/man3/libswresample.3",
-				"$(DERIVED_FILE_DIR)/SampledFFmpeg/Sources/CFFmpeg/$(CURRENT_ARCH)/share/man3/libswscale.3",
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-			shellPath = /bin/sh;
-			shellScript = "./Tools/xcode-build-ffmpeg.sh\n";
-		};
-		00C7BC742CDF22FD0094F057 /* C: Build Vorbis */ = {
-			isa = PBXShellScriptBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			inputFileListPaths = (
-			);
-			inputPaths = (
-				"$(SRCROOT)/Tools",
-			);
-			name = "C: Build Vorbis";
-			outputFileListPaths = (
-			);
-			outputPaths = (
-				"$(DERIVED_FILE_DIR)/SampledFFmpeg/Sources/CFFmpeg/fat/include/vorbis",
-				"$(DERIVED_FILE_DIR)/SampledFFmpeg/Sources/CFFmpeg/fat/lib/libvorbis*.*",
-				"$(DERIVED_FILE_DIR)/SampledFFmpeg/Sources/CFFmpeg/fat/lib/pkgconfig/vorbis*.pc",
-				"$(DERIVED_FILE_DIR)/SampledFFmpeg/Sources/CFFmpeg/$(CURRENT_ARCH)/doc/libvorbis*",
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-			shellPath = /bin/sh;
-			shellScript = "./Tools/xcode-build-vorbis.sh\n";
+			shellScript = "#!/bin/sh\n\nset -e\n\n./Tools/xcode-setup.sh\n";
 		};
 /* End PBXShellScriptBuildPhase section */
 
@@ -576,6 +489,7 @@
 			files = (
 				00D98E602CAF3D060008E0F1 /* SampledApp.swift in Sources */,
 				00D98E612CAF3D060008E0F1 /* Standard.swift in Sources */,
+				0079496A2F38062600B43C11 /* Core.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -654,10 +568,7 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
-				LIBRARY_SEARCH_PATHS = (
-					"$(PROJECT_DIR)/SampledCore/Sources/CFFmpeg/$(CURRENT_ARCH)/lib",
-					"$(PROJECT_DIR)/SampledCore/Sources/CFFmpeg/fat/lib",
-				);
+				LIBRARY_SEARCH_PATHS = "$(PROJECT_DIR)/SampledCore/Sources/CFFmpeg/$(CURRENT_ARCH)/lib";
 				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
 				MACOSX_DEPLOYMENT_TARGET = 14.4;
 				MERGED_BINARY_TYPE = automatic;
@@ -726,10 +637,7 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
-				LIBRARY_SEARCH_PATHS = (
-					"$(PROJECT_DIR)/SampledCore/Sources/CFFmpeg/$(CURRENT_ARCH)/lib",
-					"$(PROJECT_DIR)/SampledCore/Sources/CFFmpeg/fat/lib",
-				);
+				LIBRARY_SEARCH_PATHS = "$(PROJECT_DIR)/SampledCore/Sources/CFFmpeg/$(CURRENT_ARCH)/lib";
 				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
 				MACOSX_DEPLOYMENT_TARGET = 14.4;
 				MERGED_BINARY_TYPE = automatic;
@@ -760,17 +668,27 @@
 				DEVELOPMENT_TEAM = UYJ357XWK6;
 				ENABLE_APP_SANDBOX = YES;
 				ENABLE_HARDENED_RUNTIME = YES;
+				ENABLE_INCOMING_NETWORK_CONNECTIONS = NO;
+				ENABLE_OUTGOING_NETWORK_CONNECTIONS = YES;
 				ENABLE_PREVIEWS = YES;
+				ENABLE_RESOURCE_ACCESS_AUDIO_INPUT = NO;
+				ENABLE_RESOURCE_ACCESS_BLUETOOTH = NO;
+				ENABLE_RESOURCE_ACCESS_CALENDARS = NO;
+				ENABLE_RESOURCE_ACCESS_CAMERA = NO;
+				ENABLE_RESOURCE_ACCESS_CONTACTS = NO;
+				ENABLE_RESOURCE_ACCESS_LOCATION = NO;
+				ENABLE_RESOURCE_ACCESS_PRINTING = NO;
+				ENABLE_RESOURCE_ACCESS_USB = NO;
 				ENABLE_USER_SCRIPT_SANDBOXING = NO;
 				ENABLE_USER_SELECTED_FILES = readonly;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = Sampled/Info.plist;
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				INFOPLIST_KEY_NSLocalNetworkUsageDescription = TODO;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
-				LIBRARY_SEARCH_PATHS = "$(inherited)";
 				MACOSX_DEPLOYMENT_TARGET = 15.0;
 				MARKETING_VERSION = 0.1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = "$(PRODUCT_BUNDLE_IDENTIFIER)";
@@ -795,17 +713,27 @@
 				DEVELOPMENT_TEAM = UYJ357XWK6;
 				ENABLE_APP_SANDBOX = YES;
 				ENABLE_HARDENED_RUNTIME = YES;
+				ENABLE_INCOMING_NETWORK_CONNECTIONS = NO;
+				ENABLE_OUTGOING_NETWORK_CONNECTIONS = YES;
 				ENABLE_PREVIEWS = YES;
+				ENABLE_RESOURCE_ACCESS_AUDIO_INPUT = NO;
+				ENABLE_RESOURCE_ACCESS_BLUETOOTH = NO;
+				ENABLE_RESOURCE_ACCESS_CALENDARS = NO;
+				ENABLE_RESOURCE_ACCESS_CAMERA = NO;
+				ENABLE_RESOURCE_ACCESS_CONTACTS = NO;
+				ENABLE_RESOURCE_ACCESS_LOCATION = NO;
+				ENABLE_RESOURCE_ACCESS_PRINTING = NO;
+				ENABLE_RESOURCE_ACCESS_USB = NO;
 				ENABLE_USER_SCRIPT_SANDBOXING = NO;
 				ENABLE_USER_SELECTED_FILES = readonly;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = Sampled/Info.plist;
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				INFOPLIST_KEY_NSLocalNetworkUsageDescription = TODO;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
-				LIBRARY_SEARCH_PATHS = "$(inherited)";
 				MACOSX_DEPLOYMENT_TARGET = 15.0;
 				MARKETING_VERSION = 0.1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = "$(PRODUCT_BUNDLE_IDENTIFIER)";
@@ -892,6 +820,22 @@
 /* End XCConfigurationList section */
 
 /* Begin XCRemoteSwiftPackageReference section */
+		0018CD3D2FAC1FFC00C305B0 /* XCRemoteSwiftPackageReference "Yams" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/jpsim/Yams";
+			requirement = {
+				kind = revision;
+				revision = deaf82e867fa2cbd3cd865978b079bfcf384ac28;
+			};
+		};
+		0018CE162FAC4BAF00C305B0 /* XCRemoteSwiftPackageReference "OpenAPIKit" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/mattpolzin/OpenAPIKit";
+			requirement = {
+				kind = revision;
+				revision = 343b2c1793058fcc53c1bd7e2907f8e3a4d640fb;
+			};
+		};
 		0040AFD12E76063500F33735 /* XCRemoteSwiftPackageReference "FractionalIndex" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/varunrau/FractionalIndex.git";
@@ -900,20 +844,28 @@
 				revision = 2e84e529881039b3917319a3d126ba78b94b8bc5;
 			};
 		};
+		004D12202FAC08CB0027B11D /* XCRemoteSwiftPackageReference "swift-http-types" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/apple/swift-http-types";
+			requirement = {
+				kind = revision;
+				revision = 45eb0224913ea070ec4fba17291b9e7ecf4749ca;
+			};
+		};
+		008E48C62F464AB50058617B /* XCRemoteSwiftPackageReference "swift-identified-collections" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/pointfreeco/swift-identified-collections.git";
+			requirement = {
+				kind = revision;
+				revision = 322d9ffeeba85c9f7c4984b39422ec7cc3c56597;
+			};
+		};
 		00D98C3F2CAE5B180008E0F1 /* XCRemoteSwiftPackageReference "swift-algorithms" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/apple/swift-algorithms.git";
 			requirement = {
 				kind = revision;
-				revision = f6919dfc309e7f1b56224378b11e28bab5bccc42;
-			};
-		};
-		00EE810B2E5831D100F705C5 /* XCRemoteSwiftPackageReference "swift-identified-collections" */ = {
-			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = "https://github.com/pointfreeco/swift-identified-collections";
-			requirement = {
-				kind = revision;
-				revision = 322d9ffeeba85c9f7c4984b39422ec7cc3c56597;
+				revision = 87e50f483c54e6efd60e885f7f5aa946cee68023;
 			};
 		};
 		00EF74A02E8DD2FA00EA0D19 /* XCRemoteSwiftPackageReference "GRDB.swift" */ = {
@@ -921,7 +873,7 @@
 			repositoryURL = "https://github.com/groue/GRDB.swift.git";
 			requirement = {
 				kind = revision;
-				revision = db695cf7dc2632c263bcf0b26f118074feb2697a;
+				revision = 36e30a6f1ef10e4194f6af0cff90888526f0c115;
 			};
 		};
 		00EF74A32E8DD33800EA0D19 /* XCRemoteSwiftPackageReference "swift-property-based" */ = {
@@ -939,25 +891,44 @@
 			isa = XCSwiftPackageProductDependency;
 			productName = SampledCore;
 		};
+		0018CD3E2FAC1FFD00C305B0 /* Yams */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 0018CD3D2FAC1FFC00C305B0 /* XCRemoteSwiftPackageReference "Yams" */;
+			productName = Yams;
+		};
+		0018CE172FAC4BAF00C305B0 /* OpenAPIKit30 */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 0018CE162FAC4BAF00C305B0 /* XCRemoteSwiftPackageReference "OpenAPIKit" */;
+			productName = OpenAPIKit30;
+		};
 		0040AFD22E76063500F33735 /* FractionalIndex */ = {
 			isa = XCSwiftPackageProductDependency;
 			package = 0040AFD12E76063500F33735 /* XCRemoteSwiftPackageReference "FractionalIndex" */;
 			productName = FractionalIndex;
+		};
+		004D121E2FABE5AF0027B11D /* SampledOpenSubsonicAPI */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = SampledOpenSubsonicAPI;
+		};
+		004D12212FAC08CC0027B11D /* HTTPTypes */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 004D12202FAC08CB0027B11D /* XCRemoteSwiftPackageReference "swift-http-types" */;
+			productName = HTTPTypes;
 		};
 		00747F2B2E94A3DE0024DCBE /* PropertyBased */ = {
 			isa = XCSwiftPackageProductDependency;
 			package = 00EF74A32E8DD33800EA0D19 /* XCRemoteSwiftPackageReference "swift-property-based" */;
 			productName = PropertyBased;
 		};
+		008E48C72F464AB50058617B /* IdentifiedCollections */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 008E48C62F464AB50058617B /* XCRemoteSwiftPackageReference "swift-identified-collections" */;
+			productName = IdentifiedCollections;
+		};
 		00C7BCCB2CE003730094F057 /* Algorithms */ = {
 			isa = XCSwiftPackageProductDependency;
 			package = 00D98C3F2CAE5B180008E0F1 /* XCRemoteSwiftPackageReference "swift-algorithms" */;
 			productName = Algorithms;
-		};
-		00EE810C2E5831D100F705C5 /* IdentifiedCollections */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = 00EE810B2E5831D100F705C5 /* XCRemoteSwiftPackageReference "swift-identified-collections" */;
-			productName = IdentifiedCollections;
 		};
 		00EF74A12E8DD2FA00EA0D19 /* GRDB */ = {
 			isa = XCSwiftPackageProductDependency;

@@ -13,10 +13,6 @@ typealias AsyncStreamContinuationPair<Element> = (
   continuation: AsyncStream<Element>.Continuation,
 )
 
-func unreachable() -> Never {
-  fatalError("Reached supposedly unreachable code")
-}
-
 func setter<Object: AnyObject, Value>(
   _ value: Value,
   on keyPath: ReferenceWritableKeyPath<Object, Value>,
@@ -32,7 +28,7 @@ extension Numeric {
   }
 
   mutating func increment() {
-    self = incremented()
+    self = self.incremented()
   }
 }
 
@@ -55,28 +51,7 @@ extension Sequence {
   }
 }
 
-extension RangeReplaceableCollection {
-  init(minimumCapacity capacity: Int) {
-    self.init()
-    self.reserveCapacity(capacity)
-  }
-}
-
-extension Set {
-  func isNonEmptySubset(of other: Self) -> Bool {
-    !self.isEmpty && self.isSubset(of: other)
-  }
-}
-
 // MARK: - Darwin
-
-extension Bundle {
-  static let appID = Bundle.main.bundleIdentifier!
-}
-
-extension Logger {
-  static let sandbox = Self(subsystem: Bundle.appID, category: "Sandbox")
-}
 
 extension URL {
   var pathString: String {
@@ -85,22 +60,6 @@ extension URL {
 
   var lastPath: String {
     self.deletingPathExtension().lastPathComponent
-  }
-}
-
-extension UserDefaults {
-  static var `default`: Self {
-    let suiteName: String?
-
-    #if DEBUG
-    suiteName = nil
-
-    #else
-    suiteName = "\(Bundle.appID).Debug"
-
-    #endif
-
-    return Self(suiteName: suiteName)!
   }
 }
 

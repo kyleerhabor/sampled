@@ -1,25 +1,4 @@
-#!/bin/sh
-
-#  core.sh
-#  Sampled
-#
-#  Created by Kyle Erhabor on 11/8/24.
-#  
-
-. "$(dirname "$0")/scripts/core.sh"
-. "$(dirname "$0")/scripts/build.sh"
-
-build () {
-  local prefix="$1"
-  local arch="$2"
-  echo "Building FFmpeg for $arch"
-
-  pushd "$CWD/$FFMPEGDIR"
-
-  # As of 358fdf3, FFmpeg's C compiler test does not consider sysroot with spaces, and we can't escape it ourselves via
-  # quotes or printf. To call this function, make sure Xcode's name does not contain spaces (i.e. prefer "Xcode" or
-  # "Xcode-16" instead of "Xcode 16")
-  #
+{ stdenv, lib, buildPackages, fetchgit, pkg-config, nasm, libogg, libvorbis, libopus }: let
   # The following is a list of formats to bundle from the configuration. The actual supported formats may be more, but
   # should not be less. The list is meant to encompass formats supported by the system (e.g. AAC on macOS), formats
   # supported by X Lossless Decoder (XLD, e.g. WavPack), and formats desirable for users (e.g. Opus).
@@ -75,29 +54,62 @@ build () {
   #   vorbis:     Vorbis                                     / Vorbis
   #   wavpack:    WavPack                                    / WavPack
   #   wmav2:      Windows Media Audio 2                      / Windows Media Audio
-  #
-  # FIXME: Don't statically link system libraries
-  #
-  # At least, I *think* --pkg-config-flags is doing that. The flag exists for project dependencies like libogg, but I
-  # hope it's not statically linking e.g. libiconv.
-  PKG_CONFIG_PATH="$CWD/$prefix/lib/pkgconfig:$CWD/$PREFIX_FAT/lib/pkgconfig:$PKG_CONFIG_PATH" \
-  ./configure --prefix="$CWD/$prefix" \
-    --disable-network --disable-everything \
-    --enable-libopus --enable-libvorbis \
-    --enable-demuxer=aac,ac3,aiff,asf,flac,loas,matroska,mov,mp3,ogg,w64,wav,wv \
-    --enable-decoder=*_at,flac,libopus,mjpeg,msmpeg4v3,pcm_f32le,pcm_f32be,pcm_s8,pcm_s16le,pcm_s16be,pcm_s24le,pcm_s24be,pcm_s32le,pcm_s32be,png,vorbis,wavpack,wmav2 \
-    --enable-protocol=file \
-    --disable-shared --enable-static \
-    --arch="$arch" \
-    --enable-cross-compile \
-    --sysroot="$(xcrun --sdk macosx --show-sdk-path)" \
-    --target-os=darwin \
-    --cc="clang $EXTRA_CFLAGS" \
-    --pkg-config-flags=--static \
-    --extra-cflags="-arch $arch -I$CWD/$prefix/include -w" \
-    --extra-ldflags="-arch $arch -L$CWD/$prefix/lib -w" \
-    "${EXTRA_FFMPEGFLAGS[@]}"
+  demuxers = ["aac" "ac3" "aiff" "asf" "flac" "loas" "matroska" "mov" "mp3" "ogg" "w64" "wav" "wv"];
+  decoders = [
+    "*_at" "flac" "libopus" "mjpeg" "msmpeg4v3" "pcm_f32le" "pcm_f32be" "pcm_s8" "pcm_s16le" "pcm_s16be"
+    "pcm_s24le" "pcm_s24be" "pcm_s32le" "pcm_s32be" "png" "vorbis" "wavpack" "wmav2"
+  ];
+in stdenv.mkDerivation {
+  name = "ffmpeg";
+  strictDeps = true;
+  src = fetchgit {
+    url = "https://git.ffmpeg.org/ffmpeg.git";
+    rev = "1c7b72cd6b16f344d40bb63d33338cb06c12aed2";
+    hash = "sha256-b0mtYrZJwnWsNmGGFj/Bdrzk9/VTHz2xZWHPkW7vWnI=";
+  };
 
-  runmake
-  popd
+  # Configure
+  nativeBuildInputs = [pkg-config]
+    ++ lib.optionals stdenv.hostPlatform.isx86 [ nasm ];
+  buildInputs = [libogg libvorbis libopus];
+  dontDisableStatic = true;
+  configurePlatforms = [];
+  configureFlags = [
+    # Configuration
+    "--disable-everything"
+    "--disable-shared"
+    "--enable-static"
+    "--disable-network"
+
+    # Programs & documentation
+    "--disable-doc"
+
+    # Components
+    "--enable-demuxer=${builtins.concatStringsSep "," demuxers}"
+    "--enable-decoder=${builtins.concatStringsSep "," decoders}"
+    "--enable-protocol=file"
+
+    # External libraries
+    "--enable-libopus"
+    "--enable-libvorbis"
+
+    # Toolchain
+    "--arch=${stdenv.hostPlatform.parsed.cpu.name}"
+    "--target-os=${stdenv.hostPlatform.parsed.kernel.name}"
+    "--pkg-config-flags=--static"
+  ]
+  ++ lib.optionals (stdenv.hostPlatform != stdenv.buildPlatform) [
+    # Toolchain
+    "--enable-cross-compile"
+    "--cross-prefix=${stdenv.cc.targetPrefix}"
+    "--host-cc=${buildPackages.stdenv.cc}/bin/cc"
+  ];
+  configurePhase = ''
+    runHook preConfigure
+    ./configure --prefix=$out --cc=$CC $configureFlags
+    runHook postConfigure
+  '';
+
+  # Build
+  enableParallelBuilding = true;
 }
