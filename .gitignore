@@ -1,8 +1,8 @@
 # FFmpeg
 deps/
 ffbuild/
-SampledCore/Sources/CFFmpeg/x86_64
-SampledCore/Sources/CFFmpeg/arm64
+SampledCore/Sources/CFFmpeg/x86_64/*
+SampledCore/Sources/CFFmpeg/arm64/*
 
 # Xcode
 xcuserdata/
