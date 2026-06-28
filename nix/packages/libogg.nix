@@ -1,4 +1,3 @@
-# Test parallelism.
 { stdenv, fetchFromGitLab, autoreconfHook, pkg-config }: stdenv.mkDerivation {
   name = "libogg";
   strictDeps = true;

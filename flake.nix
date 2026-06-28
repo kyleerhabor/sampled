@@ -29,6 +29,7 @@
           libvorbis = self.packages.${system}.libvorbis;
           libopus = self.packages.${system}.libopus;
         };
+        opensubsonic-openapi = pkgs.callPackage ./nix/packages/opensubsonic-openapi.nix {};
         cffmpeg-support = pkgs.buildPackages.runCommand "cffmpeg-support" {} "cp -R ${./SampledCore/Sources/CFFmpegSupport}/. $out";
         cffmpeg = pkgs.symlinkJoin {
           name = "cffmpeg";

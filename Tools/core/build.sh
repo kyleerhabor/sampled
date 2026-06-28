@@ -22,3 +22,6 @@ for arch in $ARCHS; do
 
   nix build --impure "$pkg" -o "SampledCore/Sources/CFFmpeg/$arch"
 done
+
+echo "Building OpenSubsonic OpenAPI specification..."
+nix build --impure ".#opensubsonic-openapi" -o "SampledCore/Sources/SampledOpenSubsonicAPI/openapi.json"
