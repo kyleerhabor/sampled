@@ -35,9 +35,6 @@
           name = "cffmpeg";
           paths = [
             self.packages.${system}.cffmpeg-support
-            self.packages.${system}.libogg
-            self.packages.${system}.libvorbis
-            self.packages.${system}.libopus
             self.packages.${system}.ffmpeg
           ];
         };
@@ -45,7 +42,12 @@
     );
     devShells = forDarwin (
       system: let pkgs = pkgsFor system; in {
-        default = pkgs.callPackage ./nix/devShell.nix {};
+        default = pkgs.callPackage ./nix/devShell.nix {
+          libogg-src = self.packages.${system}.libogg.src;
+          libvorbis-src = self.packages.${system}.libvorbis.src;
+          libopus-src = self.packages.${system}.libopus.src;
+          ffmpeg-src = self.packages.${system}.ffmpeg.src;
+        };
       }
     );
   };

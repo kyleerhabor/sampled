@@ -51,13 +51,13 @@
   #   pcm_s32le:  PCM signed 32-bit little-endian            / Sony Wave64 & Waveform Audio File Format
   #   pcm_s32be:  PCM signed 32-bit big-endian               / Audio Interchange File Format
   #   png:        PNG (Portable Network Graphics) image      / PNG
-  #   vorbis:     Vorbis                                     / Vorbis
+  #   libvorbis:  libvorbis (codec vorbis)                   / Vorbis
   #   wavpack:    WavPack                                    / WavPack
   #   wmav2:      Windows Media Audio 2                      / Windows Media Audio
   demuxers = ["aac" "ac3" "aiff" "asf" "flac" "loas" "matroska" "mov" "mp3" "ogg" "w64" "wav" "wv"];
   decoders = [
-    "*_at" "flac" "libopus" "mjpeg" "msmpeg4v3" "pcm_f32le" "pcm_f32be" "pcm_s8" "pcm_s16le" "pcm_s16be"
-    "pcm_s24le" "pcm_s24be" "pcm_s32le" "pcm_s32be" "png" "vorbis" "wavpack" "wmav2"
+    "*_at" "flac" "libopus" "mjpeg" "msmpeg4v3" "pcm_f32le" "pcm_f32be" "pcm_s8" "pcm_s16le" "pcm_s16be" "pcm_s24le"
+    "pcm_s24be" "pcm_s32le" "pcm_s32be" "png" "libvorbis" "wavpack" "wmav2"
   ];
 in stdenv.mkDerivation {
   name = "ffmpeg";
@@ -81,7 +81,11 @@ in stdenv.mkDerivation {
     "--enable-static"
     "--disable-network"
 
-    # Programs & documentation
+    # Programs
+    "--disable-programs"
+    "--enable-ffprobe"
+
+    # Documentation
     "--disable-doc"
 
     # Components

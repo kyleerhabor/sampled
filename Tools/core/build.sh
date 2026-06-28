@@ -8,7 +8,13 @@
 
 set -e
 
-for arch in $ARCHS; do
+nix_options=
+
+if [ "${BUILD_DRY_RUN}" = 1 ]; then
+  nix_options="--dry-run"
+fi
+
+for arch in $BUILD_ARCHS; do
   echo "Building CFFmpeg for $arch..."
 
   case "$arch" in
@@ -20,8 +26,10 @@ for arch in $ARCHS; do
       ;;
   esac
 
-  nix build --impure "$pkg" -o "SampledCore/Sources/CFFmpeg/$arch"
+  nix build --impure ${nix_options} "$pkg" \
+    -o "SampledCore/Sources/CFFmpeg/$arch"
 done
 
 echo "Building OpenSubsonic OpenAPI specification..."
-nix build --impure ".#opensubsonic-openapi" -o "SampledCore/Sources/SampledOpenSubsonicAPI/openapi.json"
+nix build --impure ${nix_options} ".#opensubsonic-openapi" \
+  -o "SampledCore/Sources/SampledOpenSubsonicAPI/openapi.json"

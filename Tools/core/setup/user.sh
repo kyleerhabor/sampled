@@ -8,5 +8,6 @@
 
 set -e
 
-export ARCHS="${ARCHS:-$(uname -m)}"
+export BUILD_ARCHS="${ARCHS:-$(uname -m)}"
+export BUILD_DRY_RUN="${DRY_RUN:-}"
 . ./Tools/core/build.sh

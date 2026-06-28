@@ -2,10 +2,10 @@
   name = "opensubsonic-openapi";
   strictDeps = true;
   src = fetchFromGitHub {
-    owner = "kyleerhabor";
+    owner = "opensubsonic";
     repo = "open-subsonic-api";
-    rev = "12f557ebdf195bf429d52134832ae8a87f02b754";
-    hash = "sha256-dABzOQb2uoCBQreMUtNQQIPLbwJl38xgquimRjaRBzU=";
+    rev = "e184c37c3485cdb6afa57ae86b89c9d99e2f1105";
+    hash = "sha256-oYiab/O5K3y01ZsgApZW+KCgtgAAdYuuB2dLQ6DPAzc=";
   };
   nativeBuildInputs = [cacert];
   SSL_CERT_FILE = "${cacert}/etc/ssl/certs/ca-bundle.crt";

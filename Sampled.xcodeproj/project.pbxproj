@@ -464,6 +464,7 @@
 /* Begin PBXShellScriptBuildPhase section */
 		0047204F2FEF708800A56A32 /* Build External Dependencies */ = {
 			isa = PBXShellScriptBuildPhase;
+			alwaysOutOfDate = 1;
 			buildActionMask = 2147483647;
 			files = (
 			);

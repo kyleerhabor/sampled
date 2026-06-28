@@ -15,4 +15,5 @@ fi
 
 # If, for some reason, index builds cause issues, just exit on index builds (`"$ACTION" = indexbuild`).
 export PATH="/nix/var/nix/profiles/default/bin:$PATH"
+export BUILD_ARCHS="$ARCHS"
 . ./Tools/core/build.sh

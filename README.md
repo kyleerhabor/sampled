@@ -16,7 +16,7 @@ Sampled is highly inspired by the [Meta music tag editor][meta] and [Doppler mus
 
 > [!IMPORTANT]
 >
-> Sampled has not been notarized by Apple. To run the app, open the app and [follow these instructions][apple-notarization-bypass].
+> Sampled has not been notarized by Apple. To run the app, open it and [follow these instructions][apple-notarization-bypass].
 
 You can either download a release from the [Releases][releases] page or build from source.
 
@@ -24,7 +24,7 @@ macOS Sequoia 15 or later is required.
 
 ### Install
 
-This project uses [Nix][nixos] to manage dependencies outside of Swift Package Manager. [You can install Nix from the website.][nixos-download]
+The project uses [Nix][nixos] to manage dependencies outside of Swift Package Manager. [You can install Nix from the website.][nixos-download]
 
 The first time you build the project (as well as make changes to configuration, like building for release), it will take a long time to complete. Subsequent builds should perform much better.
 
