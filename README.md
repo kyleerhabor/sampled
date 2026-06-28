@@ -26,7 +26,7 @@ macOS Sequoia 15 or later is required.
 
 The project uses [Nix][nixos] to manage dependencies outside of Swift Package Manager. [You can install Nix from the website.][nixos-download]
 
-The first time you build the project (as well as make changes to configuration, like building for release), it will take a long time to complete. Subsequent builds should perform much better.
+The first time you build the project in a given configuration, it will take a long time to complete. Subsequent builds should perform much better.
 
 1. Clone the Git repository (e.g., `git clone https://github.com/kyleerhabor/sampled Sampled`)
 2. Open the project (e.g., `open Sampled/Sampled.xcodeproj`)
