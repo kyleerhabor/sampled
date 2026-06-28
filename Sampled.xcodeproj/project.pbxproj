@@ -269,7 +269,7 @@
 			isa = PBXNativeTarget;
 			buildConfigurationList = 0017ED332BF17A3D008B3D76 /* Build configuration list for PBXNativeTarget "Sampled" */;
 			buildPhases = (
-				0047204F2FEF708800A56A32 /* C: Build Dependencies */,
+				0047204F2FEF708800A56A32 /* Build External Dependencies */,
 				0017ED202BF17A38008B3D76 /* Sources */,
 				0017ED212BF17A38008B3D76 /* Frameworks */,
 				0017ED222BF17A38008B3D76 /* Resources */,
@@ -462,7 +462,7 @@
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXShellScriptBuildPhase section */
-		0047204F2FEF708800A56A32 /* C: Build Dependencies */ = {
+		0047204F2FEF708800A56A32 /* Build External Dependencies */ = {
 			isa = PBXShellScriptBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -471,7 +471,7 @@
 			);
 			inputPaths = (
 			);
-			name = "C: Build Dependencies";
+			name = "Build External Dependencies";
 			outputFileListPaths = (
 			);
 			outputPaths = (

@@ -18,23 +18,23 @@ Sampled is highly inspired by the [Meta music tag editor][meta] and [Doppler mus
 >
 > Sampled has not been notarized by Apple. To run the app, open the app and [follow these instructions][apple-notarization-bypass].
 
-You can either download a release of the app from the [Releases][releases] page or build from source in Xcode.
+You can either download a release from the [Releases][releases] page or build from source.
 
-macOS Sequoia (15) or later is required.
+macOS Sequoia 15 or later is required.
 
 ### Install
 
-The first time you build the project (as well as make changes to configuration, like building for release), it will take
-a significant amount of time to complete.[^1] This is due to project dependencies like FFmpeg. Subsequent builds should
-perform much better.
+This project uses [Nix][nixos] to manage dependencies outside of Swift Package Manager. [You can install Nix from the website.][nixos-download]
+
+The first time you build the project (as well as make changes to configuration, like building for release), it will take a long time to complete. Subsequent builds should perform much better.
 
 1. Clone the Git repository (e.g., `git clone https://github.com/kyleerhabor/sampled Sampled`)
 2. Open the project (e.g., `open Sampled/Sampled.xcodeproj`)
-3. Select `Product > Archive` to build for release
+3. Select `Product > Archive` to build using release configuration
 4. From Organizer, select `Distribute App > Custom > Copy App` to export the app
 5. Open the app
 
-If you encounter an error like `'libavutil/avutil.h' file not found`, you may need to run `Tools/setup.sh` before step 3.
+If you encounter an error like `'libavutil/avutil.h' file not found`, you may need to execute `Tools/setup.sh` before step 3.
 
 ### Screenshots
 
@@ -46,15 +46,14 @@ If you encounter an error like `'libavutil/avutil.h' file not found`, you may ne
 
 ## Contribute
 
-If you'd like to contribute, I recommend using [Base][base] to browse the database in `~/Library/Containers/com.kyleerhabor.Sampled/Data/Library/Application Support/com.kyleerhabor.Sampled/[Debug]Data`.
+If you'd like to contribute, I recommend using [Base][base] to browse the database in `~/Library/Containers/[...]/Data/Library/Application Support/[...]/Database/Data.sqlite3`, where `[...]` is either `com.kyleerhabor.Sampled` or `com.kyleerhabor.SampledDebug`.
 
-If package resolutions fails, it's possible Command Line Tools for Xcode is out of sync. See Xcode > Settings... >
-Locations > Command Line Tools.
-
-[^1]: An initial build on my 2019 MacBook Pro takes ~4 minutes to complete. 
+If package resolutions fails, it's possible Command Line Tools for Xcode is out of sync. See `Xcode > Settings... > Locations > Command Line Tools`.
 
 [meta]: https://www.nightbirdsevolve.com/meta
 [doppler]: https://brushedtype.co/doppler
 [apple-notarization-bypass]: https://support.apple.com/en-us/102445#openanyway
 [releases]: https://github.com/kyleerhabor/sampled/releases
 [base]: https://menial.co.uk/base
+[nixos]: https://nixos.org/
+[nixos-download]: https://nixos.org/download
