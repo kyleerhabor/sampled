@@ -1,6 +1,4 @@
 # FFmpeg
-deps/
-ffbuild/
 SampledCore/Sources/CFFmpeg/x86_64
 SampledCore/Sources/CFFmpeg/arm64
 

@@ -54,6 +54,6 @@ If package resolutions fails, it's possible Command Line Tools for Xcode is out 
 [doppler]: https://brushedtype.co/doppler
 [apple-notarization-bypass]: https://support.apple.com/en-us/102445#openanyway
 [releases]: https://github.com/kyleerhabor/sampled/releases
-[base]: https://menial.co.uk/base
 [nixos]: https://nixos.org/
 [nixos-download]: https://nixos.org/download
+[base]: https://menial.co.uk/base
