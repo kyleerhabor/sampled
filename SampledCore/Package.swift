@@ -35,7 +35,7 @@ let package = Package(
     .target(
       name: "CFFmpeg",
       path: "Sources/CFFmpeg/\(arch)",
-      exclude: ["share"],
+      exclude: ["share", "src"],
       linkerSettings: [.linkedLibrary("iconv")],
     ),
     .target(

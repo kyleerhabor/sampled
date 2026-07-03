@@ -7,14 +7,17 @@
     #
     #   evaluation warning: Nixpkgs 26.05 will be the last release to support x86_64-darwin; see https://nixos.org/manual/nixpkgs/unstable/release-notes#x86_64-darwin-26.05
     #
-    # In the future, we may be required to cross-compile x86_64 from arm64 and pin dependencies like the Apple SDK. The
-    # worst-case scenario is that cross compiling is slow (~40 minutes).
+    # I think pinning Nixpkgs to 26.05 should suppress the issue, but risks breaking in the future.
     systems = ["x86_64-darwin" "aarch64-darwin"];
     forDarwin = nixpkgs.lib.genAttrs systems;
+    nativePkgs = import nixpkgs {
+      system = builtins.currentSystem;
+      config.allowDeprecatedx86_64Darwin = true;
+    };
     pkgsFor = system:
       if system == builtins.currentSystem
-      then nixpkgs.legacyPackages.${system}
-      else nixpkgs.legacyPackages.${builtins.currentSystem}.pkgsCross.${system};
+      then nativePkgs
+      else nativePkgs.pkgsCross.${system};
   in {
     packages = forDarwin (
       system: let pkgs = pkgsFor system; in {
@@ -36,6 +39,14 @@
             self.packages.${system}.cffmpeg-support
             self.packages.${system}.ffmpeg
           ];
+          postBuild = ''
+            # We don't use this for anything, but it makes it easier to find the source code for these libraries.
+            mkdir $out/src
+            ln -sfn ${self.packages.${system}.ffmpeg.src} $out/src/ffmpeg
+            ln -sfn ${self.packages.${system}.libogg.src} $out/src/libogg
+            ln -sfn ${self.packages.${system}.libvorbis.src} $out/src/libvorbis
+            ln -sfn ${self.packages.${system}.libopus.src} $out/src/libopus
+          '';
         };
       }
     );
