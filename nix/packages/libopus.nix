@@ -1,5 +1,6 @@
 { stdenv, fetchFromGitLab, autoreconfHook, pkg-config }: stdenv.mkDerivation {
   name = "libopus";
+  version = "v1.5.2+";
   strictDeps = true;
   src = fetchFromGitLab {
     domain = "gitlab.xiph.org";

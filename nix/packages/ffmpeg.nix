@@ -1,4 +1,4 @@
-{ stdenv, lib, buildPackages, fetchgit, pkg-config, nasm, libogg, libvorbis, libopus }: let
+{ stdenv, lib, buildPackages, fetchgit, pkg-config, nasm, libvorbis, libopus }: let
   # The following is a list of formats to bundle from the configuration. The actual supported formats may be more, but
   # should not be less. The list is meant to encompass formats supported by the system (e.g. AAC on macOS), formats
   # supported by X Lossless Decoder (XLD, e.g. WavPack), and formats desirable for users (e.g. Opus).
@@ -61,6 +61,7 @@
   ];
 in stdenv.mkDerivation {
   name = "ffmpeg";
+  version = "8.0+";
   strictDeps = true;
   src = fetchgit {
     url = "https://git.ffmpeg.org/ffmpeg.git";
@@ -70,8 +71,8 @@ in stdenv.mkDerivation {
 
   # Configure
   nativeBuildInputs = [pkg-config]
-    ++ lib.optionals stdenv.hostPlatform.isx86 [ nasm ];
-  buildInputs = [libogg libvorbis libopus];
+    ++ lib.optionals stdenv.hostPlatform.isx86 [nasm];
+  buildInputs = [libvorbis libopus];
   dontDisableStatic = true;
   configurePlatforms = [];
   configureFlags = [

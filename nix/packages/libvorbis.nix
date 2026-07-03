@@ -1,5 +1,6 @@
 { stdenv, fetchFromGitLab, autoreconfHook, pkg-config, libogg }: stdenv.mkDerivation {
   name = "libvorbis";
+  version = "v1.3.7+";
   strictDeps = true;
   src = fetchFromGitLab {
     domain = "gitlab.xiph.org";
@@ -11,7 +12,7 @@
 
   # Configure
   nativeBuildInputs = [autoreconfHook pkg-config];
-  buildInputs = [libogg];
+  propagatedBuildInputs = [libogg];
   dontDisableStatic = true;
   configureFlags = [
     "--disable-shared"

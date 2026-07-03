@@ -25,7 +25,6 @@
         };
         libopus = pkgs.callPackage ./nix/packages/libopus.nix {};
         ffmpeg = pkgs.callPackage ./nix/packages/ffmpeg.nix {
-          libogg = self.packages.${system}.libogg;
           libvorbis = self.packages.${system}.libvorbis;
           libopus = self.packages.${system}.libopus;
         };

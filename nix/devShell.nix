@@ -32,7 +32,7 @@
     libtool
     pkg-config
   ]
-  ++ lib.optionals stdenv.hostPlatform.isx86 [ nasm ];
+  ++ lib.optionals stdenv.hostPlatform.isx86 [nasm];
   shellHook = ''
     export_src() {
       local name="$1"

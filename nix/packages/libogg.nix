@@ -1,5 +1,6 @@
 { stdenv, fetchFromGitLab, autoreconfHook, pkg-config }: stdenv.mkDerivation {
   name = "libogg";
+  version = "v1.3.6+";
   strictDeps = true;
   src = fetchFromGitLab {
     domain = "gitlab.xiph.org";
