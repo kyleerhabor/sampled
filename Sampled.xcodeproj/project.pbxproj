@@ -283,7 +283,6 @@
 			);
 			productRefGroup = 0017ED252BF17A38008B3D76 /* Products */;
 			projectDirPath = "";
-			projectReferences = ();
 			projectRoot = "";
 			targets = (
 				0017ED232BF17A38008B3D76 /* Sampled */,

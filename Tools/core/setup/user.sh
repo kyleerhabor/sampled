@@ -6,8 +6,8 @@
 #  Created by Kyle Erhabor on 6/27/26.
 #
 
-set -e
-
 export BUILD_ARCHS="${ARCHS:-$(uname -m)}"
 export BUILD_DRY_RUN="${DRY_RUN:-}"
+export BUILD_VERBOSE="${VERBOSE:-}"
 . ./Tools/core/build.sh
+. ./Tools/core/install.sh

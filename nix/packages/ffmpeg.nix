@@ -1,4 +1,4 @@
-{ stdenv, lib, buildPackages, fetchgit, pkg-config, nasm, libvorbis, libopus }: let
+{ stdenv, lib, buildPackages, fetchgit, pkg-config, nasm, zlib, libvorbis, libopus }: let
   # The following is a list of formats to bundle from the configuration. The actual supported formats may be more, but
   # should not be less. The list is meant to encompass formats supported by the system (e.g. AAC on macOS), formats
   # supported by X Lossless Decoder (XLD, e.g. WavPack), and formats desirable for users (e.g. Opus).
@@ -10,77 +10,63 @@
   # For formats supported by XLD, see:
   #
   #   https://tmkk.undo.jp/xld/index_e.html
-  #
-  # The format is "[ID]: [Description] / [Name]" where [Name] refers to a common name. A prefix of "..." means the label
-  # has not been tested yet.
-  #
-  # Demuxers:
-  #   aac:       raw ADTS AAC (Advanced Audio Coding)
-  #   ac3:       raw AC-3
-  #   aiff:      Audio IFF
-  #   asf:       ASF (Advanced / Active Streaming Format)
-  #   flac:      raw FLAC
-  #   loas:      LOAS AudioSyncStream
-  #   matroska:  Matroska / WebM
-  #   mov:       QuickTime / MOV
-  #   mp3:       MP2/3 (MPEG audio layer 2/3)
-  #   ogg:       Ogg
-  #   w64:       Sony Wave64
-  #   wav:       WAV / WAVE (Waveform Audio)
-  #   wv:        WavPack
-  #
-  # Decoders:
-  #   aac_at:     aac (AudioToolbox)                         / Advanced Audio Coding
-  #   ac3_at:     ac3 (AudioToolbox)                         / Dolby AC-3
-  #   alac_at:    alac (AudioToolbox)                        / Apple Lossless Audio Codec
-  #   eac3_at:    eac3 (AudioToolbox)                        / Dolby Digital Plus
-  #   flac:       FLAC (Free Lossless Audio Codec)           / Free Lossless Audio Codec
-  #   libopus:    libopus Opus                               / Opus
-  #   mjpeg:      MJPEG (Motion JPEG)                        / Motion JPEG
-  #   msmpeg4v3:  MPEG-4 part 2 Microsoft variant version 3  / Microsoft MPEG-4
-  #...mp1_at:     mp1 (AudioToolbox)                         / MPEG-1 Audio Layer I
-  #   mp2_at:     mp2 (AudioToolbox)                         / MPEG-1 Audio Layer II
-  #   mp3_at:     mp3 (AudioToolbox)                         / MPEG-1 Audio Layer III
-  #   pcm_f32le:  PCM 32-bit floating point little-endian    / Sony Wave64 & Waveform Audio File Format
-  #   pcm_f32be:  PCM 32-bit floating point big-endian       / Audio Interchange File Format
-  #   pcm_s8:     PCM signed 8-bit                           / Audio Interchange File Format & Waveform Audio File Format
-  #   pcm_s16le:  PCM signed 16-bit little-endian            / Sony Wave64 & Waveform Audio File Format
-  #   pcm_s16be:  PCM signed 16-bit big-endian               / Audio Interchange File Format
-  #   pcm_s24le:  PCM signed 24-bit little-endian            / Sony Wave64 & Waveform Audio File Format
-  #   pcm_s24be:  PCM signed 24-bit big-endian               / Audio Interchange File Format
-  #   pcm_s32le:  PCM signed 32-bit little-endian            / Sony Wave64 & Waveform Audio File Format
-  #   pcm_s32be:  PCM signed 32-bit big-endian               / Audio Interchange File Format
-  #   png:        PNG (Portable Network Graphics) image      / PNG
-  #   libvorbis:  libvorbis (codec vorbis)                   / Vorbis
-  #   wavpack:    WavPack                                    / WavPack
-  #   wmav2:      Windows Media Audio 2                      / Windows Media Audio
-  demuxers = ["aac" "ac3" "aiff" "asf" "flac" "loas" "matroska" "mov" "mp3" "ogg" "w64" "wav" "wv"];
+  demuxers = [
+    # System
+    "aac" "ac3" "aiff" "caf" "eac3" "flac" "loas" "mov" "mp3" "w64" "wav"
+
+    # XLD
+    "ogg" "wv"
+
+    # Project
+    "asf" "avi" "matroska"
+
+    # Maybe
+    # "ape" "dsf" "shn" "tak" "tta"
+  ];
   decoders = [
-    "*_at" "flac" "libopus" "mjpeg" "msmpeg4v3" "pcm_f32le" "pcm_f32be" "pcm_s8" "pcm_s16le" "pcm_s16be" "pcm_s24le"
-    "pcm_s24be" "pcm_s32le" "pcm_s32be" "png" "libvorbis" "wavpack" "wmav2"
+    # Dependencies
+    "libopus" "libvorbis"
+
+    # Native
+    "flac" "mjpeg" "png" "wavpack" "wmav2"
+
+    # Audio Toolbox
+    "aac_at" "ac3_at" "adpcm_ima_qt_at" "alac_at" "amr_nb_at" "eac3_at" "gsm_ms_at" "ilbc_at" "mp1_at" "mp2_at" "mp3_at"
+    "pcm_alaw_at" "pcm_mulaw_at" "qdm2_at" "qdmc_at"
+
+    # PCM: floating point
+    "pcm_f16le" "pcm_f24le" "pcm_f32be" "pcm_f32le" "pcm_f64be" "pcm_f64le"
+
+    # PCM: signed
+    #
+    # All demuxers produce interleaved audio, so the planar variants aren't necessary.
+    "pcm_s16be" "pcm_s16le" "pcm_s24be" "pcm_s24le" "pcm_s32be" "pcm_s32le" "pcm_s64be" "pcm_s64le" "pcm_s8"
+
+    # PCM: unsigned
+    "pcm_u16be" "pcm_u16le" "pcm_u24be" "pcm_u24le" "pcm_u32be" "pcm_u32le" "pcm_u8"
   ];
 in stdenv.mkDerivation {
-  name = "ffmpeg";
+  pname = "ffmpeg";
   version = "8.0+";
   strictDeps = true;
   src = fetchgit {
     url = "https://git.ffmpeg.org/ffmpeg.git";
-    rev = "1c7b72cd6b16f344d40bb63d33338cb06c12aed2";
-    hash = "sha256-b0mtYrZJwnWsNmGGFj/Bdrzk9/VTHz2xZWHPkW7vWnI=";
+    rev = "a37171bed554305b7b83c521ccd25ef40806347f";
+    hash = "sha256-pM7+SJu2OQDahToA77j3CNN8zPXiUQAKebGmyN42SEM=";
   };
 
   # Configure
   nativeBuildInputs = [pkg-config]
     ++ lib.optionals stdenv.hostPlatform.isx86 [nasm];
-  buildInputs = [libvorbis libopus];
+  # The png decoder depends on zlib, which must be linked.
+  buildInputs = [zlib libvorbis libopus];
   dontDisableStatic = true;
   configurePlatforms = [];
   configureFlags = [
     # Configuration
-    "--disable-everything"
+    "--disable-checkasm"
     "--disable-shared"
     "--enable-static"
-    "--disable-network"
 
     # Programs
     "--disable-programs"
@@ -90,6 +76,10 @@ in stdenv.mkDerivation {
     "--disable-doc"
 
     # Components
+    "--disable-network"
+
+    # Individual components
+    "--disable-everything"
     "--enable-demuxer=${builtins.concatStringsSep "," demuxers}"
     "--enable-decoder=${builtins.concatStringsSep "," decoders}"
     "--enable-protocol=file"

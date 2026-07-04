@@ -1,13 +1,13 @@
 { stdenv, fetchFromGitLab, autoreconfHook, pkg-config }: stdenv.mkDerivation {
-  name = "libopus";
-  version = "v1.5.2+";
+  pname = "libopus";
+  version = "v1.6.1+";
   strictDeps = true;
   src = fetchFromGitLab {
     domain = "gitlab.xiph.org";
     owner = "xiph";
     repo = "opus";
-    rev = "2d862ea14b233e5a3f3afaf74d96050691af3cd5";
-    hash = "sha256-yCoFVs5YMITB1vE8Y/KvnHLnqDZqIKts/Sr5ZJNAgj4=";
+    rev = "3da9f7a6db1c05c3996cb363a9d1931a978bf1be";
+    hash = "sha256-VdJhdy9ZwWP0oxoz6OfjCpgYaEkrEH2Y78/TT2VNPYU=";
   };
 
   # Configure
@@ -15,7 +15,7 @@
   dontDisableStatic = true;
   configureFlags = [
     "--disable-shared"
-    "--enable-check-asm"
+    "--disable-dependency-tracking"
     "--disable-doc"
     "--disable-extra-programs"
   ];

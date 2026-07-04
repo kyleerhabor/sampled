@@ -1,13 +1,13 @@
 { stdenv, fetchFromGitLab, autoreconfHook, pkg-config }: stdenv.mkDerivation {
-  name = "libogg";
+  pname = "libogg";
   version = "v1.3.6+";
   strictDeps = true;
   src = fetchFromGitLab {
     domain = "gitlab.xiph.org";
     owner = "xiph";
     repo = "ogg";
-    rev = "0288fadac3ac62d453409dfc83e9c4ab617d2472";
-    hash = "sha256-IoDEoh58OqiixLu8n3N/G9Fzqm4WYoTuGZLTLGw7XfM=";
+    rev = "06a5e0262cdc28aa4ae6797627a783b5010440f0";
+    hash = "sha256-neCZLIrl3Uw58/N3FM3pm6Y7gV8WuVmJgfs9wfTK1to=";
   };
 
   # Configure
@@ -15,6 +15,7 @@
   dontDisableStatic = true;
   configureFlags = [
     "--disable-shared"
+    "--disable-dependency-tracking"
   ];
 
   # Build

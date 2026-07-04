@@ -1,13 +1,13 @@
 { stdenv, fetchFromGitLab, autoreconfHook, pkg-config, libogg }: stdenv.mkDerivation {
-  name = "libvorbis";
+  pname = "libvorbis";
   version = "v1.3.7+";
   strictDeps = true;
   src = fetchFromGitLab {
     domain = "gitlab.xiph.org";
     owner = "xiph";
     repo = "vorbis";
-    rev = "2d79800b6751dddd4b8b4ad50832faa5ae2a00d9";
-    hash = "sha256-zpV37LIq571Z0li+Prqu3Zcb0I4Y4iLC8u58udadNnE=";
+    rev = "e3c9861ff096d52378e131ff8c334552e09cdffa";
+    hash = "sha256-JbPSiwXvgQ2t/EtyjmiEEVye7M/sIG9gMk3IZRvBQWc=";
   };
 
   # Configure
@@ -16,6 +16,8 @@
   dontDisableStatic = true;
   configureFlags = [
     "--disable-shared"
+    "--disable-dependency-tracking"
+    "--disable-oggtest"
   ];
   postAutoreconf = ''
     # Remove obsolete -force_cpusubtype_ALL option so it's not passed to ld.
